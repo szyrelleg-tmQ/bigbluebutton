@@ -399,7 +399,7 @@ class NavBar extends Component {
               >
                 <Tooltip title={intl.formatMessage(intlMessages.openDetailsTooltip)}>
                   <span>
-                    {presentationTitle}
+                    {presentationTitle}{"======================================="}
                     <Icon iconName="device_list_selector" />
                   </span>
                 </Tooltip>
