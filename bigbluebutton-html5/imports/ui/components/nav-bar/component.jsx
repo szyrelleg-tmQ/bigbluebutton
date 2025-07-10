@@ -399,7 +399,7 @@ class NavBar extends Component {
               >
                 <Tooltip title={intl.formatMessage(intlMessages.openDetailsTooltip)}>
                   <span>
-                    {presentationTitle}{"======================================="}
+                    {presentationTitle}
                     <Icon iconName="device_list_selector" />
                   </span>
                 </Tooltip>
@@ -407,7 +407,7 @@ class NavBar extends Component {
               {this.renderModal(isModalOpen, this.setModalIsOpen, 'low', SessionDetailsModal)}
               <RecordingIndicator
                 amIModerator={amIModerator}
-                currentUserId={currentUserId}
+                currentUserId={"Hello World " + currentUserId}
               />
               {renderPluginItems(centerPluginItems)}
             </Styled.Center>
