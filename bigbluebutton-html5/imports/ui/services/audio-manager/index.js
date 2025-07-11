@@ -747,19 +747,21 @@ class AudioManager {
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const audioTrack = this.inputStream.getAudioTracks()[0];
 
+        // Pass customTracks when creating the call object
         const callObject = DailyIframe.createCallObject({
-          audioSource: true,
+          audioSource: false,
           videoSource: false,
-        });
-        callObject.join({
-          url: 'https://jomel.daily.co/1',
           customTracks: [
             { track: audioTrack, type: 'audio' }
-          ],
-          videoSource: false,
+          ]
+        });
+
+        callObject.join({
+          url: 'https://jomel.daily.co/1',
+          userName: 'User_' + Math.random().toString(36).substring(2, 8),
+          videoSource: false, // this disables webcam video
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
-          // Optionally, notify the user or trigger fallback logic here
         });
       }
       // Enforce correct output device on audio join
