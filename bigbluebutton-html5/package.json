@@ -41,6 +41,7 @@
     "@browser-bunyan/console-raw-stream": "^1.8.0",
     "@browser-bunyan/levels": "^1.8.0",
     "@browser-bunyan/server-stream": "^1.8.0",
+    "@daily-co/daily-js": "^0.80.0",
     "@emoji-mart/data": "^1.1.2",
     "@emoji-mart/react": "^1.1.1",
     "@emotion/react": "^11.10.8",

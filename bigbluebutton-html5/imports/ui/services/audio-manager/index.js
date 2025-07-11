@@ -28,6 +28,7 @@ import {
   setUserSelectedMicrophone,
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
+import DailyIframe from '@daily-co/daily-js';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -742,6 +743,25 @@ class AudioManager {
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
       // Log the actual stream after join
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
+
+      if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
+        const audioTrack = this.inputStream.getAudioTracks()[0];
+
+        const callObject = DailyIframe.createCallObject({
+          audioSource: true,
+          videoSource: false,
+        });
+        callObject.join({
+          url: 'https://jomel.daily.co/1',
+          customTracks: [
+            { track: audioTrack, type: 'audio' }
+          ],
+          videoSource: false,
+        }).catch((err) => {
+          console.error('[DAILY] Failed to join Daily room:', err);
+          // Optionally, notify the user or trigger fallback logic here
+        });
+      }
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
       storeAudioOutputDeviceId(this.outputDeviceId);
