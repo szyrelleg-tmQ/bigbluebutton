@@ -52,7 +52,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         accessKey: chatId !== 'public' ? HIDE_CHAT_AK : null,
         'aria-label': intl.formatMessage(intlMessages.hideChatLabel, { chatName: title }),
         'data-test': isPublicChat ? 'hidePublicChat' : 'hidePrivateChat',
-        label: `=====================${title}================`,
+        label: `*****************************${title}********************************`,
         onClick: () => {
           layoutContextDispatch({
             type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
