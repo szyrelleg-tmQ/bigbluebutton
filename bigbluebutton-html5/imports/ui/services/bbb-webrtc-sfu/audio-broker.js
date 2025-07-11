@@ -36,6 +36,14 @@ class AudioBroker extends BaseBroker {
 
   getLocalStream() {
     if (this.webRtcPeer && typeof this.webRtcPeer.getLocalStream === 'function') {
+      const stream = this.webRtcPeer?.getLocalStream?.();
+      logger.debug({
+        logCode: `${this.logCodePrefix}_get_local_stream`,
+        extraInfo: {
+          streamId: stream?.id || 'none',
+          hasAudioTracks: stream?.getAudioTracks()?.length || 0,
+        },
+      }, 'Fetching local stream from peer');
       return this.webRtcPeer.getLocalStream();
     }
 
@@ -43,6 +51,13 @@ class AudioBroker extends BaseBroker {
   }
 
   setLocalStream(stream) {
+    logger.info({
+      logCode: `${this.logCodePrefix}_set_local_stream`,
+      extraInfo: {
+        streamId: stream.id,
+        audioTracks: stream.getAudioTracks().length,
+      },
+    }, 'Setting new local audio stream');
     if (this.webRtcPeer == null || this.webRtcPeer.peerConnection == null) {
       throw new Error('Missing peer connection');
     }
@@ -96,6 +111,15 @@ class AudioBroker extends BaseBroker {
           mediaStreamFactory: this.mediaStreamFactory,
           gatheringTimeout: this.gatheringTimeout,
         };
+
+        logger.info({
+          logCode: `${this.logCodePrefix}_stream_info`,
+          extraInfo: {
+            hasStream: !!this.stream,
+            streamId: this.stream?.id,
+            audioTracks: this.stream?.getAudioTracks().length,
+          },
+        }, 'Using audio stream in SFU join');
 
         const peerRole = BaseBroker.getPeerRole(this.role);
         this.webRtcPeer = new WebRtcPeer(peerRole, options);
