@@ -199,7 +199,7 @@ export default class SFUAudioBridge extends BaseAudioBridge {
     // doesn't get triggered - this is a retry attempt and the user shouldn't be
     // terminated yet
     if (!this.broker?.started) {
-      this.broker.onended = () => {};
+      this.broker.onended = () => { };
     }
 
     // Notify the user that the bridge is reconnecting - this can be read as
@@ -311,6 +311,8 @@ export default class SFUAudioBridge extends BaseAudioBridge {
     const MEDIA_TAG = MEDIA.mediaTag.replace(/#/g, '');
     const stream = this.broker.webRtcPeer.getRemoteStream();
     const mediaElement = document.getElementById(MEDIA_TAG);
+
+    console.log("------------------------", stream)
 
     return loadAndPlayMediaStream(stream, mediaElement, false).then(() => {
       this.callback({
