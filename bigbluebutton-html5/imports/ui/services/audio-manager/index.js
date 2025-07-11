@@ -746,7 +746,7 @@ class AudioManager {
 
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const audioTrack = this.inputStream.getAudioTracks()[0];
-
+        console.log('[AUDIO] Using audio track:', audioTrack);
         const callObject = DailyIframe.createCallObject({
           audioSource: false,
           videoSource: false,
@@ -755,20 +755,22 @@ class AudioManager {
           ]
         });
 
-        // Listen for join confirmation
         callObject.on('joined-meeting', (event) => {
-          console.log('✅ Successfully joined the Daily room!');
-          // You can also update UI, notify user, etc. here
-          // The `event` object contains info about the meeting/participants
+          console.log('✅ Successfully joined the Daily room!', event);
+          // UI updates here
         });
 
         callObject.join({
           url: 'https://jomel.daily.co/456',
           userName: 'User_' + Math.random().toString(36).substring(2, 8),
-          videoSource: false,
+          // No need for audioSource/videoSource here again if set above
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
         });
+
+        // Cleanup (on hangup, component unmount, etc.)
+        // callObject.leave();
+        // callObject.destroy();
       }
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
