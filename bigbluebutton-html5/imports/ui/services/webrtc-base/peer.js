@@ -295,6 +295,7 @@ export default class WebRtcPeer extends EventEmitter2 {
       this.remoteStream = new MediaStream();
       this.peerConnection.getReceivers().forEach(({ track }) => {
         if (track) {
+          console.log(`---------------------------------`, track);
           this.remoteStream.addTrack(track);
         }
       });
