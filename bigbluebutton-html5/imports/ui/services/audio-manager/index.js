@@ -747,7 +747,6 @@ class AudioManager {
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const audioTrack = this.inputStream.getAudioTracks()[0];
 
-        // Pass customTracks when creating the call object
         const callObject = DailyIframe.createCallObject({
           audioSource: false,
           videoSource: false,
@@ -756,10 +755,17 @@ class AudioManager {
           ]
         });
 
+        // Listen for join confirmation
+        callObject.on('joined-meeting', (event) => {
+          console.log('✅ Successfully joined the Daily room!');
+          // You can also update UI, notify user, etc. here
+          // The `event` object contains info about the meeting/participants
+        });
+
         callObject.join({
           url: 'https://jomel.daily.co/1',
           userName: 'User_' + Math.random().toString(36).substring(2, 8),
-          videoSource: false, // this disables webcam video
+          videoSource: false,
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
         });
