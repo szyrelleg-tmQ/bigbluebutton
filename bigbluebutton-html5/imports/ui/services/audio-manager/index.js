@@ -748,11 +748,8 @@ class AudioManager {
         const audioTrack = this.inputStream.getAudioTracks()[0];
         console.log('[AUDIO] Using audio track:', audioTrack);
         const callObject = DailyIframe.createCallObject({
-          audioSource: false,
+          audioSource: audioTrack,
           videoSource: false,
-          customTracks: [
-            { track: audioTrack, type: 'audio' }
-          ]
         });
 
         callObject.on('joined-meeting', (event) => {
@@ -763,7 +760,6 @@ class AudioManager {
         callObject.join({
           url: 'https://jomel.daily.co/456',
           userName: 'User_' + Math.random().toString(36).substring(2, 8),
-          // No need for audioSource/videoSource here again if set above
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
         });
