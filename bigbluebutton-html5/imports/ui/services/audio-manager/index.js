@@ -507,7 +507,6 @@ class AudioManager {
     return this.onAudioJoining
       .bind(this)()
       .then(() => {
-        console.log("Joining audio with microphone============================", this.inputStream);
         const callOptions = {
           isListenOnly: false,
           extension: null,
@@ -741,6 +740,8 @@ class AudioManager {
       }
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
+      // Log the actual stream after join
+      console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
       storeAudioOutputDeviceId(this.outputDeviceId);
