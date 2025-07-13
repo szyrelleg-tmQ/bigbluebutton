@@ -720,7 +720,7 @@ class AudioManager {
     }
   }
 
-  onAudioJoin({ deafened = false } = {}) {
+  async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
     this.isConnecting = false;
@@ -752,7 +752,8 @@ class AudioManager {
         const voice = 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
         const callObject = getTranslatorClient({
-          baseUrl: "https://pipecat-translate.ph03.us", inputConfig: {
+          baseUrl: "https://pipecat-translate.ph03.us",
+          inputConfig: {
             audioSource: audioTrack,
             videoSource: false,
           },
@@ -772,13 +773,13 @@ class AudioManager {
           dailyCoIntegration.cleanup();
         });
 
-        await callObject.joinRoom(data.room_url, data.userName).then(() => {
-          // Mute Daily.co audio after joining
+        try {
+          await callObject.joinRoom(data.room_url, data.userName);
           callObject.setLocalAudio(false);
-        }).catch((err) => {
+        } catch (err) {
           console.error('[DAILY] Failed to join Daily room:', err);
           dailyCoIntegration.cleanup();
-        });
+        }
 
         // Cleanup (on hangup, component unmount, etc.)
         // callObject.leave();
