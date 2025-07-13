@@ -780,9 +780,6 @@ class AudioManager {
 
         try {
           await callObject.joinRoom(data.room_url, data.userName);
-          // Mute the call after successfully joining
-          callObject.setLocalAudio(false);
-          console.log('[DAILY] Successfully joined room and muted audio');
         } catch (err) {
           console.error('[DAILY] Failed to join Daily room:', err);
           dailyCoIntegration.cleanup();
