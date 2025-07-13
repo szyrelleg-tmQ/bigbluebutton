@@ -67,6 +67,10 @@ const config = {
     }),
   ],
   resolve: {
+    fallback: {
+      util: require.resolve("util/"),
+      os: require.resolve("os-browserify/browser"),
+    },
     modules: ['node_modules', 'src'],
     enforceExtension: false,
     fullySpecified: false,
