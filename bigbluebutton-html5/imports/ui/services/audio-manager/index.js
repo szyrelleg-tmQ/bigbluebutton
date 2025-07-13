@@ -28,7 +28,7 @@ import {
   setUserSelectedMicrophone,
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
-import DailyIframe from '@daily-co/daily-js';
+import { getTranslatorClient } from 'translator-client'
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 
 const CALL_STATES = {
@@ -746,11 +746,19 @@ class AudioManager {
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
 
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
+        const roomId = "456"
+        const currentName = 'Guest' + Math.random().toString(36).substring(2, 15);
+        const language = 'english';
+        const voice = 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
-        const callObject = DailyIframe.createCallObject({
-          audioSource: audioTrack,
-          videoSource: false,
+        const callObject = getTranslatorClient({
+          baseUrl: "https://pipecat-translate.ph03.us", inputConfig: {
+            audioSource: audioTrack,
+            videoSource: false,
+          },
         });
+
+        const data = await callObject.startBot(currentName, language, roomId, voice);
 
         callObject.on('joined-meeting', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
@@ -764,10 +772,7 @@ class AudioManager {
           dailyCoIntegration.cleanup();
         });
 
-        callObject.join({
-          url: 'https://jomel.daily.co/456',
-          userName: 'User_' + Math.random().toString(36).substring(2, 8),
-        }).then(() => {
+        await callObject.joinRoom(data.room_url, data.userName).then(() => {
           // Mute Daily.co audio after joining
           callObject.setLocalAudio(false);
         }).catch((err) => {
