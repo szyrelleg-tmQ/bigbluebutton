@@ -16,6 +16,7 @@ import {
   doGUM,
 } from '/imports/api/audio/client/bridge/service';
 import { shouldForceRelay } from '/imports/ui/services/bbb-webrtc-sfu/utils';
+import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 
 const SENDRECV_ROLE = 'sendrecv';
 const RECV_ROLE = 'recv';
@@ -311,6 +312,8 @@ export default class SFUAudioBridge extends BaseAudioBridge {
     const MEDIA_TAG = MEDIA.mediaTag.replace(/#/g, '');
     const stream = this.broker.webRtcPeer.getRemoteStream();
     const mediaElement = document.getElementById(MEDIA_TAG);
+
+    console.log("------------------------", stream)
 
     return loadAndPlayMediaStream(stream, mediaElement, false).then(() => {
       this.callback({

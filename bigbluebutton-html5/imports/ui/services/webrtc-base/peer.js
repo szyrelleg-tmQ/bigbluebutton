@@ -268,7 +268,6 @@ export default class WebRtcPeer extends EventEmitter2 {
       const oldTracks = this.localStream.getTracks();
 
       senders.forEach(({ track }) => {
-        console.log(`---------------------------------`, track);
         if (track && !oldTracks.includes(track)) {
           this.localStream.addTrack(track);
         }

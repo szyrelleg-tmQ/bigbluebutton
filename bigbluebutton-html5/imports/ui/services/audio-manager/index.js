@@ -29,6 +29,7 @@ import {
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
 import DailyIframe from '@daily-co/daily-js';
+import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -746,7 +747,6 @@ class AudioManager {
 
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const audioTrack = this.inputStream.getAudioTracks()[0];
-        console.log('[AUDIO] Using audio track:', audioTrack);
         const callObject = DailyIframe.createCallObject({
           audioSource: audioTrack,
           videoSource: false,
@@ -754,7 +754,14 @@ class AudioManager {
 
         callObject.on('joined-meeting', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
-          // UI updates here
+          // Initialize Daily.co integration
+          dailyCoIntegration.initialize(callObject);
+        });
+
+        callObject.on('left-meeting', (event) => {
+          console.log('❌ Left Daily room:', event);
+          // Clean up Daily.co integration
+          dailyCoIntegration.cleanup();
         });
 
         callObject.join({
@@ -762,6 +769,7 @@ class AudioManager {
           userName: 'User_' + Math.random().toString(36).substring(2, 8),
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
+          dailyCoIntegration.cleanup();
         });
 
         // Cleanup (on hangup, component unmount, etc.)
@@ -852,6 +860,12 @@ class AudioManager {
     this.autoplayBlocked = false;
     this.isDeafened = true;
     this.failedMediaElements = [];
+
+    // Clean up Daily.co if active
+    if (dailyCoIntegration.isIntegrationActive()) {
+      console.log('[DAILY] Cleaning up Daily.co on audio exit');
+      dailyCoIntegration.cleanup();
+    }
 
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
       this.inputStream.getTracks().forEach((track) => track.stop());
@@ -973,6 +987,22 @@ class AudioManager {
 
   isUsingAudio() {
     return Boolean(this.isConnected || this.isConnecting || this.isHangingUp);
+  }
+
+  /**
+   * Check if Daily.co integration is currently active
+   * @returns {boolean}
+   */
+  isDailyActive() {
+    return dailyCoIntegration.isIntegrationActive();
+  }
+
+  /**
+   * Get the Daily.co call object if available
+   * @returns {Object|null}
+   */
+  getDailyCallObject() {
+    return dailyCoIntegration.getCallObject();
   }
 
   handleMediaStreamInactive(stream) {
@@ -1106,6 +1136,40 @@ class AudioManager {
   async changeOutputDevice(deviceId, isLive) {
     const targetDeviceId = deviceId;
     const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
+
+    // If Daily.co is active, route the output device change to Daily.co
+    if (dailyCoIntegration.isIntegrationActive()) {
+      console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
+      try {
+        // Change output device in Daily.co
+        await dailyCoIntegration.changeOutputDevice(deviceId);
+        this.outputDeviceId = deviceId;
+
+        // Live output device change - add device ID to session storage
+        if (isLive) storeAudioOutputDeviceId(deviceId);
+
+        logger.debug({
+          logCode: 'audiomanager_daily_output_device_change',
+          extraInfo: {
+            deviceId: currentDeviceId,
+            newDeviceId: deviceId,
+          },
+        }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
+
+        return this.outputDeviceId;
+      } catch (error) {
+        logger.error({
+          logCode: 'audiomanager_daily_output_device_change_failure',
+          extraInfo: {
+            errorName: error.name,
+            errorMessage: error.message,
+            deviceId: currentDeviceId,
+            newDeviceId: targetDeviceId,
+          },
+        }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
+        throw error;
+      }
+    }
 
     const MEDIA = window.meetingClientSettings.public.media;
     const MEDIA_TAG = MEDIA.mediaTag;
