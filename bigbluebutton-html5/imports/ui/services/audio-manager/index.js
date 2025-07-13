@@ -767,6 +767,9 @@ class AudioManager {
         callObject.join({
           url: 'https://jomel.daily.co/456',
           userName: 'User_' + Math.random().toString(36).substring(2, 8),
+        }).then(() => {
+          // Mute Daily.co audio after joining
+          callObject.setLocalAudio(false);
         }).catch((err) => {
           console.error('[DAILY] Failed to join Daily room:', err);
           dailyCoIntegration.cleanup();
@@ -1388,10 +1391,20 @@ class AudioManager {
 
   mute() {
     this.setSenderTrackEnabled(false);
+    // Mute Daily.co if active
+    if (dailyCoIntegration.isIntegrationActive()) {
+      const callObject = dailyCoIntegration.getCallObject();
+      if (callObject) callObject.setLocalAudio(false);
+    }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
+    // Unmute Daily.co if active
+    if (dailyCoIntegration.isIntegrationActive()) {
+      const callObject = dailyCoIntegration.getCallObject();
+      if (callObject) callObject.setLocalAudio(true);
+    }
   }
 
   playAlertSound(url) {
