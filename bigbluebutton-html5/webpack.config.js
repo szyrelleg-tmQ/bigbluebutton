@@ -11,6 +11,7 @@ const detailedLogs = process.env.DETAILED_LOGS || false;
 const prodEnv = 'production';
 const devEnv = 'development';
 const isSafariTarget = process.env.TARGET === 'safari';
+const processDir = require.resolve('process/browser');
 
 console.log(`Building: ${process.env.TARGET}`);
 
@@ -74,18 +75,25 @@ const config = {
       util: require.resolve("util/"),
       os: require.resolve("os-browserify/browser"),
       process: require.resolve('process/browser'),
+      process: processDir,                           // reuse the same path
     },
     modules: ['node_modules', 'src'],
     enforceExtension: false,
     fullySpecified: false,
     extensions: ['.mjs', '.js', '.jsx', '.tsx', '.ts', '...'],
     alias: {
+      'process/browser': processDir,
       '/client': path.resolve(__dirname, 'client/'),
       '/imports': path.resolve(__dirname, '/imports/'),
     },
   },
   module: {
     rules: [
+      {
+        test: /\.mjs$/,
+        type: 'javascript/auto',        // allow both CJS & ESM in .mjs
+        resolve: { fullySpecified: false },
+      },
       {
         test: /\.(js|jsx|ts|tsx)$/,
         resolve: {
