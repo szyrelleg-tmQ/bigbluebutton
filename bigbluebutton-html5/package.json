@@ -81,6 +81,7 @@
     "pg": "^8.11.3",
     "postcss-nested": "^5.0.6",
     "probe-image-size": "^7.2.3",
+    "process": "^0.11.10",
     "prom-client": "^13.2.0",
     "prop-types": "^15.8.1",
     "queue": "^6.0.2",

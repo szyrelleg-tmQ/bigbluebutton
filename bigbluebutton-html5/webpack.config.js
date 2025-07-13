@@ -33,6 +33,9 @@ const config = {
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1,
     }),
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
     new HtmlWebpackPlugin({
       template: './client/main.html',
       filename: 'index.html',
@@ -70,6 +73,7 @@ const config = {
     fallback: {
       util: require.resolve("util/"),
       os: require.resolve("os-browserify/browser"),
+      process: require.resolve('process/browser'),
     },
     modules: ['node_modules', 'src'],
     enforceExtension: false,
