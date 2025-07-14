@@ -750,7 +750,7 @@ class AudioManager {
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
 
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
-        const roomId = "456";
+        const roomId = Auth.meetingID;
         const currentName = 'Guest' + Math.random().toString(36).substring(2, 15);
         // Use selected language/voice if available
         const language = this.lastJoinOptions?.language || 'english';
@@ -763,6 +763,8 @@ class AudioManager {
             videoSource: false,
           },
         });
+        console.log('[TRANSLATOR] Initializing translator call object with language:', language, 'and voice:', voice, 'for room:', roomId);
+
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice);
         console.log(data)
