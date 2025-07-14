@@ -123,6 +123,7 @@ class AudioManager {
     this.BREAKOUT_AUDIO_TRANSFER_STATES = BREAKOUT_AUDIO_TRANSFER_STATES;
     this._voiceActivityObserver = null;
     this._inputStreamInactivityTrackers = new Map();
+    this._translatorCallObject = null;
 
     this.handlePlayElementFailed = this.handlePlayElementFailed.bind(this);
     this.monitor = this.monitor.bind(this);
@@ -759,9 +760,11 @@ class AudioManager {
           },
         });
 
+        // Store the call object for mute/unmute operations
+        this._translatorCallObject = callObject;
 
         const data = await callObject.startBot(currentName, language, roomId, voice);
-
+        console.log(data)
         callObject.on('joined-meeting', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
           // Initialize Daily.co integration
@@ -772,6 +775,7 @@ class AudioManager {
           console.log('❌ Left Daily room:', event);
           // Clean up Daily.co integration
           dailyCoIntegration.cleanup();
+          this._translatorCallObject = null;
         });
 
         try {
@@ -779,6 +783,7 @@ class AudioManager {
         } catch (err) {
           console.error('[DAILY] Failed to join Daily room:', err);
           dailyCoIntegration.cleanup();
+          this._translatorCallObject = null;
         }
 
         // Cleanup (on hangup, component unmount, etc.)
@@ -874,6 +879,12 @@ class AudioManager {
     if (dailyCoIntegration.isIntegrationActive()) {
       console.log('[DAILY] Cleaning up Daily.co on audio exit');
       dailyCoIntegration.cleanup();
+    }
+
+    // Clean up translator call object
+    if (this._translatorCallObject) {
+      console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
+      this._translatorCallObject = null;
     }
 
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
@@ -1398,18 +1409,16 @@ class AudioManager {
   mute() {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
-    if (dailyCoIntegration.isIntegrationActive()) {
-      const callObject = dailyCoIntegration.getCallObject();
-      if (callObject) callObject.setLocalAudio(false);
+    if (this._translatorCallObject) {
+      this._translatorCallObject.toggleAudio();
     }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
-    if (dailyCoIntegration.isIntegrationActive()) {
-      const callObject = dailyCoIntegration.getCallObject();
-      if (callObject) callObject.setLocalAudio(true);
+    if (this._translatorCallObject) {
+      this._translatorCallObject.toggleAudio();
     }
   }
 
