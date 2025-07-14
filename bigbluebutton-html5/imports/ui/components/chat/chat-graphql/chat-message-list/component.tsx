@@ -38,8 +38,6 @@ import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
 import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
-import audioManager from '/imports/ui/services/audio-manager';
-import { useLoadedUserList } from '/imports/ui/core/hooks/useLoadedUserList';
 import { ChatAvatar } from './page/chat-message/styles';
 
 const PAGE_SIZE = 50;
@@ -228,11 +226,12 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     lockSettings: m?.lockSettings,
     isBreakout: m?.isBreakout,
   }));
-  const { data: currentUser } = useCurrentUser((c) => ({
-    isModerator: c?.isModerator,
-    userLockSettings: c?.userLockSettings,
-    locked: c?.locked,
-    userId: c?.userId,
+  const { data: currentUser } = useCurrentUser((u) => ({
+    userId: u?.userId,
+    name: u?.name,
+    color: u?.color,
+    avatar: u?.avatar,
+    isModerator: u?.isModerator,
   }));
   const CHAT_REPLY_ENABLED = useIsReplyChatMessageEnabled();
   const CHAT_REACTIONS_ENABLED = useIsChatMessageReactionsEnabled();
@@ -521,50 +520,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   }, [loadingPages]);
 
   const transcription = useReactiveVar(latestTranscriptionVar);
-  const translations = useReactiveVar(latestTranslationVar);
-
-  // Get all users in the meeting (for avatar/name lookup)
-  const userListResult = useLoadedUserList({ offset: 0, limit: 100 }, (u: any) => ({
-    userId: u?.userId,
-    name: u?.name,
-    color: u?.color,
-    avatar: u?.avatar,
-    speechLocale: u?.speechLocale,
-    captionLocale: u?.captionLocale,
-  }));
-  const allUsers = (Array.isArray(userListResult) ? userListResult[0] : []) as any[];
-
-  // Get current user's language from audio manager
-  const userLanguage = audioManager.lastJoinOptions?.language || 'english';
-
-  // Filter translations by current user's language and get the most recent one
-  const relevantTranslation = translations && Array.isArray(translations)
-    ? translations
-      .filter((t: any) => t.language === userLanguage)
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
-    : null;
-
-  let translationSpeaker = null;
-  const safeTranslation = relevantTranslation as any;
-  if (safeTranslation && safeTranslation.participant_name) {
-    translationSpeaker = allUsers.find(
-      (u) => u.name === safeTranslation.participant_name
-    );
-  }
-
-  // Only show the translation overlay if we have a relevant translation for the user's language
-  const shouldShowTranslation = safeTranslation && translationSpeaker;
-
-  // Handle transcription display
-  let transcriptionSpeaker = null;
-  if (transcription && transcription.participant_name) {
-    transcriptionSpeaker = allUsers.find(
-      (u) => u.name === transcription.participant_name
-    );
-  }
-
-  // Show transcription if available and speaker is found
-  const shouldShowTranscription = transcription && transcriptionSpeaker;
+  const translation = useReactiveVar(latestTranslationVar);
 
   return (
     <>
@@ -652,155 +608,91 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
-              {/* Display live transcription at the bottom if available */}
-              {shouldShowTranscription && (
+              {/* Display live transcription and translation at the bottom if available */}
+              {/* {transcription && (
                 <div style={{
-                  background: '#e6f7ff',
-                  border: '1px solid #b3d9ff',
-                  borderRadius: '8px',
-                  padding: '12px',
+                  background: '#f0f0f0',
+                  color: '#333',
+                  padding: '8px 16px',
                   margin: '8px 0',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  borderRadius: '8px',
+                  fontStyle: 'italic',
+                  textAlign: isRTL ? 'right' : 'left',
                   display: 'flex',
+                  flexDirection: 'row',
                   alignItems: 'flex-start',
-                  gap: '12px',
+                  maxWidth: '70%',
+                  alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
-                  {/* Avatar */}
                   <ChatAvatar
-                    user={{
-                      userId: transcriptionSpeaker.userId,
-                      name: transcriptionSpeaker.name,
-                      color: transcriptionSpeaker.color,
-                      avatar: transcriptionSpeaker.avatar,
-                    }}
-                    size="sm"
-                  />
-
-                  {/* Message content */}
-                  <div style={{ flex: 1 }}>
-                    {/* User info */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '4px',
-                    }}>
-                      <span style={{
-                        fontWeight: 'bold',
-                        fontSize: '14px',
-                        color: '#495057',
-                      }}>
-                        {transcriptionSpeaker.name}
-                      </span>
-                      <span style={{
-                        fontSize: '12px',
-                        color: '#6c757d',
-                        backgroundColor: '#e9ecef',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                      }}>
-                        {transcription.language}
-                      </span>
+                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
+                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
+                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
+                  >
+                    {transcription.type === 'user'
+                      ? (currentUser?.name ? currentUser.name[0] : '?')
+                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
+                  </ChatAvatar>
+                  <div style={{ marginLeft: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {transcription.type === 'user'
+                        ? (currentUser?.name || 'You')
+                        : (transcription.participant_name || 'User')}
                     </div>
-
-                    {/* User ID */}
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#6c757d',
-                      marginBottom: '8px',
-                    }}>
-                      {transcriptionSpeaker.userId}
+                    <div style={{ fontSize: '0.85em', color: '#888' }}>
+                      {transcription.type === 'user'
+                        ? (currentUser?.userId || '')
+                        : (transcription.participant_name || '')}
                     </div>
-
-                    {/* Transcribed text */}
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#212529',
-                      fontWeight: '500',
-                    }}>
+                    <div style={{ marginTop: 2 }}>
                       {transcription.text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Display live translation at the bottom if available */}
-              {shouldShowTranslation && (
+              )} */}
+              {translation && (
                 <div style={{
-                  background: '#f8f9fa',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '12px',
+                  background: '#e6f7ff',
+                  color: '#333',
+                  padding: '8px 16px',
                   margin: '8px 0',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  borderRadius: '8px',
+                  fontStyle: 'italic',
+                  textAlign: isRTL ? 'right' : 'left',
                   display: 'flex',
+                  flexDirection: 'row',
                   alignItems: 'flex-start',
-                  gap: '12px',
+                  maxWidth: '70%',
+                  alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
-                  {/* Avatar */}
                   <ChatAvatar
-                    user={{
-                      userId: translationSpeaker.userId,
-                      name: translationSpeaker.name,
-                      color: translationSpeaker.color,
-                      avatar: translationSpeaker.avatar,
-                    }}
-                    size="sm"
-                  />
-
-                  {/* Message content */}
-                  <div style={{ flex: 1 }}>
-                    {/* User info */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '4px',
-                    }}>
-                      <span style={{
-                        fontWeight: 'bold',
-                        fontSize: '14px',
-                        color: '#495057',
-                      }}>
-                        {translationSpeaker.name}
-                      </span>
-                      <span style={{
-                        fontSize: '12px',
-                        color: '#6c757d',
-                        backgroundColor: '#e9ecef',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                      }}>
-                        {safeTranslation.language}
-                      </span>
+                    avatar={translation.type === 'user' ? (currentUser?.avatar || '') : ''}
+                    color={translation.type === 'user' ? (currentUser?.color || '#888') : '#888'}
+                    moderator={translation.type === 'user' ? !!currentUser?.isModerator : false}
+                  >
+                    {translation.type === 'user'
+                      ? (currentUser?.name ? currentUser.name[0] : '?')
+                      : (translation.participant_name ? translation.participant_name[0] : '?')}
+                  </ChatAvatar>
+                  <div style={{ marginLeft: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {translation.type === 'user'
+                        ? (currentUser?.name || 'You')
+                        : (translation.participant_name || 'User')}
                     </div>
-
-                    {/* User ID */}
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#6c757d',
-                      marginBottom: '8px',
-                    }}>
-                      {translationSpeaker.userId}
+                    <div style={{ fontSize: '0.85em', color: '#888' }}>
+                      {translation.type === 'user'
+                        ? (currentUser?.userId || '')
+                        : (translation.participant_name || '')}
                     </div>
-
-                    {/* Original text */}
-                    <div style={{
-                      fontSize: '13px',
-                      color: '#495057',
-                      marginBottom: '4px',
-                      fontStyle: 'italic',
-                    }}>
-                      <strong>Original:</strong> {safeTranslation.text}
+                    <div style={{ marginTop: 2 }}>
+                      {translation.text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
                     </div>
-
-                    {/* Translated text */}
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#212529',
-                      fontWeight: '500',
-                    }}>
-                      <strong>Translated:</strong> {safeTranslation.translated_text}
+                    <div style={{ marginTop: 4 }}>
+                      <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
                     </div>
                   </div>
                 </div>
