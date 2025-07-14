@@ -793,6 +793,7 @@ class AudioManager {
         // Set up transcription callback
         if (typeof callObject.setTranscriptionCallback === 'function') {
           callObject.setTranscriptionCallback((transcription) => {
+            console.log(transcription)
             // You may want to check for interim/final here
             if (transcription && transcription.text) {
               latestTranscriptionVar(transcription.text);
