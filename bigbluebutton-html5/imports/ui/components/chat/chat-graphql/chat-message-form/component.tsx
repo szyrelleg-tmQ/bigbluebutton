@@ -49,6 +49,7 @@ import {
 } from './queries';
 import Auth from '/imports/ui/services/auth';
 import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStatus';
+// @ts-ignore
 import { getTranslatorClient } from 'translator-client';
 import { useState } from 'react';
 
@@ -197,7 +198,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
   useEffect(() => {
     setMessageHint();
     if (!isMobile) {
-      if (textAreaRef?.current) textAreaRef.current.focus();
+      textAreaRef.current?.textarea?.focus();
     }
 
     return () => {
@@ -252,7 +253,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
     setMessage(unsentMessage);
 
     if (!isMobile) {
-      if (textAreaRef?.current) textAreaRef.current.focus();
+      textAreaRef.current?.textarea?.focus();
     }
     setError(null);
     setHasErrors(false);
@@ -427,10 +428,11 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       baseUrl: "https://pipecat-translate.ph03.us",
       // inputConfig can be extended as needed
     });
-    translatorRef.current.setTranscriptionCallback((userText: string, botText: string) => {
-      console.log('Transcription result:', { userText, botText });
-      if (userText || botText) {
-        const formattedMessage = `**User:** ${userText || ''}\n**Bot:** ${botText || ''}`;
+    // @ts-ignore
+    translatorRef.current.setTranscriptionCallback((userText, botText) => {
+      console.log('Transcription result:', userText, botText);
+      if (botText) {
+        const formattedMessage = `**User:** ${userText}\n**Bot:** ${botText}`;
         chatSendMessage({
           variables: {
             chatMessageInMarkdownFormat: formattedMessage,
