@@ -795,10 +795,7 @@ class AudioManager {
             });
           } else if (data.event_type === "translation") {
             console.log('[TRANSLATOR] Received translation:', data);
-            // Get current translations array
-            const currentTranslations = latestTranslationVar();
-            // Add new translation to the array
-            const newTranslation = {
+            latestTranslationVar({
               text: data.text,
               translated_text: data.translated_text,
               language: data.language,
@@ -806,9 +803,7 @@ class AudioManager {
               participant_name: data.participant_name,
               timestamp: data.timestamp,
               type: data.type,
-            };
-            // Update with new array including the new translation
-            latestTranslationVar([...currentTranslations, newTranslation]);
+            });
           }
         });
 
@@ -1685,14 +1680,15 @@ class AudioManager {
     });
 
     const transportStats = await this.getInternalExternalIpAddresses(audioStats);
+
     return { transportStats, ...audioStats };
   }
 }
 
 // Add a global reactive variable for the latest transcription
 export const latestTranscriptionVar = makeVar(null);
-// Add a global reactive variable for the latest translations (array)
-export const latestTranslationVar = makeVar([]);
+// Add a global reactive variable for the latest translation
+export const latestTranslationVar = makeVar(null);
 
 const audioManager = new AudioManager();
 export default audioManager;
