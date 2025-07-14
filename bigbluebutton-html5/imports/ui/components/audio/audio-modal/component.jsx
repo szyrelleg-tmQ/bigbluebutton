@@ -423,8 +423,7 @@ const AudioModal = ({
     console.log('[DEBUG] handleAudioSettingsConfirmation:', { voice, language });
     setContent(null);
     if (inputStream) changeInputStream(inputStream);
-    if (voice) setSelectedVoice(voice);
-    if (language) setSelectedLanguage(language);
+    // Removed setSelectedVoice and setSelectedLanguage to avoid async state issues
     if (!isConnected) {
       handleJoinMicrophone(voice, language);
       disableAwayMode();
