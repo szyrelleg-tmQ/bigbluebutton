@@ -14,6 +14,7 @@ import AudioManager from '/imports/ui/services/audio-manager';
 import Session from '/imports/ui/services/storage/in-memory';
 import AudioCaptionsSelectContainer from '../audio-graphql/audio-captions/captions/component';
 import { getTranslatorClient } from 'translator-client';
+import DeviceSelectorStyles from '../device-selector/styles';
 
 const propTypes = {
   intl: PropTypes.shape({
@@ -523,30 +524,27 @@ class AudioSettings extends React.Component {
 
   renderVoiceSelector() {
     const { voices, selectedVoice } = this.state;
+    const { intl } = this.props;
     if (!voices.length) return null;
-    const options = voices.map((voice) => ({
-      label: voice.name || voice.key,
-      value: voice.key,
-      key: voice.key,
+    // Map voices to DeviceSelector-like format
+    const devices = voices.map((v, i) => ({
+      deviceId: v.key || v,
+      label: v.name || v.key || v,
     }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="voiceSelector">
           Voice
-          <Styled.Select
+          <DeviceSelector
             id="voiceSelector"
-            value={selectedVoice}
-            onChange={this.handleVoiceChange}
-            disabled={!options.length}
-          >
-            {options.length
-              ? options.map((option) => (
-                <option key={option.key} value={option.value}>
-                  {option.label}
-                </option>
-              ))
-              : <option value="not-found">No voices found</option>}
-          </Styled.Select>
+            kind="voice"
+            deviceId={selectedVoice}
+            devices={devices}
+            onChange={(val) => this.setState({ selectedVoice: val })}
+            blocked={false}
+            intl={intl}
+            supportsTransparentListenOnly={false}
+          />
         </Styled.LabelSmall>
       </Styled.FormElement>
     );
@@ -554,30 +552,27 @@ class AudioSettings extends React.Component {
 
   renderLanguageSelector() {
     const { languages, selectedLanguage } = this.state;
+    const { intl } = this.props;
     if (!languages.length) return null;
-    const options = languages.map((lang) => ({
-      label: lang.name || lang.key || lang,
-      value: lang.key || lang,
-      key: lang.key || lang,
+    // Map languages to DeviceSelector-like format
+    const devices = languages.map((l, i) => ({
+      deviceId: l.key || l,
+      label: l.name || l.key || l,
     }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="languageSelector">
           Language
-          <Styled.Select
+          <DeviceSelector
             id="languageSelector"
-            value={selectedLanguage}
-            onChange={this.handleLanguageChange}
-            disabled={!options.length}
-          >
-            {options.length
-              ? options.map((option) => (
-                <option key={option.key} value={option.value}>
-                  {option.label}
-                </option>
-              ))
-              : <option value="not-found">No languages found</option>}
-          </Styled.Select>
+            kind="language"
+            deviceId={selectedLanguage}
+            devices={devices}
+            onChange={(val) => this.setState({ selectedLanguage: val })}
+            blocked={false}
+            intl={intl}
+            supportsTransparentListenOnly={false}
+          />
         </Styled.LabelSmall>
       </Styled.FormElement>
     );
