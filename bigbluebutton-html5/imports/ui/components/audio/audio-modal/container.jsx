@@ -101,6 +101,7 @@ const AudioModalContainer = (props) => {
     && (skipCheck || (skipCheckOnJoin && !getEchoTest) || devicesAlreadyConfigured);
   const joinMic = useCallback(
     (options = {}) => joinMicrophone({
+      ...options,
       skipEchoTest: options.skipEchoTest || joinFullAudioImmediately,
       muted: options.muteOnStart || meeting?.voiceSettings?.muteOnStart,
     }),
