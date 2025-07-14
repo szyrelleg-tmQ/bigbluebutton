@@ -4,6 +4,7 @@ import ModalSimple from '/imports/ui/components/common/modal/simple/component';
 import DeviceSelector from '/imports/ui/components/audio/device-selector/component';
 import { getTranslatorClient } from 'translator-client';
 import { defineMessages, useIntl } from 'react-intl';
+import AudioManager from '/imports/ui/services/audio-manager';
 
 const intlMessages = defineMessages({
     buttonLabel: {
@@ -47,8 +48,18 @@ const AudioLanguageVoiceButton = () => {
                     const fetchedLanguages = await translatorClient.fetchLanguages();
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
-                    setSelectedVoice(fetchedVoices[0]?.key || '');
-                    setSelectedLanguage(fetchedLanguages[0]?.key || fetchedLanguages[0] || '');
+
+                    // Get last used voice/language
+                    const lastVoice = AudioManager.lastJoinOptions?.voice;
+                    const lastLanguage = AudioManager.lastJoinOptions?.language;
+
+                    // Use last used if available, else default to first
+                    setSelectedVoice(
+                        fetchedVoices.find(v => v.key === lastVoice) ? lastVoice : (fetchedVoices[0]?.key || '')
+                    );
+                    setSelectedLanguage(
+                        fetchedLanguages.find(l => l.key === lastLanguage) ? lastLanguage : (fetchedLanguages[0]?.key || fetchedLanguages[0] || '')
+                    );
                 } catch (err) {
                     setVoices([]);
                     setLanguages([]);
@@ -61,7 +72,25 @@ const AudioLanguageVoiceButton = () => {
     }, [open]);
 
     const handleConfirm = () => {
-        // TODO: Call service to change voice/language live
+        // Try to update the current translator client if available
+        try {
+            // AudioManager._translatorCallObject is the current translator client instance
+            const translatorClient = AudioManager._translatorCallObject;
+            if (translatorClient) {
+                if (typeof translatorClient.setVoice === 'function') {
+                    translatorClient.setVoice(selectedVoice, selectedLanguage);
+                }
+                if (typeof translatorClient.setLanguage === 'function') {
+                    translatorClient.setLanguage(selectedLanguage);
+                }
+            } else {
+                // Optionally, show a notification or error if needed
+                // notify('No active audio translation session', true);
+            }
+        } catch (err) {
+            // Optionally, handle error
+            // notify('Failed to update voice/language', true);
+        }
         setOpen(false);
     };
 
