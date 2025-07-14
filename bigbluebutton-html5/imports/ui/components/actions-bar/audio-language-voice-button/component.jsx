@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Button from '/imports/ui/components/common/button/component';
-import Modal from '/imports/ui/components/common/modal/component';
+import ModalSimple from '/imports/ui/components/common/modal/simple/component';
 import DeviceSelector from '/imports/ui/components/audio/device-selector/component';
 import { getTranslatorClient } from 'translator-client';
 import { defineMessages, useIntl } from 'react-intl';
@@ -79,12 +79,11 @@ const AudioLanguageVoiceButton = () => {
                 onClick={() => setOpen(true)}
             />
             {open && (
-                <Modal
-                    isOpen={open}
+                <ModalSimple
+                    modalIsOpen={open}
                     onRequestClose={handleCancel}
-                    contentLabel={intl.formatMessage(intlMessages.buttonLabel)}
+                    title={intl.formatMessage(intlMessages.buttonLabel)}
                 >
-                    <h3>{intl.formatMessage(intlMessages.buttonLabel)}</h3>
                     {loading ? (
                         <div>Loading...</div>
                     ) : (
@@ -129,7 +128,7 @@ const AudioLanguageVoiceButton = () => {
                             </div>
                         </>
                     )}
-                </Modal>
+                </ModalSimple>
             )}
         </>
     );
