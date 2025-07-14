@@ -49,6 +49,8 @@ import {
 } from './queries';
 import Auth from '/imports/ui/services/auth';
 import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStatus';
+import { getTranslatorClient } from 'translator-client';
+import { useState } from 'react';
 
 const CLOSED_CHAT_LIST_KEY = 'closedChatList';
 const START_TYPING_THROTTLE_INTERVAL = 1000;
@@ -187,9 +189,9 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
 
   const throttleHandleUserTyping = useMemo(() => throttle(
     handleUserTyping, START_TYPING_THROTTLE_INTERVAL, {
-      leading: true,
-      trailing: false,
-    },
+    leading: true,
+    trailing: false,
+  },
   ), [chatId]);
 
   useEffect(() => {
@@ -410,6 +412,48 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
     };
   }, []);
 
+  // Transcription state and instance
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const translatorRef = useRef<any>(null);
+
+  // Start transcription and send results as chat messages
+  const handleStartTranscription = () => {
+    if (isTranscribing) return;
+    setIsTranscribing(true);
+    // Only one instance at a time
+    if (translatorRef.current) return;
+    // You may want to use the user's language or other config here
+    translatorRef.current = getTranslatorClient({
+      baseUrl: "https://pipecat-translate.ph03.us",
+      // inputConfig can be extended as needed
+    });
+    translatorRef.current.setTranscriptionCallback((result: any) => {
+      if (result && result.transcript) {
+        chatSendMessage({
+          variables: {
+            chatMessageInMarkdownFormat: result.transcript,
+            chatId: chatId === PUBLIC_CHAT_ID ? PUBLIC_GROUP_CHAT_ID : chatId,
+            replyToMessageId: null,
+          },
+        });
+      }
+    });
+    // You may need to start the callObject, e.g. translatorRef.current.startBot(...)
+    // For now, assume the callback will be triggered by the client
+  };
+
+  // Stop transcription
+  const handleStopTranscription = () => {
+    setIsTranscribing(false);
+    if (translatorRef.current) {
+      // If the client has a stop/destroy method, call it here
+      if (typeof translatorRef.current.destroy === 'function') {
+        translatorRef.current.destroy();
+      }
+      translatorRef.current = null;
+    }
+  };
+
   const renderForm = () => {
     const formRef = useRef<HTMLFormElement | null>(null);
     const CHAT_EDIT_ENABLED = useIsEditChatMessageEnabled();
@@ -598,95 +642,110 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
     }, []);
 
     return (
-      <Styled.Form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        isRTL={isRTL}
-      >
-        {showEmojiPicker ? (
-          <Styled.EmojiPickerWrapper ref={emojiPickerRef}>
-            <Styled.EmojiPicker
-              onEmojiSelect={(emojiObject: { native: string }) => handleEmojiSelect(emojiObject)}
-              showPreview={false}
-              showSkinTones={false}
-            />
-          </Styled.EmojiPickerWrapper>
-        ) : null}
-        <Styled.Wrapper>
-          <Styled.InputWrapper>
-            <Styled.Input
-              id="message-input"
-              ref={textAreaRef}
-              placeholder={intl.formatMessage(messages.inputPlaceholder, { chatName: title })}
-              aria-label={intl.formatMessage(messages.inputLabel, { chatName: title })}
-              aria-invalid={hasErrors ? 'true' : 'false'}
-              autoCorrect="off"
-              autoComplete="off"
-              spellCheck="true"
-              disabled={disabled || partnerIsLoggedOut}
-              value={message}
-              onFocus={() => {
-                window.dispatchEvent(new CustomEvent(PluginSdk.ChatFormUiDataNames.CHAT_INPUT_IS_FOCUSED, {
-                  detail: {
-                    value: true,
-                  },
-                }));
-                setIsTextAreaFocused(true);
-              }}
-              onBlur={() => {
-                window.dispatchEvent(new CustomEvent(PluginSdk.ChatFormUiDataNames.CHAT_INPUT_IS_FOCUSED, {
-                  detail: {
-                    value: false,
-                  },
-                }));
-              }}
-              onChange={handleMessageChange}
-              onKeyDown={handleMessageKeyDown}
-              onPaste={(e) => { e.stopPropagation(); }}
-              onCut={(e) => { e.stopPropagation(); }}
-              onCopy={(e) => { e.stopPropagation(); }}
-              async
-            />
-            {ENABLE_EMOJI_PICKER ? (
-              <Styled.EmojiButton
-                ref={emojiPickerButtonRef}
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                icon="happy"
-                color="light"
-                ghost
-                type="button"
-                circle
-                hideLabel
-                label={intl.formatMessage(messages.emojiButtonLabel)}
-                data-test="emojiPickerButton"
-                disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading}
+      <>
+        {/* Transcription Button UI */}
+        <div style={{ marginBottom: 8 }}>
+          {isTranscribing ? (
+            <button type="button" onClick={handleStopTranscription} style={{ color: 'red' }}>
+              Stop Transcription
+            </button>
+          ) : (
+            <button type="button" onClick={handleStartTranscription}>
+              Start Transcription
+            </button>
+          )}
+        </div>
+        {/* Existing chat form */}
+        <Styled.Form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          isRTL={isRTL}
+        >
+          {showEmojiPicker ? (
+            <Styled.EmojiPickerWrapper ref={emojiPickerRef}>
+              <Styled.EmojiPicker
+                onEmojiSelect={(emojiObject: { native: string }) => handleEmojiSelect(emojiObject)}
+                showPreview={false}
+                showSkinTones={false}
               />
-            ) : null}
-          </Styled.InputWrapper>
-          <div style={{ zIndex: 10 }}>
-            <Styled.SendButton
-              hideLabel
-              circle
-              aria-label={intl.formatMessage(messages.submitLabel)}
-              type="submit"
-              disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading}
-              label={intl.formatMessage(messages.submitLabel)}
-              color="primary"
-              icon="send"
-              onClick={() => { }}
-              data-test="sendMessageButton"
-            />
-          </div>
-        </Styled.Wrapper>
-        {
-          error && (
-            <Styled.ChatMessageError data-test="errorTypingIndicator">
-              {error}
-            </Styled.ChatMessageError>
-          )
-        }
+            </Styled.EmojiPickerWrapper>
+          ) : null}
+          <Styled.Wrapper>
+            <Styled.InputWrapper>
+              <Styled.Input
+                id="message-input"
+                ref={textAreaRef}
+                placeholder={intl.formatMessage(messages.inputPlaceholder, { chatName: title })}
+                aria-label={intl.formatMessage(messages.inputLabel, { chatName: title })}
+                aria-invalid={hasErrors ? 'true' : 'false'}
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck="true"
+                disabled={disabled || partnerIsLoggedOut}
+                value={message}
+                onFocus={() => {
+                  window.dispatchEvent(new CustomEvent(PluginSdk.ChatFormUiDataNames.CHAT_INPUT_IS_FOCUSED, {
+                    detail: {
+                      value: true,
+                    },
+                  }));
+                  setIsTextAreaFocused(true);
+                }}
+                onBlur={() => {
+                  window.dispatchEvent(new CustomEvent(PluginSdk.ChatFormUiDataNames.CHAT_INPUT_IS_FOCUSED, {
+                    detail: {
+                      value: false,
+                    },
+                  }));
+                }}
+                onChange={handleMessageChange}
+                onKeyDown={handleMessageKeyDown}
+                onPaste={(e) => { e.stopPropagation(); }}
+                onCut={(e) => { e.stopPropagation(); }}
+                onCopy={(e) => { e.stopPropagation(); }}
+                async
+              />
+              {ENABLE_EMOJI_PICKER ? (
+                <Styled.EmojiButton
+                  ref={emojiPickerButtonRef}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  icon="happy"
+                  color="light"
+                  ghost
+                  type="button"
+                  circle
+                  hideLabel
+                  label={intl.formatMessage(messages.emojiButtonLabel)}
+                  data-test="emojiPickerButton"
+                  disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading}
+                />
+              ) : null}
+            </Styled.InputWrapper>
+            <div style={{ zIndex: 10 }}>
+              <Styled.SendButton
+                hideLabel
+                circle
+                aria-label={intl.formatMessage(messages.submitLabel)}
+                type="submit"
+                disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading}
+                label={intl.formatMessage(messages.submitLabel)}
+                color="primary"
+                icon="send"
+                onClick={() => { }}
+                data-test="sendMessageButton"
+              />
+            </div>
+          </Styled.Wrapper>
+          {
+            error && (
+              <Styled.ChatMessageError data-test="errorTypingIndicator">
+                {error}
+              </Styled.ChatMessageError>
+            )
+          }
 
-      </Styled.Form>
+        </Styled.Form>
+      </>
     );
   };
 
