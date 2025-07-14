@@ -38,6 +38,7 @@ import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
 import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
+import { useLoadedUserList } from '/imports/ui/core/hooks/useLoadedUserList';
 import { ChatAvatar } from './page/chat-message/styles';
 
 const PAGE_SIZE = 50;
@@ -226,12 +227,11 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     lockSettings: m?.lockSettings,
     isBreakout: m?.isBreakout,
   }));
-  const { data: currentUser } = useCurrentUser((u) => ({
-    userId: u?.userId,
-    name: u?.name,
-    color: u?.color,
-    avatar: u?.avatar,
-    isModerator: u?.isModerator,
+  const { data: currentUser } = useCurrentUser((c) => ({
+    isModerator: c?.isModerator,
+    userLockSettings: c?.userLockSettings,
+    locked: c?.locked,
+    userId: c?.userId,
   }));
   const CHAT_REPLY_ENABLED = useIsReplyChatMessageEnabled();
   const CHAT_REACTIONS_ENABLED = useIsChatMessageReactionsEnabled();
@@ -522,6 +522,32 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   const transcription = useReactiveVar(latestTranscriptionVar);
   const translation = useReactiveVar(latestTranslationVar);
 
+  // Get all users in the meeting (for avatar/name lookup)
+  const userListResult = useLoadedUserList({ offset: 0, limit: 100 }, (u: any) => ({
+    userId: u?.userId,
+    name: u?.name,
+    color: u?.color,
+    avatar: u?.avatar,
+    speechLocale: u?.speechLocale,
+    captionLocale: u?.captionLocale,
+  }));
+  const allUsers = (Array.isArray(userListResult) ? userListResult[0] : []) as any[];
+
+  // Determine the current user's preferred language
+  const userLanguage = currentUser?.speechLocale || currentUser?.captionLocale;
+
+  // Find the original speaker in the user list by participant_name (fallback to name match)
+  let translationSpeaker = null;
+  const safeTranslation: any = translation || {};
+  if (safeTranslation && typeof safeTranslation.participant_name === 'string') {
+    translationSpeaker = allUsers.find(
+      (u: any) => u.name === safeTranslation.participant_name
+    );
+  }
+
+  // Only show the translation overlay if the translation's language matches the user's language
+  const shouldShowTranslation = safeTranslation && userLanguage && safeTranslation.language === userLanguage;
+
   return (
     <>
       {
@@ -608,10 +634,10 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
-              {/* Display live transcription and translation at the bottom if available */}
-              {transcription && (
+              {/* Only display the translation overlay, not transcription, and only for the user's language */}
+              {shouldShowTranslation && (
                 <div style={{
-                  background: '#f0f0f0',
+                  background: '#e6f7ff',
                   color: '#333',
                   padding: '8px 16px',
                   margin: '8px 0',
@@ -622,35 +648,29 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   flexDirection: 'row',
                   alignItems: 'flex-start',
                   maxWidth: '70%',
-                  alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
+                  alignSelf: 'flex-start',
                 }}>
                   <ChatAvatar
-                    avatar={translation.type === 'user' ? (currentUser?.avatar || '') : ''}
-                    color={translation.type === 'user' ? (currentUser?.color || '#888') : '#888'}
-                    moderator={translation.type === 'user' ? !!currentUser?.isModerator : false}
+                    avatar={translationSpeaker?.avatar || ''}
+                    color={translationSpeaker?.color || '#888'}
+                    moderator={false}
                   >
-                    {translation.type === 'user'
-                      ? (currentUser?.name ? currentUser.name[0] : '?')
-                      : (translation.participant_name ? translation.participant_name[0] : '?')}
+                    {translationSpeaker?.name ? translationSpeaker.name[0] : '?'}
                   </ChatAvatar>
                   <div style={{ marginLeft: 12, flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>
-                      {translation.type === 'user'
-                        ? (currentUser?.name || 'You')
-                        : (translation.participant_name || 'User')}
+                      {translationSpeaker?.name || safeTranslation.participant_name || 'User'}
                     </div>
                     <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {translation.type === 'user'
-                        ? (currentUser?.userId || '')
-                        : (translation.participant_name || '')}
+                      {translationSpeaker?.userId || ''}
                     </div>
                     <div style={{ marginTop: 2 }}>
-                      {translation.text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
+                      <b>Original:</b> {safeTranslation.text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({safeTranslation.original_language || safeTranslation.language})</span>
                     </div>
                     <div style={{ marginTop: 4 }}>
-                      <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
+                      <b>Translated:</b> {safeTranslation.translated_text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({safeTranslation.language})</span>
                     </div>
                   </div>
                 </div>
