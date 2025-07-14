@@ -524,21 +524,29 @@ class AudioSettings extends React.Component {
   renderVoiceSelector() {
     const { voices, selectedVoice } = this.state;
     if (!voices.length) return null;
+    const options = voices.map((voice) => ({
+      label: voice.name || voice.key,
+      value: voice.key,
+      key: voice.key,
+    }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="voiceSelector">
           Voice
-          <select
+          <Styled.Select
             id="voiceSelector"
             value={selectedVoice}
             onChange={this.handleVoiceChange}
+            disabled={!options.length}
           >
-            {voices.map((voice) => (
-              <option key={voice.key} value={voice.key}>
-                {voice.name || voice.key}
-              </option>
-            ))}
-          </select>
+            {options.length
+              ? options.map((option) => (
+                <option key={option.key} value={option.value}>
+                  {option.label}
+                </option>
+              ))
+              : <option value="not-found">No voices found</option>}
+          </Styled.Select>
         </Styled.LabelSmall>
       </Styled.FormElement>
     );
@@ -547,21 +555,29 @@ class AudioSettings extends React.Component {
   renderLanguageSelector() {
     const { languages, selectedLanguage } = this.state;
     if (!languages.length) return null;
+    const options = languages.map((lang) => ({
+      label: lang.name || lang.key || lang,
+      value: lang.key || lang,
+      key: lang.key || lang,
+    }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="languageSelector">
           Language
-          <select
+          <Styled.Select
             id="languageSelector"
             value={selectedLanguage}
             onChange={this.handleLanguageChange}
+            disabled={!options.length}
           >
-            {languages.map((lang) => (
-              <option key={lang.key || lang} value={lang.key || lang}>
-                {lang.name || lang.key || lang}
-              </option>
-            ))}
-          </select>
+            {options.length
+              ? options.map((option) => (
+                <option key={option.key} value={option.value}>
+                  {option.label}
+                </option>
+              ))
+              : <option value="not-found">No languages found</option>}
+          </Styled.Select>
         </Styled.LabelSmall>
       </Styled.FormElement>
     );
