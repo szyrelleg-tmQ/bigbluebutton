@@ -83,10 +83,13 @@ const AudioLanguageVoiceButton = () => {
                 if (typeof translatorClient.setLanguage === 'function') {
                     translatorClient.setLanguage(selectedLanguage);
                 }
-            } else {
-                // Optionally, show a notification or error if needed
-                // notify('No active audio translation session', true);
             }
+            // Update AudioManager.lastJoinOptions so the new values are reflected next time
+            AudioManager.lastJoinOptions = {
+                ...(AudioManager.lastJoinOptions || {}),
+                voice: selectedVoice,
+                language: selectedLanguage,
+            };
         } catch (err) {
             // Optionally, handle error
             // notify('Failed to update voice/language', true);
