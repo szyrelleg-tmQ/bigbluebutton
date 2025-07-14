@@ -5,6 +5,7 @@ import DeviceSelector from '/imports/ui/components/audio/device-selector/compone
 import { getTranslatorClient } from 'translator-client';
 import { defineMessages, useIntl } from 'react-intl';
 import AudioManager from '/imports/ui/services/audio-manager';
+import LanguageIcon from '/public/svgs/language.svg';
 
 const intlMessages = defineMessages({
     buttonLabel: {
@@ -102,7 +103,7 @@ const AudioLanguageVoiceButton = () => {
     return (
         <>
             <Button
-                icon="language"
+                customIcon={<img src={LanguageIcon} alt="Language/Voice" style={{ width: 24, height: 24 }} />}
                 label={intl.formatMessage(intlMessages.buttonLabel)}
                 hideLabel
                 circle
