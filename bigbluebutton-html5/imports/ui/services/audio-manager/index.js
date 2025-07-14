@@ -785,34 +785,9 @@ class AudioManager {
         callObject.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "transcription") {
-            // Only show the user's own transcription in the chat UI
-            if (data.participant_name === localSessionId && data.type === "user") {
-              // Prefer translated text if available, otherwise original text
-              const text = data.translated_text || data.text || "";
-              if (text) {
-                latestTranscriptionVar(text);
-              } else {
-                latestTranscriptionVar(null);
-              }
-            } else if (data.type === "bot" && data.participant_name !== localSessionId) {
-              // Optionally, show bot (translated) messages if you want
-              const text = data.translated_text || data.text || "";
-              if (text) {
-                latestTranscriptionVar(text);
-              } else {
-                latestTranscriptionVar(null);
-              }
-            }
+            console.log('[TRANSLATOR] Received transcription:', data);
           } else if (data.event_type === "translation") {
-            // Optionally handle translation events as well
-            if (data.type === "bot" && data.participant_name !== localSessionId) {
-              const text = data.translated_text || data.text || "";
-              if (text) {
-                latestTranscriptionVar(text);
-              } else {
-                latestTranscriptionVar(null);
-              }
-            }
+            console.log('[TRANSLATOR] Received translation:', data);
           }
         });
 
