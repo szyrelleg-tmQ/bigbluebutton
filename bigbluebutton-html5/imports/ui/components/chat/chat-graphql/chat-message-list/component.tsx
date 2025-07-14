@@ -38,6 +38,7 @@ import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
 import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
+import { ChatAvatar } from './page/chat-message/styles';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -225,11 +226,12 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     lockSettings: m?.lockSettings,
     isBreakout: m?.isBreakout,
   }));
-  const { data: currentUser } = useCurrentUser((c) => ({
-    isModerator: c?.isModerator,
-    userLockSettings: c?.userLockSettings,
-    locked: c?.locked,
-    userId: c?.userId,
+  const { data: currentUser } = useCurrentUser((u) => ({
+    userId: u?.userId,
+    name: u?.name,
+    color: u?.color,
+    avatar: u?.avatar,
+    isModerator: u?.isModerator,
   }));
   const CHAT_REPLY_ENABLED = useIsReplyChatMessageEnabled();
   const CHAT_REACTIONS_ENABLED = useIsChatMessageReactionsEnabled();
@@ -617,15 +619,36 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   fontStyle: 'italic',
                   textAlign: isRTL ? 'right' : 'left',
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: transcription.type === 'user' ? 'flex-end' : 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
                   maxWidth: '70%',
                   alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
-                  <span role="status" aria-live="polite">
-                    <b>{transcription.type === 'user' ? intl.formatMessage({ id: 'app.chat.youLabel', defaultMessage: 'You' }) : 'User'}:</b> {transcription.text}
-                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
-                  </span>
+                  <ChatAvatar
+                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
+                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
+                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
+                  >
+                    {transcription.type === 'user'
+                      ? (currentUser?.name ? currentUser.name[0] : '?')
+                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
+                  </ChatAvatar>
+                  <div style={{ marginLeft: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {transcription.type === 'user'
+                        ? (currentUser?.name || 'You')
+                        : (transcription.participant_name || 'User')}
+                    </div>
+                    <div style={{ fontSize: '0.85em', color: '#888' }}>
+                      {transcription.type === 'user'
+                        ? (currentUser?.userId || '')
+                        : (transcription.participant_name || '')}
+                    </div>
+                    <div style={{ marginTop: 2 }}>
+                      {transcription.text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
+                    </div>
+                  </div>
                 </div>
               )}
               {translation && (
@@ -638,19 +661,40 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   fontStyle: 'italic',
                   textAlign: isRTL ? 'right' : 'left',
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: translation.type === 'user' ? 'flex-end' : 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
                   maxWidth: '70%',
                   alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
-                  <span role="status" aria-live="polite">
-                    <b>{translation.type === 'user' ? intl.formatMessage({ id: 'app.chat.youLabel', defaultMessage: 'You' }) : 'User'}:</b> {translation.text}
-                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
-                  </span>
-                  <span style={{ marginTop: 4 }}>
-                    <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
-                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
-                  </span>
+                  <ChatAvatar
+                    avatar={translation.type === 'user' ? (currentUser?.avatar || '') : ''}
+                    color={translation.type === 'user' ? (currentUser?.color || '#888') : '#888'}
+                    moderator={translation.type === 'user' ? !!currentUser?.isModerator : false}
+                  >
+                    {translation.type === 'user'
+                      ? (currentUser?.name ? currentUser.name[0] : '?')
+                      : (translation.participant_name ? translation.participant_name[0] : '?')}
+                  </ChatAvatar>
+                  <div style={{ marginLeft: 12, flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {translation.type === 'user'
+                        ? (currentUser?.name || 'You')
+                        : (translation.participant_name || 'User')}
+                    </div>
+                    <div style={{ fontSize: '0.85em', color: '#888' }}>
+                      {translation.type === 'user'
+                        ? (currentUser?.userId || '')
+                        : (translation.participant_name || '')}
+                    </div>
+                    <div style={{ marginTop: 2 }}>
+                      {translation.text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
+                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </PageWrapper>
