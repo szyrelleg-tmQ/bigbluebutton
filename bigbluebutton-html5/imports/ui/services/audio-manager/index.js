@@ -503,7 +503,7 @@ class AudioManager {
     }
   }
 
-  joinMicrophone({ muted }) {
+  joinMicrophone({ muted, voice, language } = {}) {
     this.isListenOnly = false;
     this.isEchoTest = false;
 
@@ -516,6 +516,8 @@ class AudioManager {
           inputStream: this.inputStream,
           bypassGUM: this.shouldBypassGUM(),
           muted,
+          voice,
+          language,
         };
         return this.joinAudio(callOptions, this.callStateCallback);
       });
@@ -592,6 +594,7 @@ class AudioManager {
       // is logged accordingly whenever it times out.
       this._trackAudioJoinTime();
 
+      this.lastJoinOptions = callOptions;
       await this.bridge.joinAudio(callOptions, callStateCallback);
     } catch (error) {
       this.error = !!error;
@@ -747,10 +750,11 @@ class AudioManager {
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
 
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
-        const roomId = "456"
+        const roomId = "456";
         const currentName = 'Guest' + Math.random().toString(36).substring(2, 15);
-        const language = 'english';
-        const voice = 'aria';
+        // Use selected language/voice if available
+        const language = this.lastJoinOptions?.language || 'english';
+        const voice = this.lastJoinOptions?.voice || 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
         const callObject = getTranslatorClient({
           baseUrl: "https://pipecat-translate.ph03.us",
@@ -759,10 +763,7 @@ class AudioManager {
             videoSource: false,
           },
         });
-
-        // Store the call object for mute/unmute operations
         this._translatorCallObject = callObject;
-
         const data = await callObject.startBot(currentName, language, roomId, voice);
         console.log(data)
         callObject.on('joined-meeting', (event) => {

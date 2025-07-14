@@ -227,6 +227,8 @@ const AudioModal = ({
   const [initialJoinExecuted, setInitialJoinExecuted] = useState(false);
   const [setAway] = useMutation(SET_AWAY);
   const voiceToggle = useToggleVoice();
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   const prevAutoplayBlocked = usePreviousValue(autoplayBlocked);
 
@@ -403,28 +405,27 @@ const AudioModal = ({
     });
   };
 
-  const handleJoinMicrophone = () => {
+  const handleJoinMicrophone = (voice, language) => {
     if (disableActions && isConnecting) return;
-
     setHasError(false);
     setDisableActions(true);
     setErrorInfo(null);
-
-    joinMicrophone().then(() => {
-      setDisableActions(false);
-    }).catch((err) => {
-      handleJoinAudioError(err);
-    });
+    joinMicrophone({ voice: voice || selectedVoice, language: language || selectedLanguage })
+      .then(() => {
+        setDisableActions(false);
+      })
+      .catch((err) => {
+        handleJoinAudioError(err);
+      });
   };
 
-  const handleAudioSettingsConfirmation = useCallback((inputStream) => {
-    // Reset the modal to a connecting state - this kind of sucks?
-    // prlanzarin Apr 04 2022
+  const handleAudioSettingsConfirmation = useCallback((inputStream, voice, language) => {
     setContent(null);
     if (inputStream) changeInputStream(inputStream);
-
+    if (voice) setSelectedVoice(voice);
+    if (language) setSelectedLanguage(language);
     if (!isConnected) {
-      handleJoinMicrophone();
+      handleJoinMicrophone(voice, language);
       disableAwayMode();
     } else {
       closeModal();
@@ -523,7 +524,6 @@ const AudioModal = ({
     const confirmationCallback = !localEchoEnabled
       ? handleRetryGoToEchoTest
       : handleAudioSettingsConfirmation;
-
     return (
       <AudioSettings
         animations={animations}

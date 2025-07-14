@@ -236,7 +236,7 @@ class AudioSettings extends React.Component {
   }
 
   handleConfirmationClick() {
-    const { stream, inputDeviceId: selectedInputDeviceId } = this.state;
+    const { stream, inputDeviceId: selectedInputDeviceId, selectedVoice, selectedLanguage } = this.state;
     const {
       isConnected,
       produceStreams,
@@ -246,7 +246,7 @@ class AudioSettings extends React.Component {
 
     const confirm = () => {
       // Stream generation disabled or there isn't any stream: just run the provided callback
-      if (!produceStreams || !stream) return handleConfirmation();
+      if (!produceStreams || !stream) return handleConfirmation(undefined, selectedVoice, selectedLanguage);
 
       // Stream generation enabled and there is a valid input stream => call
       // the confirmation callback with the input stream as arg so it can be used
@@ -254,7 +254,7 @@ class AudioSettings extends React.Component {
       // We're cloning it because the original will be cleaned up on unmount here.
       const clonedStream = stream.clone();
 
-      return handleConfirmation(clonedStream);
+      return handleConfirmation(clonedStream, selectedVoice, selectedLanguage);
     };
 
     if (isConnected) {

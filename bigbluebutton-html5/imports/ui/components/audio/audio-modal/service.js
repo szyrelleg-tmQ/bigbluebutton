@@ -4,7 +4,7 @@ import Service, {
 } from '/imports/ui/components/audio/service';
 
 export const joinMicrophone = (options = {}) => {
-  const { skipEchoTest = false } = options;
+  const { skipEchoTest = false, voice, language } = options;
   const shouldSkipEcho = skipEchoTest && Service.inputDeviceId() !== 'listen-only';
 
   setUserSelectedMicrophone(true);
@@ -17,7 +17,7 @@ export const joinMicrophone = (options = {}) => {
   const call = new Promise((resolve, reject) => {
     try {
       if ((shouldSkipEcho && !Service.isConnected()) || LOCAL_ECHO_TEST_ENABLED) {
-        return resolve(Service.joinMicrophone(options));
+        return resolve(Service.joinMicrophone({ ...options, voice, language }));
       }
 
       return resolve(Service.transferCall());
