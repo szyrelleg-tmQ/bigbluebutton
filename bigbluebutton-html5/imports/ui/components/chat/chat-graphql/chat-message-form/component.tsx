@@ -415,39 +415,26 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
 
   // Transcription state and instance
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [liveTranscription, setLiveTranscription] = useState<string>('');
   const translatorRef = useRef<any>(null);
 
-  // Start transcription and send results as chat messages
+  // Start transcription and display results as a live preview
   const handleStartTranscription = () => {
     if (isTranscribing) return;
     setIsTranscribing(true);
-    // Only one instance at a time
     if (translatorRef.current) return;
-    // You may want to use the user's language or other config here
-    translatorRef.current = dailyCoIntegration
+    translatorRef.current = dailyCoIntegration;
     // @ts-ignore
     translatorRef.current.setTranscriptionCallback((userText, botText) => {
-      console.log('Transcription result:', userText, botText);
-      if (botText) {
-        const formattedMessage = `**User:** ${userText}\n**Bot:** ${botText}`;
-        chatSendMessage({
-          variables: {
-            chatMessageInMarkdownFormat: formattedMessage,
-            chatId: chatId === PUBLIC_CHAT_ID ? PUBLIC_GROUP_CHAT_ID : chatId,
-            replyToMessageId: null,
-          },
-        });
-      }
+      setLiveTranscription(botText || '');
     });
-    // You may need to start the callObject, e.g. translatorRef.current.startBot(...)
-    // For now, assume the callback will be triggered by the client
   };
 
-  // Stop transcription
+  // Stop transcription and clear preview
   const handleStopTranscription = () => {
     setIsTranscribing(false);
+    setLiveTranscription('');
     if (translatorRef.current) {
-      // If the client has a stop/destroy method, call it here
       if (typeof translatorRef.current.destroy === 'function') {
         translatorRef.current.destroy();
       }
@@ -656,6 +643,21 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
             </button>
           )}
         </div>
+        {/* Live transcription preview */}
+        {liveTranscription && (
+          <div style={{
+            background: '#f3f6f9',
+            borderRadius: 4,
+            padding: '8px 12px',
+            margin: '8px 0',
+            color: '#333',
+            fontStyle: 'italic',
+            maxWidth: 500,
+            wordBreak: 'break-word',
+          }}>
+            <b>Live transcription:</b> {liveTranscription}
+          </div>
+        )}
         {/* Existing chat form */}
         <Styled.Form
           ref={formRef}
