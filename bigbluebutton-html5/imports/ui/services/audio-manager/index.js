@@ -1410,7 +1410,8 @@ class AudioManager {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
     if (this._translatorCallObject) {
-      this._translatorCallObject.toggleAudio();
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
     }
   }
 
@@ -1418,7 +1419,8 @@ class AudioManager {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
     if (this._translatorCallObject) {
-      this._translatorCallObject.toggleAudio();
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
     }
   }
 

@@ -13,6 +13,7 @@ import { hasMediaDevicesEventTarget } from '/imports/ui/services/webrtc-base/uti
 import AudioManager from '/imports/ui/services/audio-manager';
 import Session from '/imports/ui/services/storage/in-memory';
 import AudioCaptionsSelectContainer from '../audio-graphql/audio-captions/captions/component';
+import { getTranslatorClient } from 'translator-client';
 
 const propTypes = {
   intl: PropTypes.shape({
@@ -127,6 +128,9 @@ class AudioSettings extends React.Component {
     this.handleCancelClick = this.handleCancelClick.bind(this);
     this.unmuteOnExit = this.unmuteOnExit.bind(this);
     this.updateDeviceList = this.updateDeviceList.bind(this);
+    this.handleVoiceChange = this.handleVoiceChange.bind(this);
+    this.handleLanguageChange = this.handleLanguageChange.bind(this);
+    this.fetchVoicesAndLanguages = this.fetchVoicesAndLanguages.bind(this);
 
     this.state = {
       inputDeviceId,
@@ -139,12 +143,16 @@ class AudioSettings extends React.Component {
       audioInputDevices: [],
       audioOutputDevices: [],
       findingDevices: permissionStatus === 'prompt' || permissionStatus === 'denied',
+      voices: [],
+      languages: [],
+      selectedVoice: '',
+      selectedLanguage: '',
     };
 
     this._isMounted = false;
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     const {
       inputDeviceId,
       outputDeviceId,
@@ -177,6 +185,8 @@ class AudioSettings extends React.Component {
         this.setInputDevice(inputDeviceId);
         this.setOutputDevice(outputDeviceId);
       });
+
+    await this.fetchVoicesAndLanguages();
 
     // If connected and unmuted, we need to mute the audio and revert it
     // back to the original state on exit.
@@ -471,6 +481,31 @@ class AudioSettings extends React.Component {
     return doGUM(constraints, true);
   }
 
+  async fetchVoicesAndLanguages() {
+    try {
+      const translatorClient = getTranslatorClient({ baseUrl: "https://pipecat-translate.ph03.us" });
+      const voices = await translatorClient.fetchVoices();
+      const languages = await translatorClient.fetchLanguages();
+      this.setState({
+        voices,
+        languages,
+        selectedVoice: voices[0]?.key || '',
+        selectedLanguage: languages[0]?.key || languages[0] || '',
+      });
+    } catch (err) {
+      // fallback: leave empty or log
+      this.setState({ voices: [], languages: [] });
+    }
+  }
+
+  handleVoiceChange(e) {
+    this.setState({ selectedVoice: e.target.value });
+  }
+
+  handleLanguageChange(e) {
+    this.setState({ selectedLanguage: e.target.value });
+  }
+
   renderAudioCaptionsSelector() {
     const { intl, isTranscriptionEnabled } = this.props;
 
@@ -481,6 +516,52 @@ class AudioSettings extends React.Component {
         <Styled.LabelSmall htmlFor="audioSettingsCaptionsSelector">
           {intl.formatMessage(intlMessages.captionsSelectorLabel)}
           <AudioCaptionsSelectContainer showTitleLabel={false} />
+        </Styled.LabelSmall>
+      </Styled.FormElement>
+    );
+  }
+
+  renderVoiceSelector() {
+    const { voices, selectedVoice } = this.state;
+    if (!voices.length) return null;
+    return (
+      <Styled.FormElement>
+        <Styled.LabelSmall htmlFor="voiceSelector">
+          Voice
+          <select
+            id="voiceSelector"
+            value={selectedVoice}
+            onChange={this.handleVoiceChange}
+          >
+            {voices.map((voice) => (
+              <option key={voice.key} value={voice.key}>
+                {voice.name || voice.key}
+              </option>
+            ))}
+          </select>
+        </Styled.LabelSmall>
+      </Styled.FormElement>
+    );
+  }
+
+  renderLanguageSelector() {
+    const { languages, selectedLanguage } = this.state;
+    if (!languages.length) return null;
+    return (
+      <Styled.FormElement>
+        <Styled.LabelSmall htmlFor="languageSelector">
+          Language
+          <select
+            id="languageSelector"
+            value={selectedLanguage}
+            onChange={this.handleLanguageChange}
+          >
+            {languages.map((lang) => (
+              <option key={lang.key || lang} value={lang.key || lang}>
+                {lang.name || lang.key || lang}
+              </option>
+            ))}
+          </select>
         </Styled.LabelSmall>
       </Styled.FormElement>
     );
@@ -506,6 +587,8 @@ class AudioSettings extends React.Component {
 
     return (
       <>
+        {this.renderVoiceSelector()}
+        {this.renderLanguageSelector()}
         <Styled.FormElement>
           <Styled.LabelSmall htmlFor="inputDeviceSelector">
             {intl.formatMessage(intlMessages.micSourceLabel)}
