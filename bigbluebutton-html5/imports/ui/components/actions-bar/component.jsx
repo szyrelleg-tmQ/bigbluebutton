@@ -14,6 +14,7 @@ import { getSettingsSingletonInstance } from '/imports/ui/services/settings';
 import { LAYOUT_TYPE } from '../layout/enums';
 import ReactionsButtonContainer from '/imports/ui/components/actions-bar/reactions-button/container';
 import RaiseHandButtonContainer from '/imports/ui/components/actions-bar/raise-hand-button/container';
+import AudioLanguageVoiceButton from '/imports/ui/components/actions-bar/audio-language-voice-button/component';
 import Selector from '/imports/ui/components/common/selector/component';
 import ToggleGroup from '/imports/ui/components/common/toggle-group/component';
 import Separator from '/imports/ui/components/common/separator/component';
@@ -65,7 +66,7 @@ class ActionsBar extends PureComponent {
                 actionBarItemToReturn = (
                   <Button
                     {
-                      ...buttonProps
+                    ...buttonProps
                     }
                   />
                 );
@@ -231,6 +232,7 @@ class ActionsBar extends PureComponent {
             )}
             {isReactionsButtonEnabled && this.renderReactionsButton()}
             {isRaiseHandEnabled && <RaiseHandButtonContainer />}
+            <AudioLanguageVoiceButton />
             {this.renderPluginsActionBarItems(ActionsBarPosition.RIGHT)}
           </Styled.Center>
           <Styled.Right>
