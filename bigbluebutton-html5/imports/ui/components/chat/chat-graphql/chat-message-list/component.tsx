@@ -625,48 +625,6 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
                   <ChatAvatar
-                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
-                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
-                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
-                  >
-                    {transcription.type === 'user'
-                      ? (currentUser?.name ? currentUser.name[0] : '?')
-                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
-                  </ChatAvatar>
-                  <div style={{ marginLeft: 12, flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.name || 'You')
-                        : (transcription.participant_name || 'User')}
-                    </div>
-                    <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.userId || '')
-                        : (transcription.participant_name || '')}
-                    </div>
-                    <div style={{ marginTop: 2 }}>
-                      {transcription.text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {translation && (
-                <div style={{
-                  background: '#e6f7ff',
-                  color: '#333',
-                  padding: '8px 16px',
-                  margin: '8px 0',
-                  borderRadius: '8px',
-                  fontStyle: 'italic',
-                  textAlign: isRTL ? 'right' : 'left',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  maxWidth: '70%',
-                  alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
-                }}>
-                  <ChatAvatar
                     avatar={translation.type === 'user' ? (currentUser?.avatar || '') : ''}
                     color={translation.type === 'user' ? (currentUser?.color || '#888') : '#888'}
                     moderator={translation.type === 'user' ? !!currentUser?.isModerator : false}
