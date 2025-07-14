@@ -37,7 +37,7 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
-import { latestTranscriptionVar } from '/imports/ui/services/audio-manager';
+import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -518,6 +518,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   }, [loadingPages]);
 
   const transcription = useReactiveVar(latestTranscriptionVar);
+  const translation = useReactiveVar(latestTranslationVar);
 
   return (
     <>
@@ -605,7 +606,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
-              {/* Display live transcription at the bottom if available */}
+              {/* Display live transcription and translation at the bottom if available */}
               {transcription && (
                 <div style={{
                   background: '#f0f0f0',
@@ -615,25 +616,40 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   borderRadius: '8px',
                   fontStyle: 'italic',
                   textAlign: isRTL ? 'right' : 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: transcription.type === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                  alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
                   <span role="status" aria-live="polite">
-                    {transcription.original && (
-                      <>
-                        <b>
-                          {transcription.original.participant_name} ({transcription.original.language}):
-                        </b>
-                        &nbsp;{transcription.original.text}
-                      </>
-                    )}
-                    {transcription.translation && (
-                      <>
-                        <br />
-                        <b>
-                          {transcription.translation.language} (translated):
-                        </b>
-                        &nbsp;{transcription.translation.translated_text}
-                      </>
-                    )}
+                    <b>{transcription.type === 'user' ? intl.formatMessage({ id: 'app.chat.youLabel', defaultMessage: 'You' }) : 'User'}:</b> {transcription.text}
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
+                  </span>
+                </div>
+              )}
+              {translation && (
+                <div style={{
+                  background: '#e6f7ff',
+                  color: '#333',
+                  padding: '8px 16px',
+                  margin: '8px 0',
+                  borderRadius: '8px',
+                  fontStyle: 'italic',
+                  textAlign: isRTL ? 'right' : 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: translation.type === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                  alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
+                }}>
+                  <span role="status" aria-live="polite">
+                    <b>{translation.type === 'user' ? intl.formatMessage({ id: 'app.chat.youLabel', defaultMessage: 'You' }) : 'User'}:</b> {translation.text}
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
+                  </span>
+                  <span style={{ marginTop: 4 }}>
+                    <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
                   </span>
                 </div>
               )}

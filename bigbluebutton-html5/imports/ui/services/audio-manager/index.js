@@ -124,7 +124,6 @@ class AudioManager {
     this._voiceActivityObserver = null;
     this._inputStreamInactivityTrackers = new Map();
     this._translatorCallObject = null;
-    this._transcriptionTimeout = null;
 
     this.handlePlayElementFailed = this.handlePlayElementFailed.bind(this);
     this.monitor = this.monitor.bind(this);
@@ -787,28 +786,24 @@ class AudioManager {
           const data = message.data;
           if (data.event_type === "transcription") {
             console.log('[TRANSLATOR] Received transcription:', data);
-            // Store the original transcription, keep any existing translation
             latestTranscriptionVar({
-              ...(latestTranscriptionVar() || {}),
-              original: data,
+              text: data.text,
+              language: data.language,
+              participant_name: data.participant_name,
+              timestamp: data.timestamp,
+              type: data.type,
             });
-            // Set timeout to clear transcription after 10 seconds
-            this._clearTranscriptionTimeout();
-            this._transcriptionTimeout = setTimeout(() => {
-              latestTranscriptionVar(null);
-            }, 10000);
           } else if (data.event_type === "translation") {
             console.log('[TRANSLATOR] Received translation:', data);
-            // Store the translation, keep any existing original
-            latestTranscriptionVar({
-              ...(latestTranscriptionVar() || {}),
-              translation: data,
+            latestTranslationVar({
+              text: data.text,
+              translated_text: data.translated_text,
+              language: data.language,
+              original_language: data.original_language,
+              participant_name: data.participant_name,
+              timestamp: data.timestamp,
+              type: data.type,
             });
-            // Set timeout to clear transcription after 10 seconds
-            this._clearTranscriptionTimeout();
-            this._transcriptionTimeout = setTimeout(() => {
-              latestTranscriptionVar(null);
-            }, 10000);
           }
         });
 
@@ -923,15 +918,6 @@ class AudioManager {
       this._translatorCallObject = null;
     }
 
-    // Clear transcription timeout
-    if (this._transcriptionTimeout) {
-      clearTimeout(this._transcriptionTimeout);
-      this._transcriptionTimeout = null;
-    }
-
-    // Clear transcription display
-    latestTranscriptionVar(null);
-
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
       this.inputStream.getTracks().forEach((track) => track.stop());
       this.inputStream = null;
@@ -939,13 +925,6 @@ class AudioManager {
 
     if (!this.isEchoTest) {
       this.playHangUpSound();
-    }
-  }
-
-  _clearTranscriptionTimeout() {
-    if (this._transcriptionTimeout) {
-      clearTimeout(this._transcriptionTimeout);
-      this._transcriptionTimeout = null;
     }
   }
 
@@ -1708,6 +1687,8 @@ class AudioManager {
 
 // Add a global reactive variable for the latest transcription
 export const latestTranscriptionVar = makeVar(null);
+// Add a global reactive variable for the latest translation
+export const latestTranslationVar = makeVar(null);
 
 const audioManager = new AudioManager();
 export default audioManager;
