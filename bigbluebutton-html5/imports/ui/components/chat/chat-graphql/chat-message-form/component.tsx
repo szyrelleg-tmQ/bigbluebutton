@@ -50,7 +50,7 @@ import {
 import Auth from '/imports/ui/services/auth';
 import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStatus';
 // @ts-ignore
-import { getTranslatorClient } from 'translator-client';
+import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import { useState } from 'react';
 
 const CLOSED_CHAT_LIST_KEY = 'closedChatList';
@@ -424,10 +424,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
     // Only one instance at a time
     if (translatorRef.current) return;
     // You may want to use the user's language or other config here
-    translatorRef.current = getTranslatorClient({
-      baseUrl: "https://pipecat-translate.ph03.us",
-      // inputConfig can be extended as needed
-    });
+    translatorRef.current = dailyCoIntegration
     // @ts-ignore
     translatorRef.current.setTranscriptionCallback((userText, botText) => {
       console.log('Transcription result:', userText, botText);
