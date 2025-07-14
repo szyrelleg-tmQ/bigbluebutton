@@ -420,6 +420,7 @@ const AudioModal = ({
   };
 
   const handleAudioSettingsConfirmation = useCallback((inputStream, voice, language) => {
+    console.log('[DEBUG] handleAudioSettingsConfirmation:', { voice, language });
     setContent(null);
     if (inputStream) changeInputStream(inputStream);
     if (voice) setSelectedVoice(voice);

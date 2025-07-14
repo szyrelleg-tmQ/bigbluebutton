@@ -504,6 +504,7 @@ class AudioManager {
   }
 
   joinMicrophone({ muted, voice, language } = {}) {
+    console.log('[DEBUG] joinMicrophone called with:', { voice, language });
     this.isListenOnly = false;
     this.isEchoTest = false;
 
