@@ -555,6 +555,17 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   // Only show the translation overlay if we have a relevant translation for the user's language
   const shouldShowTranslation = safeTranslation && translationSpeaker;
 
+  // Handle transcription display
+  let transcriptionSpeaker = null;
+  if (transcription && transcription.participant_name) {
+    transcriptionSpeaker = allUsers.find(
+      (u) => u.name === transcription.participant_name
+    );
+  }
+
+  // Show transcription if available and speaker is found
+  const shouldShowTranscription = transcription && transcriptionSpeaker;
+
   return (
     <>
       {
@@ -641,6 +652,78 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
+              {/* Display live transcription at the bottom if available */}
+              {shouldShowTranscription && (
+                <div style={{
+                  background: '#e6f7ff',
+                  border: '1px solid #b3d9ff',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  margin: '8px 0',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                }}>
+                  {/* Avatar */}
+                  <ChatAvatar
+                    user={{
+                      userId: transcriptionSpeaker.userId,
+                      name: transcriptionSpeaker.name,
+                      color: transcriptionSpeaker.color,
+                      avatar: transcriptionSpeaker.avatar,
+                    }}
+                    size="sm"
+                  />
+
+                  {/* Message content */}
+                  <div style={{ flex: 1 }}>
+                    {/* User info */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '4px',
+                    }}>
+                      <span style={{
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        color: '#495057',
+                      }}>
+                        {transcriptionSpeaker.name}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#6c757d',
+                        backgroundColor: '#e9ecef',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                      }}>
+                        {transcription.language}
+                      </span>
+                    </div>
+
+                    {/* User ID */}
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6c757d',
+                      marginBottom: '8px',
+                    }}>
+                      {transcriptionSpeaker.userId}
+                    </div>
+
+                    {/* Transcribed text */}
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#212529',
+                      fontWeight: '500',
+                    }}>
+                      {transcription.text}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Display live translation at the bottom if available */}
               {shouldShowTranslation && (
                 <div style={{

@@ -784,7 +784,16 @@ class AudioManager {
 
         callObject.on("app-message", (message) => {
           const data = message.data;
-          if (data.event_type === "translation") {
+          if (data.event_type === "transcription") {
+            console.log('[TRANSLATOR] Received transcription:', data);
+            latestTranscriptionVar({
+              text: data.text,
+              language: data.language,
+              participant_name: data.participant_name,
+              timestamp: data.timestamp,
+              type: data.type,
+            });
+          } else if (data.event_type === "translation") {
             console.log('[TRANSLATOR] Received translation:', data);
             // Get current translations array
             const currentTranslations = latestTranslationVar();
@@ -1676,7 +1685,6 @@ class AudioManager {
     });
 
     const transportStats = await this.getInternalExternalIpAddresses(audioStats);
-
     return { transportStats, ...audioStats };
   }
 }
