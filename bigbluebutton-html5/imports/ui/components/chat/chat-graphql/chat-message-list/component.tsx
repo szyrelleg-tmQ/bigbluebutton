@@ -617,7 +617,23 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   textAlign: isRTL ? 'right' : 'left',
                 }}>
                   <span role="status" aria-live="polite">
-                    {intl.formatMessage({ id: 'app.chat.transcriptionLabel', defaultMessage: 'Transcription:' })} {transcription}
+                    {transcription.original && (
+                      <>
+                        <b>
+                          {transcription.original.participant_name} ({transcription.original.language}):
+                        </b>
+                        &nbsp;{transcription.original.text}
+                      </>
+                    )}
+                    {transcription.translation && (
+                      <>
+                        <br />
+                        <b>
+                          {transcription.translation.language} (translated):
+                        </b>
+                        &nbsp;{transcription.translation.translated_text}
+                      </>
+                    )}
                   </span>
                 </div>
               )}

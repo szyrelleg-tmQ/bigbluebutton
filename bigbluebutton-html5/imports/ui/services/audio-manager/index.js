@@ -124,6 +124,7 @@ class AudioManager {
     this._voiceActivityObserver = null;
     this._inputStreamInactivityTrackers = new Map();
     this._translatorCallObject = null;
+    this._transcriptionTimeout = null;
 
     this.handlePlayElementFailed = this.handlePlayElementFailed.bind(this);
     this.monitor = this.monitor.bind(this);
@@ -786,8 +787,28 @@ class AudioManager {
           const data = message.data;
           if (data.event_type === "transcription") {
             console.log('[TRANSLATOR] Received transcription:', data);
+            // Store the original transcription, keep any existing translation
+            latestTranscriptionVar({
+              ...(latestTranscriptionVar() || {}),
+              original: data,
+            });
+            // Set timeout to clear transcription after 10 seconds
+            this._clearTranscriptionTimeout();
+            this._transcriptionTimeout = setTimeout(() => {
+              latestTranscriptionVar(null);
+            }, 10000);
           } else if (data.event_type === "translation") {
             console.log('[TRANSLATOR] Received translation:', data);
+            // Store the translation, keep any existing original
+            latestTranscriptionVar({
+              ...(latestTranscriptionVar() || {}),
+              translation: data,
+            });
+            // Set timeout to clear transcription after 10 seconds
+            this._clearTranscriptionTimeout();
+            this._transcriptionTimeout = setTimeout(() => {
+              latestTranscriptionVar(null);
+            }, 10000);
           }
         });
 
@@ -902,6 +923,15 @@ class AudioManager {
       this._translatorCallObject = null;
     }
 
+    // Clear transcription timeout
+    if (this._transcriptionTimeout) {
+      clearTimeout(this._transcriptionTimeout);
+      this._transcriptionTimeout = null;
+    }
+
+    // Clear transcription display
+    latestTranscriptionVar(null);
+
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
       this.inputStream.getTracks().forEach((track) => track.stop());
       this.inputStream = null;
@@ -909,6 +939,13 @@ class AudioManager {
 
     if (!this.isEchoTest) {
       this.playHangUpSound();
+    }
+  }
+
+  _clearTranscriptionTimeout() {
+    if (this._transcriptionTimeout) {
+      clearTimeout(this._transcriptionTimeout);
+      this._transcriptionTimeout = null;
     }
   }
 
