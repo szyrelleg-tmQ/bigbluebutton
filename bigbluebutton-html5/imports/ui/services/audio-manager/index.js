@@ -784,18 +784,12 @@ class AudioManager {
 
         callObject.on("app-message", (message) => {
           const data = message.data;
-          if (data.event_type === "transcription") {
-            console.log('[TRANSLATOR] Received transcription:', data);
-            latestTranscriptionVar({
-              text: data.text,
-              language: data.language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-          } else if (data.event_type === "translation") {
+          if (data.event_type === "translation") {
             console.log('[TRANSLATOR] Received translation:', data);
-            latestTranslationVar({
+            // Get current translations array
+            const currentTranslations = latestTranslationVar();
+            // Add new translation to the array
+            const newTranslation = {
               text: data.text,
               translated_text: data.translated_text,
               language: data.language,
@@ -803,7 +797,9 @@ class AudioManager {
               participant_name: data.participant_name,
               timestamp: data.timestamp,
               type: data.type,
-            });
+            };
+            // Update with new array including the new translation
+            latestTranslationVar([...currentTranslations, newTranslation]);
           }
         });
 
@@ -1687,8 +1683,8 @@ class AudioManager {
 
 // Add a global reactive variable for the latest transcription
 export const latestTranscriptionVar = makeVar(null);
-// Add a global reactive variable for the latest translation
-export const latestTranslationVar = makeVar(null);
+// Add a global reactive variable for the latest translations (array)
+export const latestTranslationVar = makeVar([]);
 
 const audioManager = new AudioManager();
 export default audioManager;

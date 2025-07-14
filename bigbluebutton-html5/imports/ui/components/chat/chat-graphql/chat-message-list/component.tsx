@@ -38,6 +38,7 @@ import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
 import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
+import audioManager from '/imports/ui/services/audio-manager';
 import { useLoadedUserList } from '/imports/ui/core/hooks/useLoadedUserList';
 import { ChatAvatar } from './page/chat-message/styles';
 
@@ -520,7 +521,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   }, [loadingPages]);
 
   const transcription = useReactiveVar(latestTranscriptionVar);
-  const translation = useReactiveVar(latestTranslationVar);
+  const translations = useReactiveVar(latestTranslationVar);
 
   // Get all users in the meeting (for avatar/name lookup)
   const userListResult = useLoadedUserList({ offset: 0, limit: 100 }, (u: any) => ({
@@ -533,20 +534,26 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   }));
   const allUsers = (Array.isArray(userListResult) ? userListResult[0] : []) as any[];
 
-  // Determine the current user's preferred language
-  const userLanguage = currentUser?.speechLocale || currentUser?.captionLocale;
+  // Get current user's language from audio manager
+  const userLanguage = audioManager.lastJoinOptions?.language || 'english';
 
-  // Find the original speaker in the user list by participant_name (fallback to name match)
+  // Filter translations by current user's language and get the most recent one
+  const relevantTranslation = translations && Array.isArray(translations)
+    ? translations
+      .filter((t: any) => t.language === userLanguage)
+      .sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
+    : null;
+
   let translationSpeaker = null;
-  const safeTranslation: any = translation || {};
-  if (safeTranslation && typeof safeTranslation.participant_name === 'string') {
+  const safeTranslation = relevantTranslation as any;
+  if (safeTranslation && safeTranslation.participant_name) {
     translationSpeaker = allUsers.find(
-      (u: any) => u.name === safeTranslation.participant_name
+      (u) => u.name === safeTranslation.participant_name
     );
   }
 
-  // Only show the translation overlay if the translation's language matches the user's language
-  const shouldShowTranslation = safeTranslation && userLanguage && safeTranslation.language === userLanguage;
+  // Only show the translation overlay if we have a relevant translation for the user's language
+  const shouldShowTranslation = safeTranslation && translationSpeaker;
 
   return (
     <>
@@ -634,43 +641,83 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
-              {/* Only display the translation overlay, not transcription, and only for the user's language */}
+              {/* Display live translation at the bottom if available */}
               {shouldShowTranslation && (
                 <div style={{
-                  background: '#e6f7ff',
-                  color: '#333',
-                  padding: '8px 16px',
-                  margin: '8px 0',
+                  background: '#f8f9fa',
+                  border: '1px solid #dee2e6',
                   borderRadius: '8px',
-                  fontStyle: 'italic',
-                  textAlign: isRTL ? 'right' : 'left',
+                  padding: '12px',
+                  margin: '8px 0',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   display: 'flex',
-                  flexDirection: 'row',
                   alignItems: 'flex-start',
-                  maxWidth: '70%',
-                  alignSelf: 'flex-start',
+                  gap: '12px',
                 }}>
+                  {/* Avatar */}
                   <ChatAvatar
-                    avatar={translationSpeaker?.avatar || ''}
-                    color={translationSpeaker?.color || '#888'}
-                    moderator={false}
-                  >
-                    {translationSpeaker?.name ? translationSpeaker.name[0] : '?'}
-                  </ChatAvatar>
-                  <div style={{ marginLeft: 12, flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {translationSpeaker?.name || safeTranslation.participant_name || 'User'}
+                    user={{
+                      userId: translationSpeaker.userId,
+                      name: translationSpeaker.name,
+                      color: translationSpeaker.color,
+                      avatar: translationSpeaker.avatar,
+                    }}
+                    size="sm"
+                  />
+
+                  {/* Message content */}
+                  <div style={{ flex: 1 }}>
+                    {/* User info */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '4px',
+                    }}>
+                      <span style={{
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        color: '#495057',
+                      }}>
+                        {translationSpeaker.name}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#6c757d',
+                        backgroundColor: '#e9ecef',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                      }}>
+                        {safeTranslation.language}
+                      </span>
                     </div>
-                    <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {translationSpeaker?.userId || ''}
+
+                    {/* User ID */}
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6c757d',
+                      marginBottom: '8px',
+                    }}>
+                      {translationSpeaker.userId}
                     </div>
-                    <div style={{ marginTop: 2 }}>
-                      <b>Original:</b> {safeTranslation.text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({safeTranslation.original_language || safeTranslation.language})</span>
+
+                    {/* Original text */}
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#495057',
+                      marginBottom: '4px',
+                      fontStyle: 'italic',
+                    }}>
+                      <strong>Original:</strong> {safeTranslation.text}
                     </div>
-                    <div style={{ marginTop: 4 }}>
-                      <b>Translated:</b> {safeTranslation.translated_text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({safeTranslation.language})</span>
+
+                    {/* Translated text */}
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#212529',
+                      fontWeight: '500',
+                    }}>
+                      <strong>Translated:</strong> {safeTranslation.translated_text}
                     </div>
                   </div>
                 </div>
