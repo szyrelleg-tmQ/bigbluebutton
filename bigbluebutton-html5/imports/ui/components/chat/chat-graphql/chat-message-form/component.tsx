@@ -197,7 +197,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
   useEffect(() => {
     setMessageHint();
     if (!isMobile) {
-      if (textAreaRef?.current) textAreaRef.current.textarea.focus();
+      if (textAreaRef?.current) textAreaRef.current.focus();
     }
 
     return () => {
@@ -252,7 +252,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
     setMessage(unsentMessage);
 
     if (!isMobile) {
-      if (textAreaRef?.current) textAreaRef.current.textarea.focus();
+      if (textAreaRef?.current) textAreaRef.current.focus();
     }
     setError(null);
     setHasErrors(false);
@@ -427,11 +427,13 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       baseUrl: "https://pipecat-translate.ph03.us",
       // inputConfig can be extended as needed
     });
-    translatorRef.current.setTranscriptionCallback((result: any) => {
-      if (result && result.transcript) {
+    translatorRef.current.setTranscriptionCallback((userText: string, botText: string) => {
+      console.log('Transcription result:', { userText, botText });
+      if (userText || botText) {
+        const formattedMessage = `**User:** ${userText || ''}\n**Bot:** ${botText || ''}`;
         chatSendMessage({
           variables: {
-            chatMessageInMarkdownFormat: result.transcript,
+            chatMessageInMarkdownFormat: formattedMessage,
             chatId: chatId === PUBLIC_CHAT_ID ? PUBLIC_GROUP_CHAT_ID : chatId,
             replyToMessageId: null,
           },
