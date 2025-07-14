@@ -790,6 +790,15 @@ class AudioManager {
           this._translatorCallObject = null;
         }
 
+        // Set up transcription callback
+        if (typeof callObject.setTranscriptionCallback === 'function') {
+          callObject.setTranscriptionCallback((transcription) => {
+            // You may want to check for interim/final here
+            if (transcription && transcription.text) {
+              latestTranscriptionVar(transcription.text);
+            }
+          });
+        }
         // Cleanup (on hangup, component unmount, etc.)
         // callObject.leave();
         // callObject.destroy();
@@ -1657,6 +1666,9 @@ class AudioManager {
     return { transportStats, ...audioStats };
   }
 }
+
+// Add a global reactive variable for the latest transcription
+export const latestTranscriptionVar = makeVar(null);
 
 const audioManager = new AudioManager();
 export default audioManager;

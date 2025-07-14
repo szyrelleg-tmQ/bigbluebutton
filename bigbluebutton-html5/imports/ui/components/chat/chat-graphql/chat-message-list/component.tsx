@@ -5,7 +5,7 @@ import React, {
   useMemo,
   KeyboardEventHandler,
 } from 'react';
-import { makeVar, useMutation } from '@apollo/client';
+import { makeVar, useMutation, useReactiveVar } from '@apollo/client';
 import { defineMessages, useIntl } from 'react-intl';
 import useChat from '/imports/ui/core/hooks/useChat';
 import useIntersectionObserver from '/imports/ui/hooks/useIntersectionObserver';
@@ -37,6 +37,7 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
+import { latestTranscriptionVar } from '/imports/ui/services/audio-manager';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -99,7 +100,7 @@ const setLastSender = (lastSenderPerPage: Map<number, string>) => {
 };
 
 const lastSeenQueue = makeVar<{ [key: string]: Set<number> }>({});
-const setter = makeVar<{ [key: string]:(lastSeenTime: string) => void }>({});
+const setter = makeVar<{ [key: string]: (lastSeenTime: string) => void }>({});
 const lastSeenAtVar = makeVar<{ [key: string]: number }>({});
 const chatIdVar = makeVar<string>('');
 
@@ -516,6 +517,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     setLockLoadingNewPages(loadingPages.size !== 0);
   }, [loadingPages]);
 
+  const transcription = useReactiveVar(latestTranscriptionVar);
+
   return (
     <>
       {
@@ -602,6 +605,22 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
+              {/* Display live transcription at the bottom if available */}
+              {transcription && (
+                <div style={{
+                  background: '#f0f0f0',
+                  color: '#333',
+                  padding: '8px 16px',
+                  margin: '8px 0',
+                  borderRadius: '8px',
+                  fontStyle: 'italic',
+                  textAlign: isRTL ? 'right' : 'left',
+                }}>
+                  <span role="status" aria-live="polite">
+                    {intl.formatMessage({ id: 'app.chat.transcriptionLabel', defaultMessage: 'Transcription:' })} {transcription}
+                  </span>
+                </div>
+              )}
             </PageWrapper>
             <div
               ref={endSentinelRefProxy}
