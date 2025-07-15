@@ -1738,6 +1738,7 @@ window.addEventListener('graphqlSubscription', (e) => {
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
+  console.log('[TRANSLATOR] Preparing to send compressed translation message:', messageObj);
   const json = JSON.stringify(messageObj);
   const compressed = LZString.compressToBase64(json);
   // Replace this with your actual send message function
