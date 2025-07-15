@@ -821,9 +821,9 @@ class AudioManager {
 
             // Count how many translations we have for this message
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
-
+            console.log(translationBuffers, "-----------------------");
             // If we've received all expected translations, store the message and clean up
-            if (numTranslations === this.participantsCount) {
+            if (numTranslations === 2) {
               translationMessages.push({
                 original: translationBuffers[key].original,
                 translations: { ...translationBuffers[key].translations },
