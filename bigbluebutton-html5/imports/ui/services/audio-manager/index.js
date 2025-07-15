@@ -816,10 +816,19 @@ class AudioManager {
             translationBuffer[messageId].count += 1;
             // When all expected translations are received, send compressed message
             if (translationBuffer[messageId].count === this.participantsCount) {
-              sendCompressedTranslation({
+              const updateParticipantsCount = () => {
+                const participants = callObject.participants();
+                this.participantsCount = Object.keys(participants).length;
+              };
+              updateParticipantsCount();
+              const messageObj = {
+                timestamp: messageId,
                 original: data.text,
-                translations: translationBuffer[messageId].translations,
-              });
+                translations: { ...translationBuffer[messageId].translations },
+                participant_name: data.participant_name,
+                // add any other metadata you need
+              };
+              translationMessages.push(messageObj);
               delete translationBuffer[messageId];
             }
           }
@@ -1709,6 +1718,7 @@ export const latestTranscriptionVar = makeVar(null);
 export const latestTranslationVar = makeVar(null);
 
 const translationBuffer = {};
+const translationMessages = [];
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
@@ -1729,6 +1739,14 @@ export function decompressAndFilterMessage(compressed, userLang) {
   } catch (e) {
     return compressed;
   }
+}
+
+// Expose a function to get messages filtered by user language for rendering
+export function getFilteredTranslationMessages(userLang) {
+  return translationMessages.map(msg => ({
+    ...msg,
+    displayText: msg.translations[userLang] || msg.original,
+  }));
 }
 
 const audioManager = new AudioManager();

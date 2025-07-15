@@ -37,8 +37,9 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
-import { latestTranscriptionVar, latestTranslationVar } from '/imports/ui/services/audio-manager';
+import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages } from '/imports/ui/services/audio-manager';
 import { ChatAvatar } from './page/chat-message/styles';
+import audioManager from '/imports/ui/services/audio-manager';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -519,8 +520,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     setLockLoadingNewPages(loadingPages.size !== 0);
   }, [loadingPages]);
 
-  const transcription = useReactiveVar(latestTranscriptionVar);
-  const translation = useReactiveVar(latestTranslationVar);
+  const userLang = audioManager.lastJoinOptions?.language || intl.locale;
+  const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
 
   return (
     <>
@@ -651,45 +652,31 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   </div>
                 </div>
               )} */}
-              {translation && (
-                <div style={{
-                  background: '#e6f7ff',
-                  color: '#333',
-                  padding: '8px 16px',
-                  margin: '8px 0',
-                  borderRadius: '8px',
-                  fontStyle: 'italic',
-                  textAlign: isRTL ? 'right' : 'left',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  maxWidth: '70%',
-                  alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
-                }}>
-                  <ChatAvatar
-                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
-                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
-                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
-                  >
-                    {transcription.type === 'user'
-                      ? (currentUser?.name ? currentUser.name[0] : '?')
-                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
-                  </ChatAvatar>
-                  <div style={{ marginLeft: 12, flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.name || 'You')
-                        : (transcription.participant_name || 'User')}
+              {/* Display all translation messages as a map, filtered by user language */}
+              {filteredTranslationMessages.length > 0 && (
+                <div style={{ margin: '16px 0' }}>
+                  {filteredTranslationMessages.map((msg, idx) => (
+                    <div key={msg.timestamp || idx} style={{
+                      background: '#f5f5f5',
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 8,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {msg.participant_name || 'User'}
+                        <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                        </span>
+                      </div>
+                      <div style={{ marginBottom: 2 }}>
+                        <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {msg.displayText}
+                      </div>
+                      <div style={{ color: '#888', fontSize: '0.9em' }}>
+                        ({userLang})
+                      </div>
                     </div>
-                    <div style={{ marginTop: 2 }}>
-                      {translation.text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
-                    </div>
-                    <div style={{ marginTop: 4 }}>
-                      <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {translation.translated_text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.language})</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </PageWrapper>
