@@ -828,6 +828,7 @@ class AudioManager {
                 ...translationMessagesVar(),
                 {
                   original: translationBuffers[key].original,
+                  fullName: Auth.fullname,
                   translations: { ...translationBuffers[key].translations },
                   participant_name: translationBuffers[key].participant_name,
                 }

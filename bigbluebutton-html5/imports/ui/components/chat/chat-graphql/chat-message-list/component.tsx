@@ -679,8 +679,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                       }
                       return color;
                     }
-                    const userColor = getUserColorByName(msg.participant_name);
-                    const avatarColor = userColor || stringToColor(msg.participant_name || 'User');
+                    const userColor = getUserColorByName(msg.fullName);
+                    const avatarColor = userColor || stringToColor(msg.fullName || 'User');
                     const avatarText = (msg.participant_name || 'U').slice(0, 2).toUpperCase();
                     return (
                       <div
