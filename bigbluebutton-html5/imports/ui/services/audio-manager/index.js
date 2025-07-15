@@ -133,7 +133,7 @@ class AudioManager {
     this.callStateCallback = this.callStateCallback.bind(this);
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
-
+    this.participantsCount = makeVar(0);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -751,7 +751,6 @@ class AudioManager {
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
       // Log the actual stream after join
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
-
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const roomId = Auth.meetingID;
         const currentName = 'Guest' + Math.random().toString(36).substring(2, 15);
@@ -773,7 +772,9 @@ class AudioManager {
         console.log(data)
         callObject.on('joined-meeting', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
-          // Initialize Daily.co integration
+          const participantsObj = callObject.participants();
+          this.participantsCount = Object.keys(participantsObj).length;
+          console.log(this.participantsCount, "--------------------");
           dailyCoIntegration.initialize(callObject);
         });
 
@@ -818,7 +819,7 @@ class AudioManager {
             translationBuffer[messageId].translations[data.language] = data.translated_text;
             translationBuffer[messageId].count += 1;
             // When all expected translations are received, send compressed message
-            if (translationBuffer[messageId].count === EXPECTED_TRANSLATIONS) {
+            if (translationBuffer[messageId].count === this.participantsCount) {
               sendCompressedTranslation({
                 original: data.text,
                 translations: translationBuffer[messageId].translations,
@@ -1711,33 +1712,7 @@ export const latestTranscriptionVar = makeVar(null);
 // Add a global reactive variable for the latest translation
 export const latestTranslationVar = makeVar(null);
 
-// Translation buffer to collect translations by message id (timestamp)
 const translationBuffer = {};
-let EXPECTED_TRANSLATIONS = 2; // Default fallback, will be set dynamically
-
-function setupExpectedTranslationsSubscription() {
-  globalThis._audioManagerUserCountSub = GrahqlSubscriptionStore.makeSubscription(
-    USER_AGGREGATE_COUNT_SUBSCRIPTION
-  );
-  const updateExpectedTranslations = () => {
-    const sub = globalThis._audioManagerUserCountSub();
-    if (sub && sub.data && sub.data.user_aggregate && sub.data.user_aggregate.aggregate) {
-      const count = sub.data.user_aggregate.aggregate.count;
-      if (typeof count === 'number' && count > 0) {
-        EXPECTED_TRANSLATIONS = count;
-        console.log('[AUDIO MANAGER] Total participants updated:', count);
-      }
-    }
-  };
-  updateExpectedTranslations();
-  window.addEventListener('graphqlSubscription', (e) => {
-    if (e.detail && e.detail.response === globalThis._audioManagerUserCountSub()) {
-      updateExpectedTranslations();
-    }
-  });
-}
-
-// Call this function after ApolloClient is initialized
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
@@ -1760,17 +1735,6 @@ export function decompressAndFilterMessage(compressed, userLang) {
     return compressed;
   }
 }
-
-function waitForApolloAndSetup() {
-  try {
-    // This will throw if not ready
-    require('/imports/ui/core/graphql/apolloContextHolder/apolloContextHolder').default.getClient();
-    setupExpectedTranslationsSubscription();
-  } catch (e) {
-    setTimeout(waitForApolloAndSetup, 100); // Try again in 100ms
-  }
-}
-waitForApolloAndSetup();
 
 const audioManager = new AudioManager();
 export default audioManager;
