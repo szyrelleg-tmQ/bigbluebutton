@@ -821,7 +821,7 @@ class AudioManager {
 
             // Count how many translations we have for this message
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            console.log(translationBuffers, "-----------------------");
+            console.log(translationBuffers[key], "-----------------------");
             // If we've received all expected translations, store the message and clean up
             if (numTranslations === 2) {
               translationMessages.push({
@@ -830,6 +830,7 @@ class AudioManager {
                 participant_name: translationBuffers[key].participant_name,
               });
               delete translationBuffers[key];
+              console.log(translationMessages)
             }
           }
         });
@@ -1719,16 +1720,6 @@ export const latestTranslationVar = makeVar(null);
 
 const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
 const translationMessages = [];
-
-// Utility to send compressed translation message
-function sendCompressedTranslation(messageObj) {
-  const data = [];
-  data.push(messageObj)
-  console.log(data);
-  // const json = JSON.stringify(messageObj);
-  // const compressed = LZString.compressToBase64(json);
-  // console.log('[TRANSLATOR] Sending compressed message:', compressed);
-}
 
 // Utility to decompress and filter message by user language
 export function decompressAndFilterMessage(compressed, userLang) {
