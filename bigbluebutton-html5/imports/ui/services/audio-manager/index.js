@@ -772,17 +772,17 @@ class AudioManager {
         console.log(data)
         callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
-          const participantsObj = callObject.participants();
-          this.participantsCount = Object.keys(participantsObj).length;
-          console.log(this.participantsCount, "--------------------");
+          const participantsObj = callObject.getCallState();
+          this.participantsCount = participantsObj.participants.length;
+          console.log("total participants:", this.participantsCount);
           dailyCoIntegration.initialize(callObject);
         });
 
         callObject.on('participant-left', (event) => {
           console.log('❌ Left Daily room:', event);
-          const participantsObj = callObject.participants();
-          this.participantsCount = Object.keys(participantsObj).length;
-          console.log(this.participantsCount, "--------------------");
+          const participantsObj = callObject.getCallState();
+          this.participantsCount = participantsObj.participants.length;
+          console.log("total participants:", this.participantsCount);
           dailyCoIntegration.cleanup();
           this._translatorCallObject = null;
         });
