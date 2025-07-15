@@ -753,7 +753,7 @@ class AudioManager {
       console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const roomId = Auth.meetingID;
-        const currentName = Auth.fullname || 'Unknown User';
+        const currentName = Auth.fullname.replace(/\s+/g, '') + Math.random().toString(36).substring(2, 15);
         // Use selected language/voice if available
         const language = this.lastJoinOptions?.language || 'english';
         const voice = this.lastJoinOptions?.voice || 'aria';
