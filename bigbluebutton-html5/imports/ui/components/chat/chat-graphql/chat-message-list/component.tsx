@@ -522,7 +522,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
 
   const userLang = audioManager.lastJoinOptions?.language || intl.locale;
   const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
-
+  console.log(userLang)
+  console.log(filteredTranslationMessages)
   return (
     <>
       {
@@ -655,28 +656,64 @@ const ChatMessageList: React.FC<ChatListProps> = ({
               {/* Display all translation messages as a map, filtered by user language */}
               {filteredTranslationMessages.length > 0 && (
                 <div style={{ margin: '16px 0' }}>
-                  {filteredTranslationMessages.map((msg, idx) => (
-                    <div key={msg.timestamp || idx} style={{
-                      background: '#f5f5f5',
-                      borderRadius: 8,
-                      padding: 12,
-                      marginBottom: 8,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                    }}>
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                        {msg.participant_name || 'User'}
-                        <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
-                        </span>
+                  {filteredTranslationMessages.map((msg, idx) => {
+                    // Generate a color based on participant_name (simple hash)
+                    function stringToColor(str) {
+                      let hash = 0;
+                      for (let i = 0; i < str.length; i++) {
+                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                      }
+                      let color = '#';
+                      for (let i = 0; i < 3; i++) {
+                        const value = (hash >> (i * 8)) & 0xFF;
+                        color += ('00' + value.toString(16)).slice(-2);
+                      }
+                      return color;
+                    }
+                    const avatarColor = stringToColor(msg.participant_name || 'User');
+                    const avatarText = (msg.participant_name || 'U').slice(0, 2).toUpperCase();
+                    return (
+                      <div key={msg.timestamp || idx} style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        background: '#f5f5f5',
+                        borderRadius: 8,
+                        padding: 12,
+                        marginBottom: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                      }}>
+                        <ChatAvatar
+                          avatar={''}
+                          color={avatarColor}
+                          moderator={false}
+                          style={{ marginRight: 12 }}
+                        >
+                          {avatarText}
+                        </ChatAvatar>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                            {msg.participant_name || 'User'}
+                            <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>
+                              {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: 2 }}>
+                            <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b>
+                            <ul style={{ margin: 0, paddingLeft: 16 }}>
+                              {Object.entries(msg.translations).map(([lang, translation]) => (
+                                <li key={lang} style={{ fontSize: '0.98em' }}>
+                                  <span style={{ fontWeight: 500 }}>{lang}:</span> {String(translation)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div style={{ color: '#888', fontSize: '0.9em' }}>
+                            ({userLang})
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ marginBottom: 2 }}>
-                        <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {msg.displayText}
-                      </div>
-                      <div style={{ color: '#888', fontSize: '0.9em' }}>
-                        ({userLang})
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </PageWrapper>

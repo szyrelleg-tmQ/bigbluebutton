@@ -1721,17 +1721,6 @@ export const latestTranslationVar = makeVar(null);
 const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
 const translationMessages = [];
 
-// Utility to decompress and filter message by user language
-export function decompressAndFilterMessage(compressed, userLang) {
-  try {
-    const json = LZString.decompressFromBase64(compressed);
-    const obj = JSON.parse(json);
-    return obj.translations[userLang] || obj.original;
-  } catch (e) {
-    return compressed;
-  }
-}
-
 // Expose a function to get messages filtered by user language for rendering
 export function getFilteredTranslationMessages(userLang) {
   return translationMessages.map(msg => ({
