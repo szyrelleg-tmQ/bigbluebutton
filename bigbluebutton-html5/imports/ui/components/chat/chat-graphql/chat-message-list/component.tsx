@@ -654,7 +654,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
               )} */}
               {/* Display all translation messages as a map, filtered by user language */}
               {filteredTranslationMessages.length > 0 && (
-                <div style={{ margin: '16px 0' }}>
+                <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {filteredTranslationMessages.map((msg, idx) => {
                     // Generate a color based on participant_name (simple hash)
                     function stringToColor(str) {
@@ -672,29 +672,64 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                     const avatarColor = stringToColor(msg.participant_name || 'User');
                     const avatarText = (msg.participant_name || 'U').slice(0, 2).toUpperCase();
                     return (
-                      <div key={msg.timestamp || idx} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        background: '#f5f5f5',
-                        borderRadius: 8,
-                        padding: 12,
-                        marginBottom: 8,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                      }}>
+                      <div
+                        key={msg.timestamp || idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          background: '#fff',
+                          borderRadius: 12,
+                          padding: '18px 20px',
+                          marginBottom: 0,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                          border: '1px solid #ececec',
+                          maxWidth: 520,
+                          width: '100%',
+                          minWidth: 0,
+                          gap: 18,
+                        }}
+                      >
                         <ChatAvatar
                           avatar={''}
                           color={avatarColor}
                           moderator={false}
-                          style={{ marginRight: 12 }}
+                          style={{
+                            marginRight: 0,
+                            width: 48,
+                            height: 48,
+                            minWidth: 48,
+                            minHeight: 48,
+                            borderRadius: '50%',
+                            fontSize: 22,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                          }}
                         >
                           {avatarText}
                         </ChatAvatar>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                            <b>{intl.formatMessage({ id: 'app.chat.originalLabel', defaultMessage: 'Original:' })}</b> {msg.original}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, fontSize: 15, color: '#222', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ color: '#888', fontWeight: 400, fontSize: 13 }}>{intl.formatMessage({ id: 'app.chat.originalLabel', defaultMessage: 'Original:' })}</span>
+                            <span style={{ wordBreak: 'break-word', fontWeight: 500 }}>{msg.original}</span>
                           </div>
-                          <div style={{ marginBottom: 2 }}>
-                            <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {String(msg.translations[userLang] || msg.original)}
+                          <div style={{
+                            background: '#f0f7ff',
+                            borderRadius: 8,
+                            padding: '10px 14px',
+                            fontWeight: 500,
+                            fontSize: 15,
+                            color: '#1a237e',
+                            marginBottom: 0,
+                            boxShadow: '0 1px 2px rgba(26,35,126,0.04)',
+                            wordBreak: 'break-word',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <span style={{ color: '#1976d2', fontWeight: 400, fontSize: 13 }}>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</span>
+                            <span>{String(msg.translations[userLang] || msg.original)}</span>
                           </div>
                         </div>
                       </div>
