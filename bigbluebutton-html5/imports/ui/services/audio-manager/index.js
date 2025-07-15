@@ -1725,6 +1725,7 @@ function setupExpectedTranslationsSubscription() {
       const count = sub.data.user_aggregate.aggregate.count;
       if (typeof count === 'number' && count > 0) {
         EXPECTED_TRANSLATIONS = count;
+        console.log('[AUDIO MANAGER] Total participants updated:', count);
       }
     }
   };
