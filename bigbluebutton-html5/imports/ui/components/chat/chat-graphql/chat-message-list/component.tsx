@@ -667,13 +667,13 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   alignSelf: translation.type === 'user' ? 'flex-end' : 'flex-start',
                 }}>
                   <ChatAvatar
-                    avatar={translation.type === 'user' ? (currentUser?.avatar || '') : ''}
-                    color={translation.type === 'user' ? (currentUser?.color || '#888') : '#888'}
-                    moderator={translation.type === 'user' ? !!currentUser?.isModerator : false}
+                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
+                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
+                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
                   >
-                    {translation.type === 'user'
+                    {transcription.type === 'user'
                       ? (currentUser?.name ? currentUser.name[0] : '?')
-                      : (translation.participant_name ? translation.participant_name[0] : '?')}
+                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
                   </ChatAvatar>
                   <div style={{ marginLeft: 12, flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>
