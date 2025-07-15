@@ -31,7 +31,6 @@ import {
 import { getTranslatorClient } from 'translator-client'
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import LZString from 'lz-string';
-import apolloContextHolder from '/imports/ui/core/graphql/apolloContextHolder/apolloContextHolder';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 
 const CALL_STATES = {
@@ -785,7 +784,7 @@ class AudioManager {
           this._translatorCallObject = null;
         });
 
-        callObject.on("app-message", async (message) => {
+        callObject.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "transcription") {
             console.log('[TRANSLATOR] Received transcription:', data);
@@ -807,8 +806,6 @@ class AudioManager {
               timestamp: data.timestamp,
               type: data.type,
             });
-            // Before collecting, update EXPECTED_TRANSLATIONS
-            await updateExpectedTranslations();
             // Collect translations by timestamp (message id)
             const messageId = data.timestamp;
             if (!translationBuffer[messageId]) {
@@ -1716,30 +1713,37 @@ export const latestTranslationVar = makeVar(null);
 
 // Translation buffer to collect translations by message id (timestamp)
 const translationBuffer = {};
-let EXPECTED_TRANSLATIONS = 2; // Default fallback
+let EXPECTED_TRANSLATIONS = 2; // Default fallback, will be set dynamically
 
-// Dynamically update EXPECTED_TRANSLATIONS from participant count
-async function updateExpectedTranslations() {
-  try {
-    const client = apolloContextHolder.getClient();
-    const { data } = await client.query({ query: USER_AGGREGATE_COUNT_SUBSCRIPTION, fetchPolicy: 'network-only' });
-    const participantCount = data?.user_aggregate?.aggregate?.count || 0;
-    EXPECTED_TRANSLATIONS = participantCount;
-    console.log('[TRANSLATOR] Updated EXPECTED_TRANSLATIONS:', EXPECTED_TRANSLATIONS);
-  } catch (err) {
-    console.error('[TRANSLATOR] Failed to update EXPECTED_TRANSLATIONS:', err);
+// Subscribe to participant count and update EXPECTED_TRANSLATIONS
+globalThis._audioManagerUserCountSub = GrahqlSubscriptionStore.makeSubscription(
+  USER_AGGREGATE_COUNT_SUBSCRIPTION
+);
+const updateExpectedTranslations = () => {
+  const sub = globalThis._audioManagerUserCountSub();
+  if (sub && sub.data && sub.data.user_aggregate && sub.data.user_aggregate.aggregate) {
+    const count = sub.data.user_aggregate.aggregate.count;
+    if (typeof count === 'number' && count > 0) {
+      EXPECTED_TRANSLATIONS = count;
+    }
   }
-}
+};
+// Initial set and listen for changes
+updateExpectedTranslations();
+window.addEventListener('graphqlSubscription', (e) => {
+  if (e.detail && e.detail.response === globalThis._audioManagerUserCountSub()) {
+    updateExpectedTranslations();
+  }
+});
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
-  console.log(messageObj)
-  const json = JSON.stringify("******************************", messageObj);
+  const json = JSON.stringify(messageObj);
   const compressed = LZString.compressToBase64(json);
   // Replace this with your actual send message function
   // sendMessage(compressed);
   // For demonstration, log it
-  console.log('[TRANSLATOR] Sending compressed message:', compressed)
+  console.log('[TRANSLATOR] Sending compressed message:', compressed);
 }
 
 // Utility to decompress and filter message by user language
