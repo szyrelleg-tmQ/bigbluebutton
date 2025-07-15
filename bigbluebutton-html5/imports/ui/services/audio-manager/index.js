@@ -814,8 +814,9 @@ class AudioManager {
             }
             translationBuffer[messageId].translations[data.language] = data.translated_text;
             translationBuffer[messageId].count += 1;
+            console.log(translationBuffer, "*******************************************************");
             // When all expected translations are received, send compressed message
-            if (translationBuffer[messageId].count === this.participantsCount) {
+            if (translationBuffer[messageId].count === 2) {
               const messageObj = {
                 timestamp: messageId,
                 original: data.text,
