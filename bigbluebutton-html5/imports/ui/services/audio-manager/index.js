@@ -133,7 +133,7 @@ class AudioManager {
     this.callStateCallback = this.callStateCallback.bind(this);
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
-    this.participantsCount = makeVar(0);
+    this.participantsCount = makeVar(2);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -772,15 +772,11 @@ class AudioManager {
         console.log(data)
         callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
-          const participantsObj = callObject.participantCounts();
-          console.log(participantsObj.present)
           dailyCoIntegration.initialize(callObject);
         });
 
         callObject.on('participant-left', (event) => {
           console.log('❌ Left Daily room:', event);
-          const participantsObj = callObject.participantCounts();
-          console.log(participantsObj.present)
           dailyCoIntegration.cleanup();
           this._translatorCallObject = null;
         });
