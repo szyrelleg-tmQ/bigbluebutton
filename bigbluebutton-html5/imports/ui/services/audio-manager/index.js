@@ -805,26 +805,31 @@ class AudioManager {
             });
             // Collect translations by timestamp (message id)
 
-            if (typeof translationBuffer == 'object') {
-              translationBuffer = {
+            const key = `${data.text}|${data.participant_name}`;
+
+            // Initialize buffer for this message if it doesn't exist
+            if (!translationBuffers[key]) {
+              translationBuffers[key] = {
                 original: data.text,
                 translations: {},
+                participant_name: data.participant_name,
               };
             }
-            translationBuffer.translations[data.language] = data.translated_text;
-            const numLanguages = Object.keys(translationBuffer.translations).length;
-            console.log(translationBuffer, "*******************************************************");
-            // When all expected translations are received, store the message
-            if (numLanguages === this.participantsCount) {
-              const messageObj = {
-                timestamp: messageId,
-                original: data.text,
-                translations: { ...translationBuffer.translations },
-                participant_name: data.participant_name,
-                // add any other metadata you need
-              };
-              translationMessages.push(messageObj);
-              translationBuffer = {};
+
+            // Add this translation
+            translationBuffers[key].translations[data.language] = data.translated_text;
+
+            // Count how many translations we have for this message
+            const numTranslations = Object.keys(translationBuffers[key].translations).length;
+
+            // If we've received all expected translations, store the message and clean up
+            if (numTranslations === this.participantsCount) {
+              translationMessages.push({
+                original: translationBuffers[key].original,
+                translations: { ...translationBuffers[key].translations },
+                participant_name: translationBuffers[key].participant_name,
+              });
+              delete translationBuffers[key];
             }
           }
         });
@@ -1712,7 +1717,7 @@ export const latestTranscriptionVar = makeVar(null);
 // Add a global reactive variable for the latest translation
 export const latestTranslationVar = makeVar(null);
 
-const translationBuffer = {};
+const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
 const translationMessages = [];
 
 // Utility to send compressed translation message
