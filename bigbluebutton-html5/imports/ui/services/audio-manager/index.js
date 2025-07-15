@@ -772,17 +772,15 @@ class AudioManager {
         console.log(data)
         callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
-          const participantsObj = callObject.getCallState();
-          this.participantsCount = participantsObj.participants.length;
-          console.log("total participants:", this.participantsCount);
+          const participantsObj = callObject.participantCounts();
+          console.log(participantsObj.present)
           dailyCoIntegration.initialize(callObject);
         });
 
         callObject.on('participant-left', (event) => {
           console.log('❌ Left Daily room:', event);
-          const participantsObj = callObject.getCallState();
-          this.participantsCount = participantsObj.participants.length;
-          console.log("total participants:", this.participantsCount);
+          const participantsObj = callObject.participantCounts();
+          console.log(participantsObj.present)
           dailyCoIntegration.cleanup();
           this._translatorCallObject = null;
         });
@@ -1718,13 +1716,12 @@ const translationBuffer = {};
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
-  console.log('[TRANSLATOR] Preparing to send compressed translation message:', messageObj);
-  const json = JSON.stringify(messageObj);
-  const compressed = LZString.compressToBase64(json);
-  // Replace this with your actual send message function
-  // sendMessage(compressed);
-  // For demonstration, log it
-  console.log('[TRANSLATOR] Sending compressed message:', compressed);
+  const data = [];
+  data.push(messageObj)
+  console.log(data);
+  // const json = JSON.stringify(messageObj);
+  // const compressed = LZString.compressToBase64(json);
+  // console.log('[TRANSLATOR] Sending compressed message:', compressed);
 }
 
 // Utility to decompress and filter message by user language
