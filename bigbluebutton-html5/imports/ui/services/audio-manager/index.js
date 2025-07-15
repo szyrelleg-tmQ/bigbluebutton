@@ -30,6 +30,9 @@ import {
 } from '/imports/ui/components/audio/service';
 import { getTranslatorClient } from 'translator-client'
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
+import LZString from 'lz-string';
+import apolloContextHolder from '/imports/ui/core/graphql/apolloContextHolder/apolloContextHolder';
+import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -782,7 +785,7 @@ class AudioManager {
           this._translatorCallObject = null;
         });
 
-        callObject.on("app-message", (message) => {
+        callObject.on("app-message", async (message) => {
           const data = message.data;
           if (data.event_type === "transcription") {
             console.log('[TRANSLATOR] Received transcription:', data);
@@ -804,6 +807,27 @@ class AudioManager {
               timestamp: data.timestamp,
               type: data.type,
             });
+            // Before collecting, update EXPECTED_TRANSLATIONS
+            await updateExpectedTranslations();
+            // Collect translations by timestamp (message id)
+            const messageId = data.timestamp;
+            if (!translationBuffer[messageId]) {
+              translationBuffer[messageId] = {
+                original: data.text,
+                translations: {},
+                count: 0,
+              };
+            }
+            translationBuffer[messageId].translations[data.language] = data.translated_text;
+            translationBuffer[messageId].count += 1;
+            // When all expected translations are received, send compressed message
+            if (translationBuffer[messageId].count === EXPECTED_TRANSLATIONS) {
+              sendCompressedTranslation({
+                original: data.text,
+                translations: translationBuffer[messageId].translations,
+              });
+              delete translationBuffer[messageId];
+            }
           }
         });
 
@@ -1689,6 +1713,45 @@ class AudioManager {
 export const latestTranscriptionVar = makeVar(null);
 // Add a global reactive variable for the latest translation
 export const latestTranslationVar = makeVar(null);
+
+// Translation buffer to collect translations by message id (timestamp)
+const translationBuffer = {};
+let EXPECTED_TRANSLATIONS = 2; // Default fallback
+
+// Dynamically update EXPECTED_TRANSLATIONS from participant count
+async function updateExpectedTranslations() {
+  try {
+    const client = apolloContextHolder.getClient();
+    const { data } = await client.query({ query: USER_AGGREGATE_COUNT_SUBSCRIPTION, fetchPolicy: 'network-only' });
+    const participantCount = data?.user_aggregate?.aggregate?.count || 0;
+    EXPECTED_TRANSLATIONS = participantCount;
+    console.log('[TRANSLATOR] Updated EXPECTED_TRANSLATIONS:', EXPECTED_TRANSLATIONS);
+  } catch (err) {
+    console.error('[TRANSLATOR] Failed to update EXPECTED_TRANSLATIONS:', err);
+  }
+}
+
+// Utility to send compressed translation message
+function sendCompressedTranslation(messageObj) {
+  console.log(messageObj)
+  const json = JSON.stringify("******************************", messageObj);
+  const compressed = LZString.compressToBase64(json);
+  // Replace this with your actual send message function
+  // sendMessage(compressed);
+  // For demonstration, log it
+  console.log('[TRANSLATOR] Sending compressed message:', compressed)
+}
+
+// Utility to decompress and filter message by user language
+export function decompressAndFilterMessage(compressed, userLang) {
+  try {
+    const json = LZString.decompressFromBase64(compressed);
+    const obj = JSON.parse(json);
+    return obj.translations[userLang] || obj.original;
+  } catch (e) {
+    return compressed;
+  }
+}
 
 const audioManager = new AudioManager();
 export default audioManager;

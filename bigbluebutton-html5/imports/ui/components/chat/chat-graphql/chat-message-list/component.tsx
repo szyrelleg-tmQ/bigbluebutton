@@ -681,11 +681,6 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                         ? (currentUser?.name || 'You')
                         : (transcription.participant_name || 'User')}
                     </div>
-                    <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.userId || '')
-                        : (transcription.participant_name || '')}
-                    </div>
                     <div style={{ marginTop: 2 }}>
                       {translation.text}
                       <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({translation.original_language || translation.language})</span>
