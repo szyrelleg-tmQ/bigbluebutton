@@ -1715,26 +1715,28 @@ export const latestTranslationVar = makeVar(null);
 const translationBuffer = {};
 let EXPECTED_TRANSLATIONS = 2; // Default fallback, will be set dynamically
 
-// Subscribe to participant count and update EXPECTED_TRANSLATIONS
-globalThis._audioManagerUserCountSub = GrahqlSubscriptionStore.makeSubscription(
-  USER_AGGREGATE_COUNT_SUBSCRIPTION
-);
-const updateExpectedTranslations = () => {
-  const sub = globalThis._audioManagerUserCountSub();
-  if (sub && sub.data && sub.data.user_aggregate && sub.data.user_aggregate.aggregate) {
-    const count = sub.data.user_aggregate.aggregate.count;
-    if (typeof count === 'number' && count > 0) {
-      EXPECTED_TRANSLATIONS = count;
+function setupExpectedTranslationsSubscription() {
+  globalThis._audioManagerUserCountSub = GrahqlSubscriptionStore.makeSubscription(
+    USER_AGGREGATE_COUNT_SUBSCRIPTION
+  );
+  const updateExpectedTranslations = () => {
+    const sub = globalThis._audioManagerUserCountSub();
+    if (sub && sub.data && sub.data.user_aggregate && sub.data.user_aggregate.aggregate) {
+      const count = sub.data.user_aggregate.aggregate.count;
+      if (typeof count === 'number' && count > 0) {
+        EXPECTED_TRANSLATIONS = count;
+      }
     }
-  }
-};
-// Initial set and listen for changes
-updateExpectedTranslations();
-window.addEventListener('graphqlSubscription', (e) => {
-  if (e.detail && e.detail.response === globalThis._audioManagerUserCountSub()) {
-    updateExpectedTranslations();
-  }
-});
+  };
+  updateExpectedTranslations();
+  window.addEventListener('graphqlSubscription', (e) => {
+    if (e.detail && e.detail.response === globalThis._audioManagerUserCountSub()) {
+      updateExpectedTranslations();
+    }
+  });
+}
+
+// Call this function after ApolloClient is initialized
 
 // Utility to send compressed translation message
 function sendCompressedTranslation(messageObj) {
@@ -1757,6 +1759,17 @@ export function decompressAndFilterMessage(compressed, userLang) {
     return compressed;
   }
 }
+
+function waitForApolloAndSetup() {
+  try {
+    // This will throw if not ready
+    require('/imports/ui/core/graphql/apolloContextHolder/apolloContextHolder').default.getClient();
+    setupExpectedTranslationsSubscription();
+  } catch (e) {
+    setTimeout(waitForApolloAndSetup, 100); // Try again in 100ms
+  }
+}
+waitForApolloAndSetup();
 
 const audioManager = new AudioManager();
 export default audioManager;
