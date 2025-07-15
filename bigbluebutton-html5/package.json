@@ -75,6 +75,7 @@
     "immutability-helper": "~2.8.1",
     "langmap": "0.0.16",
     "livekit-client": "2.14.0",
+    "lz-string": "^1.5.0",
     "makeup-screenreader-trap": "0.0.5",
     "mobx": "6.4.2",
     "os-browserify": "^0.3.0",
