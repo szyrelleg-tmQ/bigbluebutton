@@ -827,24 +827,23 @@ class AudioManager {
                 ...translationMessagesVar(),
                 {
                   original: translationBuffers[key].original,
-                  avatarColor:
-                    translations: { ...translationBuffers[key].translations },
-                participant_name: translationBuffers[key].participant_name,
+                  translations: { ...translationBuffers[key].translations },
+                  participant_name: translationBuffers[key].participant_name,
                 }
               ]);
-        delete translationBuffers[key];
-        console.log(translationMessagesVar())
-      }
-    }
+              delete translationBuffers[key];
+              console.log(translationMessagesVar())
+            }
+          }
         });
 
         try {
-  await callObject.joinRoom(data.room_url, data.userName);
-} catch (err) {
-  console.error('[DAILY] Failed to join Daily room:', err);
-  dailyCoIntegration.cleanup();
-  this._translatorCallObject = null;
-}
+          await callObject.joinRoom(data.room_url, data.userName);
+        } catch (err) {
+          console.error('[DAILY] Failed to join Daily room:', err);
+          dailyCoIntegration.cleanup();
+          this._translatorCallObject = null;
+        }
 
         // Set up transcription callback
 
@@ -852,665 +851,665 @@ class AudioManager {
         // callObject.leave();
         // callObject.destroy();
       }
-// Enforce correct output device on audio join
-this.changeOutputDevice(this.outputDeviceId, true);
-storeAudioOutputDeviceId(this.outputDeviceId);
-// Extract the deviceId again from the stream to guarantee consistency
-// between stream DID vs chosen DID. That's necessary in scenarios where,
-// eg, there's no default/pre-set deviceId ('') and the browser's
-// default device has been altered by the user (browser default != system's
-// default).
-if (this.inputStream) {
-  const extractedDeviceId = MediaStreamUtils.extractDeviceIdFromStream(
-    this.inputStream,
-    'audio',
-  );
-  if (extractedDeviceId && extractedDeviceId !== this.inputDeviceId) {
-    this.changeInputDevice(extractedDeviceId);
-  }
-}
-// Audio joined successfully - add device IDs to session storage so they
-// can be re-used on refreshes/other sessions
-storeAudioInputDeviceId(this.inputDeviceId);
-    } catch (error) {
-  logger.warn({
-    logCode: 'audiomanager_device_enforce_failed',
-    extraInfo: {
-      errorName: error.name,
-      errorMessage: error.message,
-      inputDeviceId: this.inputDeviceId,
-      outputDeviceId: this.outputDeviceId,
-    },
-  }, `Failed to enforce input/output devices: ${error.message}`);
-}
-
-if (!this.isEchoTest) {
-  const secondsToActivateAudio = this._calculateAudioJoinTime();
-
-  this.notify(this.intl.formatMessage(this.messages.info.JOINED_AUDIO));
-  logger.info({
-    logCode: 'audio_joined',
-    extraInfo: {
-      secondsToActivateAudio,
-      inputDeviceId: this.inputDeviceId,
-      inputDevices: this.inputDevicesJSON,
-      outputDeviceId: this.outputDeviceId,
-      outputDevices: this.outputDevicesJSON,
-      isListenOnly: this.isListenOnly,
-    },
-  }, 'Audio Joined');
-
-  if (STATS.enabled) this.monitor();
-  this.audioEventHandler({
-    name: 'started',
-    isListenOnly: this.isListenOnly,
-  });
-}
-  }
-
-onTransferStart() {
-  this.isEchoTest = false;
-  this.isConnecting = true;
-}
-
-// Must be called before the call is actually torn down (this.isConnected = true)
-notifyAudioExit() {
-  try {
-    if (!this.error && (this.isConnected && !this.isEchoTest)) {
-      this.notify(
-        this.intl.formatMessage(this.messages.info.LEFT_AUDIO),
-        false,
-        'no_audio',
-      );
-    }
-  } catch { }
-}
-
-onAudioExit() {
-  window.removeEventListener('audioPlayFailed', this.handlePlayElementFailed);
-  this._resetAudioJoinTime();
-  this.notifyAudioExit();
-  this.isConnected = false;
-  this.isConnecting = false;
-  this.isHangingUp = false;
-  this.autoplayBlocked = false;
-  this.isDeafened = true;
-  this.failedMediaElements = [];
-
-  // Clean up Daily.co if active
-  if (dailyCoIntegration.isIntegrationActive()) {
-    console.log('[DAILY] Cleaning up Daily.co on audio exit');
-    dailyCoIntegration.cleanup();
-  }
-
-  // Clean up translator call object
-  if (this._translatorCallObject) {
-    console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
-    this._translatorCallObject = null;
-  }
-
-  if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
-    this.inputStream.getTracks().forEach((track) => track.stop());
-    this.inputStream = null;
-  }
-
-  if (!this.isEchoTest) {
-    this.playHangUpSound();
-  }
-}
-
-callStateCallback(response) {
-  return new Promise((resolve) => {
-    const {
-      STARTED,
-      ENDED,
-      FAILED,
-      RECONNECTING,
-      AUTOPLAY_BLOCKED,
-      AUDIO_PUBLISHED,
-    } = CALL_STATES;
-    const {
-      status,
-      error,
-      bridgeError,
-      silenceNotifications,
-      bridge,
-    } = response;
-    if (status === STARTED) {
-      this.isReconnecting = false;
-      this.onAudioJoin();
-      resolve(STARTED);
-    } else if (status === ENDED) {
-      this.isReconnecting = false;
-      this.setBreakoutAudioTransferStatus({
-        breakoutMeetingId: '',
-        status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
-      });
-      this.onAudioExit();
-      logger.info({
-        logCode: 'audio_ended',
-        extraInfo: {
-          inputDeviceId: this.inputDeviceId,
-          inputDevices: this.inputDevicesJSON,
-          outputDeviceId: this.outputDeviceId,
-          outputDevices: this.outputDevicesJSON,
-          isListenOnly: this.isListenOnly,
-        },
-      }, 'Audio ended without issue');
-    } else if (status === FAILED) {
-      this.isReconnecting = false;
-      this.setBreakoutAudioTransferStatus({
-        breakoutMeetingId: '',
-        status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
-      });
-      const errorKey = this.messages.error[error] || this.messages.error.GENERIC_ERROR;
-      const errorMsg = this.intl.formatMessage(errorKey, { reason: bridgeError });
-      const secondsToAudioFailure = this._calculateAudioJoinTime();
-      this.error = !!error;
-      logger.error({
-        logCode: 'audio_failure',
-        extraInfo: {
-          secondsToAudioFailure,
-          errorCode: error,
-          cause: bridgeError,
-          bridge,
-          inputDeviceId: this.inputDeviceId,
-          inputDevices: this.inputDevicesJSON,
-          outputDeviceId: this.outputDeviceId,
-          outputDevices: this.outputDevicesJSON,
-          isListenOnly: this.isListenOnly,
-        },
-      }, `Audio error - errorCode=${error}, cause=${bridgeError}`);
-
-      if (silenceNotifications !== true) this.notify(errorMsg, true);
-
-      this.exitAudio();
-      this.onAudioExit();
-    } else if (status === RECONNECTING) {
-      this.isReconnecting = true;
-      this._trackAudioJoinTime();
-      this.setBreakoutAudioTransferStatus({
-        breakoutMeetingId: '',
-        status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
-      });
-      logger.warn({
-        logCode: 'audio_reconnecting',
-        extraInfo: {
-          bridge,
-          inputDeviceId: this.inputDeviceId,
-          outputDeviceId: this.outputDeviceId,
-          isListenOnly: this.isListenOnly,
-        },
-      }, 'Attempting to reconnect audio');
-      this.notify(
-        this.intl.formatMessage(this.messages.info.RECONNECTING_AUDIO),
-        true,
-      );
-      this.playHangUpSound();
-    } else if (status === AUTOPLAY_BLOCKED) {
-      this.setBreakoutAudioTransferStatus({
-        breakoutMeetingId: '',
-        status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
-      });
-      this.isReconnecting = false;
-      this.autoplayBlocked = true;
-      this.onAudioJoin();
-      resolve(AUTOPLAY_BLOCKED);
-    } else if (status === AUDIO_PUBLISHED) {
-      // Update input stream with the one from the bridge as LiveKit's bridge
-      // lazily creates the stream after the connection is established
-      if (this.inputStream === null && bridge?.inputStream) {
-        this.inputStream = bridge.inputStream;
+      // Enforce correct output device on audio join
+      this.changeOutputDevice(this.outputDeviceId, true);
+      storeAudioOutputDeviceId(this.outputDeviceId);
+      // Extract the deviceId again from the stream to guarantee consistency
+      // between stream DID vs chosen DID. That's necessary in scenarios where,
+      // eg, there's no default/pre-set deviceId ('') and the browser's
+      // default device has been altered by the user (browser default != system's
+      // default).
+      if (this.inputStream) {
+        const extractedDeviceId = MediaStreamUtils.extractDeviceIdFromStream(
+          this.inputStream,
+          'audio',
+        );
+        if (extractedDeviceId && extractedDeviceId !== this.inputDeviceId) {
+          this.changeInputDevice(extractedDeviceId);
+        }
       }
-      resolve(AUDIO_PUBLISHED);
+      // Audio joined successfully - add device IDs to session storage so they
+      // can be re-used on refreshes/other sessions
+      storeAudioInputDeviceId(this.inputDeviceId);
+    } catch (error) {
+      logger.warn({
+        logCode: 'audiomanager_device_enforce_failed',
+        extraInfo: {
+          errorName: error.name,
+          errorMessage: error.message,
+          inputDeviceId: this.inputDeviceId,
+          outputDeviceId: this.outputDeviceId,
+        },
+      }, `Failed to enforce input/output devices: ${error.message}`);
     }
-  });
-}
 
-isUsingAudio() {
-  return Boolean(this.isConnected || this.isConnecting || this.isHangingUp);
-}
+    if (!this.isEchoTest) {
+      const secondsToActivateAudio = this._calculateAudioJoinTime();
 
-/**
- * Check if Daily.co integration is currently active
- * @returns {boolean}
- */
-isDailyActive() {
-  return dailyCoIntegration.isIntegrationActive();
-}
+      this.notify(this.intl.formatMessage(this.messages.info.JOINED_AUDIO));
+      logger.info({
+        logCode: 'audio_joined',
+        extraInfo: {
+          secondsToActivateAudio,
+          inputDeviceId: this.inputDeviceId,
+          inputDevices: this.inputDevicesJSON,
+          outputDeviceId: this.outputDeviceId,
+          outputDevices: this.outputDevicesJSON,
+          isListenOnly: this.isListenOnly,
+        },
+      }, 'Audio Joined');
 
-/**
- * Get the Daily.co call object if available
- * @returns {Object|null}
- */
-getDailyCallObject() {
-  return dailyCoIntegration.getCallObject();
-}
+      if (STATS.enabled) this.monitor();
+      this.audioEventHandler({
+        name: 'started',
+        isListenOnly: this.isListenOnly,
+      });
+    }
+  }
 
-handleMediaStreamInactive(stream) {
-  logger.warn({
-    logCode: 'audiomanager_stream_inactive',
-    extraInfo: {
-      currentStreamData: MediaStreamUtils.getMediaStreamLogData(this.inputStream),
-      streamData: MediaStreamUtils.getMediaStreamLogData(stream),
-    },
-  }, 'Audio stream has become inactive');
+  onTransferStart() {
+    this.isEchoTest = false;
+    this.isConnecting = true;
+  }
 
-  if (stream === this.inputStream) {
-    this.inputStream = null;
+  // Must be called before the call is actually torn down (this.isConnected = true)
+  notifyAudioExit() {
+    try {
+      if (!this.error && (this.isConnected && !this.isEchoTest)) {
+        this.notify(
+          this.intl.formatMessage(this.messages.info.LEFT_AUDIO),
+          false,
+          'no_audio',
+        );
+      }
+    } catch { }
+  }
 
-    // Reset the input device (and consequently the stream) if it's inactive
-    if (this.isUsingAudio()) {
-      this.liveChangeInputDevice(DEFAULT_INPUT_DEVICE_ID).catch((error) => {
+  onAudioExit() {
+    window.removeEventListener('audioPlayFailed', this.handlePlayElementFailed);
+    this._resetAudioJoinTime();
+    this.notifyAudioExit();
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.isHangingUp = false;
+    this.autoplayBlocked = false;
+    this.isDeafened = true;
+    this.failedMediaElements = [];
+
+    // Clean up Daily.co if active
+    if (dailyCoIntegration.isIntegrationActive()) {
+      console.log('[DAILY] Cleaning up Daily.co on audio exit');
+      dailyCoIntegration.cleanup();
+    }
+
+    // Clean up translator call object
+    if (this._translatorCallObject) {
+      console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
+      this._translatorCallObject = null;
+    }
+
+    if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
+      this.inputStream.getTracks().forEach((track) => track.stop());
+      this.inputStream = null;
+    }
+
+    if (!this.isEchoTest) {
+      this.playHangUpSound();
+    }
+  }
+
+  callStateCallback(response) {
+    return new Promise((resolve) => {
+      const {
+        STARTED,
+        ENDED,
+        FAILED,
+        RECONNECTING,
+        AUTOPLAY_BLOCKED,
+        AUDIO_PUBLISHED,
+      } = CALL_STATES;
+      const {
+        status,
+        error,
+        bridgeError,
+        silenceNotifications,
+        bridge,
+      } = response;
+      if (status === STARTED) {
+        this.isReconnecting = false;
+        this.onAudioJoin();
+        resolve(STARTED);
+      } else if (status === ENDED) {
+        this.isReconnecting = false;
+        this.setBreakoutAudioTransferStatus({
+          breakoutMeetingId: '',
+          status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
+        });
+        this.onAudioExit();
+        logger.info({
+          logCode: 'audio_ended',
+          extraInfo: {
+            inputDeviceId: this.inputDeviceId,
+            inputDevices: this.inputDevicesJSON,
+            outputDeviceId: this.outputDeviceId,
+            outputDevices: this.outputDevicesJSON,
+            isListenOnly: this.isListenOnly,
+          },
+        }, 'Audio ended without issue');
+      } else if (status === FAILED) {
+        this.isReconnecting = false;
+        this.setBreakoutAudioTransferStatus({
+          breakoutMeetingId: '',
+          status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
+        });
+        const errorKey = this.messages.error[error] || this.messages.error.GENERIC_ERROR;
+        const errorMsg = this.intl.formatMessage(errorKey, { reason: bridgeError });
+        const secondsToAudioFailure = this._calculateAudioJoinTime();
+        this.error = !!error;
         logger.error({
-          logCode: 'audiomanager_stream_inactive_device_reset_failed',
+          logCode: 'audio_failure',
+          extraInfo: {
+            secondsToAudioFailure,
+            errorCode: error,
+            cause: bridgeError,
+            bridge,
+            inputDeviceId: this.inputDeviceId,
+            inputDevices: this.inputDevicesJSON,
+            outputDeviceId: this.outputDeviceId,
+            outputDevices: this.outputDevicesJSON,
+            isListenOnly: this.isListenOnly,
+          },
+        }, `Audio error - errorCode=${error}, cause=${bridgeError}`);
+
+        if (silenceNotifications !== true) this.notify(errorMsg, true);
+
+        this.exitAudio();
+        this.onAudioExit();
+      } else if (status === RECONNECTING) {
+        this.isReconnecting = true;
+        this._trackAudioJoinTime();
+        this.setBreakoutAudioTransferStatus({
+          breakoutMeetingId: '',
+          status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
+        });
+        logger.warn({
+          logCode: 'audio_reconnecting',
+          extraInfo: {
+            bridge,
+            inputDeviceId: this.inputDeviceId,
+            outputDeviceId: this.outputDeviceId,
+            isListenOnly: this.isListenOnly,
+          },
+        }, 'Attempting to reconnect audio');
+        this.notify(
+          this.intl.formatMessage(this.messages.info.RECONNECTING_AUDIO),
+          true,
+        );
+        this.playHangUpSound();
+      } else if (status === AUTOPLAY_BLOCKED) {
+        this.setBreakoutAudioTransferStatus({
+          breakoutMeetingId: '',
+          status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
+        });
+        this.isReconnecting = false;
+        this.autoplayBlocked = true;
+        this.onAudioJoin();
+        resolve(AUTOPLAY_BLOCKED);
+      } else if (status === AUDIO_PUBLISHED) {
+        // Update input stream with the one from the bridge as LiveKit's bridge
+        // lazily creates the stream after the connection is established
+        if (this.inputStream === null && bridge?.inputStream) {
+          this.inputStream = bridge.inputStream;
+        }
+        resolve(AUDIO_PUBLISHED);
+      }
+    });
+  }
+
+  isUsingAudio() {
+    return Boolean(this.isConnected || this.isConnecting || this.isHangingUp);
+  }
+
+  /**
+   * Check if Daily.co integration is currently active
+   * @returns {boolean}
+   */
+  isDailyActive() {
+    return dailyCoIntegration.isIntegrationActive();
+  }
+
+  /**
+   * Get the Daily.co call object if available
+   * @returns {Object|null}
+   */
+  getDailyCallObject() {
+    return dailyCoIntegration.getCallObject();
+  }
+
+  handleMediaStreamInactive(stream) {
+    logger.warn({
+      logCode: 'audiomanager_stream_inactive',
+      extraInfo: {
+        currentStreamData: MediaStreamUtils.getMediaStreamLogData(this.inputStream),
+        streamData: MediaStreamUtils.getMediaStreamLogData(stream),
+      },
+    }, 'Audio stream has become inactive');
+
+    if (stream === this.inputStream) {
+      this.inputStream = null;
+
+      // Reset the input device (and consequently the stream) if it's inactive
+      if (this.isUsingAudio()) {
+        this.liveChangeInputDevice(DEFAULT_INPUT_DEVICE_ID).catch((error) => {
+          logger.error({
+            logCode: 'audiomanager_stream_inactive_device_reset_failed',
+            extraInfo: {
+              errorName: error.name,
+              errorMessage: error.message,
+            },
+          }, `Failed to reset input device after stream became inactive: ${error.message}`);
+        });
+      }
+    }
+  }
+
+  trackStreamTermination(stream) {
+    if (!stream || !stream?.active) return;
+
+    try {
+      if (this._inputStreamInactivityTrackers.has(stream.id)) {
+        const prevHandler = this._inputStreamInactivityTrackers.get(stream.id);
+
+        stream.removeEventListener('inactive', prevHandler);
+        stream.getAudioTracks().forEach((track) => {
+          track.removeEventListener('ended', prevHandler);
+          // eslint-disable-next-line no-param-reassign
+          track.onended = null;
+        });
+        this._inputStreamInactivityTrackers.delete(stream.id);
+      }
+
+      const handler = () => {
+        if (this._inputStreamInactivityTrackers.has(stream.id)) {
+          this.handleMediaStreamInactive(stream);
+          this._inputStreamInactivityTrackers.delete(stream.id);
+        }
+      };
+
+      this._inputStreamInactivityTrackers.set(stream.id, handler);
+
+      if (stream.oninactive === null) {
+        stream.addEventListener('inactive', handler, { once: true });
+      } else {
+        const track = stream.getAudioTracks(stream)[0];
+
+        if (track) {
+          track.addEventListener('ended', handler, { once: true });
+          // Extra safeguard: Firefox doesn't fire the 'ended' when it should
+          // but it invokes the callback (?), so hook up to both
+          track.onended = handler;
+        }
+      }
+    } catch (error) {
+      logger.error({
+        logCode: 'audiomanager_stream_termination_tracking_failed',
+        extraInfo: {
+          errorName: error.name,
+          errorMessage: error.message,
+        },
+      }, `Failed to track stream termination - {${error.name}: ${error.message}}`);
+    }
+  }
+
+  changeInputDevice(deviceId) {
+    if (deviceId === this.inputDeviceId) return this.inputDeviceId;
+
+    const currentDeviceId = this.inputDeviceId ?? 'none';
+    this.inputDeviceId = deviceId;
+    logger.debug({
+      logCode: 'audiomanager_input_device_change',
+      extraInfo: {
+        deviceId: currentDeviceId,
+        newDeviceId: deviceId || 'none',
+      },
+    }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
+
+    return this.inputDeviceId;
+  }
+
+  liveChangeInputDevice(deviceId) {
+    const currentDeviceId = this.inputDeviceId ?? 'none';
+    // we force stream to be null, so MutedAlert will deallocate it and
+    // a new one will be created for the new stream
+    this.inputStream = null;
+    return this.bridge
+      .liveChangeInputDevice(deviceId)
+      .then((stream) => {
+        this.inputStream = stream;
+        const extractedDeviceId = MediaStreamUtils.extractDeviceIdFromStream(
+          this.inputStream,
+          'audio',
+        );
+        if (extractedDeviceId && extractedDeviceId !== this.inputDeviceId) {
+          this.changeInputDevice(extractedDeviceId);
+        }
+        // Live input device change - add device ID to session storage so it
+        // can be re-used on refreshes/other sessions
+        storeAudioInputDeviceId(extractedDeviceId);
+        if (this.isMuted) this.setSenderTrackEnabled(false);
+      })
+      .catch((error) => {
+        logger.error({
+          logCode: 'audiomanager_input_live_device_change_failure',
           extraInfo: {
             errorName: error.name,
             errorMessage: error.message,
+            deviceId: currentDeviceId,
+            newDeviceId: deviceId,
+            inputDevices: this.inputDevicesJSON,
           },
-        }, `Failed to reset input device after stream became inactive: ${error.message}`);
+        }, `Input device live change failed - {${error.name}: ${error.message}}`);
+
+        throw error;
       });
-    }
   }
-}
-
-trackStreamTermination(stream) {
-  if (!stream || !stream?.active) return;
-
-  try {
-    if (this._inputStreamInactivityTrackers.has(stream.id)) {
-      const prevHandler = this._inputStreamInactivityTrackers.get(stream.id);
-
-      stream.removeEventListener('inactive', prevHandler);
-      stream.getAudioTracks().forEach((track) => {
-        track.removeEventListener('ended', prevHandler);
-        // eslint-disable-next-line no-param-reassign
-        track.onended = null;
-      });
-      this._inputStreamInactivityTrackers.delete(stream.id);
-    }
-
-    const handler = () => {
-      if (this._inputStreamInactivityTrackers.has(stream.id)) {
-        this.handleMediaStreamInactive(stream);
-        this._inputStreamInactivityTrackers.delete(stream.id);
-      }
-    };
-
-    this._inputStreamInactivityTrackers.set(stream.id, handler);
-
-    if (stream.oninactive === null) {
-      stream.addEventListener('inactive', handler, { once: true });
-    } else {
-      const track = stream.getAudioTracks(stream)[0];
-
-      if (track) {
-        track.addEventListener('ended', handler, { once: true });
-        // Extra safeguard: Firefox doesn't fire the 'ended' when it should
-        // but it invokes the callback (?), so hook up to both
-        track.onended = handler;
-      }
-    }
-  } catch (error) {
-    logger.error({
-      logCode: 'audiomanager_stream_termination_tracking_failed',
-      extraInfo: {
-        errorName: error.name,
-        errorMessage: error.message,
-      },
-    }, `Failed to track stream termination - {${error.name}: ${error.message}}`);
-  }
-}
-
-changeInputDevice(deviceId) {
-  if (deviceId === this.inputDeviceId) return this.inputDeviceId;
-
-  const currentDeviceId = this.inputDeviceId ?? 'none';
-  this.inputDeviceId = deviceId;
-  logger.debug({
-    logCode: 'audiomanager_input_device_change',
-    extraInfo: {
-      deviceId: currentDeviceId,
-      newDeviceId: deviceId || 'none',
-    },
-  }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
-
-  return this.inputDeviceId;
-}
-
-liveChangeInputDevice(deviceId) {
-  const currentDeviceId = this.inputDeviceId ?? 'none';
-  // we force stream to be null, so MutedAlert will deallocate it and
-  // a new one will be created for the new stream
-  this.inputStream = null;
-  return this.bridge
-    .liveChangeInputDevice(deviceId)
-    .then((stream) => {
-      this.inputStream = stream;
-      const extractedDeviceId = MediaStreamUtils.extractDeviceIdFromStream(
-        this.inputStream,
-        'audio',
-      );
-      if (extractedDeviceId && extractedDeviceId !== this.inputDeviceId) {
-        this.changeInputDevice(extractedDeviceId);
-      }
-      // Live input device change - add device ID to session storage so it
-      // can be re-used on refreshes/other sessions
-      storeAudioInputDeviceId(extractedDeviceId);
-      if (this.isMuted) this.setSenderTrackEnabled(false);
-    })
-    .catch((error) => {
-      logger.error({
-        logCode: 'audiomanager_input_live_device_change_failure',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-          deviceId: currentDeviceId,
-          newDeviceId: deviceId,
-          inputDevices: this.inputDevicesJSON,
-        },
-      }, `Input device live change failed - {${error.name}: ${error.message}}`);
-
-      throw error;
-    });
-}
 
   async changeOutputDevice(deviceId, isLive) {
-  const targetDeviceId = deviceId;
-  const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
+    const targetDeviceId = deviceId;
+    const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
 
-  // If Daily.co is active, route the output device change to Daily.co
-  if (dailyCoIntegration.isIntegrationActive()) {
-    console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
-    try {
-      // Change output device in Daily.co
-      await dailyCoIntegration.changeOutputDevice(deviceId);
-      this.outputDeviceId = deviceId;
+    // If Daily.co is active, route the output device change to Daily.co
+    if (dailyCoIntegration.isIntegrationActive()) {
+      console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
+      try {
+        // Change output device in Daily.co
+        await dailyCoIntegration.changeOutputDevice(deviceId);
+        this.outputDeviceId = deviceId;
 
-      // Live output device change - add device ID to session storage
-      if (isLive) storeAudioOutputDeviceId(deviceId);
+        // Live output device change - add device ID to session storage
+        if (isLive) storeAudioOutputDeviceId(deviceId);
 
-      logger.debug({
-        logCode: 'audiomanager_daily_output_device_change',
-        extraInfo: {
-          deviceId: currentDeviceId,
-          newDeviceId: deviceId,
-        },
-      }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
+        logger.debug({
+          logCode: 'audiomanager_daily_output_device_change',
+          extraInfo: {
+            deviceId: currentDeviceId,
+            newDeviceId: deviceId,
+          },
+        }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
 
-      return this.outputDeviceId;
-    } catch (error) {
-      logger.error({
-        logCode: 'audiomanager_daily_output_device_change_failure',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-          deviceId: currentDeviceId,
-          newDeviceId: targetDeviceId,
-        },
-      }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
-      throw error;
-    }
-  }
-
-  const MEDIA = window.meetingClientSettings.public.media;
-  const MEDIA_TAG = MEDIA.mediaTag;
-  const audioElement = document.querySelector(MEDIA_TAG);
-  const sinkIdSupported = audioElement && typeof audioElement.setSinkId === 'function';
-
-  if (typeof deviceId === 'string' && sinkIdSupported && currentDeviceId !== targetDeviceId) {
-    try {
-      if (typeof this.bridge?.changeOutputDevice === 'function') {
-        // If the bridge supports changing the output device, use it
-        await this.bridge.changeOutputDevice(deviceId);
-      } else {
-        if (!isLive) audioElement.srcObject = null;
-        await audioElement.setSinkId(deviceId);
-        reloadAudioElement(audioElement);
+        return this.outputDeviceId;
+      } catch (error) {
+        logger.error({
+          logCode: 'audiomanager_daily_output_device_change_failure',
+          extraInfo: {
+            errorName: error.name,
+            errorMessage: error.message,
+            deviceId: currentDeviceId,
+            newDeviceId: targetDeviceId,
+          },
+        }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
+        throw error;
       }
-
-      logger.debug({
-        logCode: 'audiomanager_output_device_change',
-        extraInfo: {
-          deviceId: currentDeviceId,
-          newDeviceId: deviceId,
-        },
-      }, `Audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
-      this.outputDeviceId = deviceId;
-
-      // Live output device change - add device ID to session storage so it
-      // can be re-used on refreshes/other sessions
-      if (isLive) storeAudioOutputDeviceId(deviceId);
-
-      return this.outputDeviceId;
-    } catch (error) {
-      logger.error({
-        logCode: 'audiomanager_output_device_change_failure',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-          deviceId: currentDeviceId,
-          newDeviceId: targetDeviceId,
-          outputDevices: this.outputDevicesJSON,
-        },
-      }, `Error changing output device - {${error.name}: ${error.message}}`);
-
-      // Rollback/enforce current sinkId (if possible)
-      if (sinkIdSupported) {
-        this.outputDeviceId = getCurrentAudioSinkId();
-      } else {
-        this.outputDeviceId = currentDeviceId;
-      }
-
-      throw error;
     }
-  }
 
-  return this.outputDeviceId;
-}
+    const MEDIA = window.meetingClientSettings.public.media;
+    const MEDIA_TAG = MEDIA.mediaTag;
+    const audioElement = document.querySelector(MEDIA_TAG);
+    const sinkIdSupported = audioElement && typeof audioElement.setSinkId === 'function';
+
+    if (typeof deviceId === 'string' && sinkIdSupported && currentDeviceId !== targetDeviceId) {
+      try {
+        if (typeof this.bridge?.changeOutputDevice === 'function') {
+          // If the bridge supports changing the output device, use it
+          await this.bridge.changeOutputDevice(deviceId);
+        } else {
+          if (!isLive) audioElement.srcObject = null;
+          await audioElement.setSinkId(deviceId);
+          reloadAudioElement(audioElement);
+        }
+
+        logger.debug({
+          logCode: 'audiomanager_output_device_change',
+          extraInfo: {
+            deviceId: currentDeviceId,
+            newDeviceId: deviceId,
+          },
+        }, `Audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
+        this.outputDeviceId = deviceId;
+
+        // Live output device change - add device ID to session storage so it
+        // can be re-used on refreshes/other sessions
+        if (isLive) storeAudioOutputDeviceId(deviceId);
+
+        return this.outputDeviceId;
+      } catch (error) {
+        logger.error({
+          logCode: 'audiomanager_output_device_change_failure',
+          extraInfo: {
+            errorName: error.name,
+            errorMessage: error.message,
+            deviceId: currentDeviceId,
+            newDeviceId: targetDeviceId,
+            outputDevices: this.outputDevicesJSON,
+          },
+        }, `Error changing output device - {${error.name}: ${error.message}}`);
+
+        // Rollback/enforce current sinkId (if possible)
+        if (sinkIdSupported) {
+          this.outputDeviceId = getCurrentAudioSinkId();
+        } else {
+          this.outputDeviceId = currentDeviceId;
+        }
+
+        throw error;
+      }
+    }
+
+    return this.outputDeviceId;
+  }
 
   get inputStream() {
-  return this._inputStream();
-}
+    return this._inputStream();
+  }
 
   get bridge() {
-  return this.isListenOnly ? this.listenOnlyBridge : this.fullAudioBridge;
-}
+    return this.isListenOnly ? this.listenOnlyBridge : this.fullAudioBridge;
+  }
 
   set inputStream(stream) {
-  const previousStream = this.inputStream;
+    const previousStream = this.inputStream;
 
-  // We store reactive information about input stream
-  // because mutedalert component needs to track when it changes
-  // and then update hark with the new value for inputStream
-  this._inputStream(stream);
+    // We store reactive information about input stream
+    // because mutedalert component needs to track when it changes
+    // and then update hark with the new value for inputStream
+    this._inputStream(stream);
 
-  if (!stream) {
-    this._inputStreamInactivityTrackers.clear();
+    if (!stream) {
+      this._inputStreamInactivityTrackers.clear();
 
-    return;
+      return;
+    }
+
+    if (previousStream && previousStream?.id !== stream?.id) {
+      this._inputStreamInactivityTrackers.delete(previousStream.id);
+    }
+
+    this.trackStreamTermination(stream);
   }
 
-  if (previousStream && previousStream?.id !== stream?.id) {
-    this._inputStreamInactivityTrackers.delete(previousStream.id);
-  }
+  /**
+   * Sets the current status for breakout audio transfer
+   * @param {Object} newStatus                  The status Object to be set for
+   *                                            audio transfer.
+   * @param {string} newStatus.breakoutMeetingId The meeting id of the current
+   *                                            breakout audio transfer.
+   * @param {string} newStatus.status           The status of the current audio
+   *                                            transfer. Valid values are
+   *                                            'connected', 'disconnected' and
+   *                                            'returning'.
+   */
+  setBreakoutAudioTransferStatus(newStatus) {
+    const currentStatus = this._breakoutAudioTransferStatus;
+    const { breakoutMeetingId, status } = newStatus;
 
-  this.trackStreamTermination(stream);
-}
+    if (typeof breakoutMeetingId === 'string') {
+      currentStatus.breakoutMeetingId = breakoutMeetingId;
+    } else {
+      currentStatus.breakoutMeetingId = null;
+    }
 
-/**
- * Sets the current status for breakout audio transfer
- * @param {Object} newStatus                  The status Object to be set for
- *                                            audio transfer.
- * @param {string} newStatus.breakoutMeetingId The meeting id of the current
- *                                            breakout audio transfer.
- * @param {string} newStatus.status           The status of the current audio
- *                                            transfer. Valid values are
- *                                            'connected', 'disconnected' and
- *                                            'returning'.
- */
-setBreakoutAudioTransferStatus(newStatus) {
-  const currentStatus = this._breakoutAudioTransferStatus;
-  const { breakoutMeetingId, status } = newStatus;
+    if (typeof status === 'string') {
+      currentStatus.status = status;
 
-  if (typeof breakoutMeetingId === 'string') {
-    currentStatus.breakoutMeetingId = breakoutMeetingId;
-  } else {
-    currentStatus.breakoutMeetingId = null;
-  }
-
-  if (typeof status === 'string') {
-    currentStatus.status = status;
-
-    if (this.bridge && !this.isListenOnly) {
-      if (status !== BREAKOUT_AUDIO_TRANSFER_STATES.CONNECTED) {
-        this.bridge.ignoreCallState = false;
-      } else {
-        this.bridge.ignoreCallState = true;
+      if (this.bridge && !this.isListenOnly) {
+        if (status !== BREAKOUT_AUDIO_TRANSFER_STATES.CONNECTED) {
+          this.bridge.ignoreCallState = false;
+        } else {
+          this.bridge.ignoreCallState = true;
+        }
       }
     }
   }
-}
 
-getBreakoutAudioTransferStatus() {
-  return this._breakoutAudioTransferStatus;
-}
+  getBreakoutAudioTransferStatus() {
+    return this._breakoutAudioTransferStatus;
+  }
 
   set userData(value) {
-  this._userData = value;
-}
+    this._userData = value;
+  }
 
   get userData() {
-  return this._userData;
-}
+    return this._userData;
+  }
 
-playHangUpSound() {
-  this.playAlertSound(
-    `${window.meetingClientSettings.public.app.cdn +
-    window.meetingClientSettings.public.app.basename
-    }` + '/resources/sounds/LeftCall.mp3'
-  );
-}
+  playHangUpSound() {
+    this.playAlertSound(
+      `${window.meetingClientSettings.public.app.cdn +
+      window.meetingClientSettings.public.app.basename
+      }` + '/resources/sounds/LeftCall.mp3'
+    );
+  }
 
-notify(message, error = false, icon = 'unmute') {
-  const audioIcon = this.isListenOnly ? 'listen' : icon;
+  notify(message, error = false, icon = 'unmute') {
+    const audioIcon = this.isListenOnly ? 'listen' : icon;
 
-  notify(message, error ? 'error' : 'info', audioIcon);
-}
+    notify(message, error ? 'error' : 'info', audioIcon);
+  }
 
-monitor() {
-  const peer = this.bridge.getPeerConnection();
-  monitorAudioConnection(peer);
-}
+  monitor() {
+    const peer = this.bridge.getPeerConnection();
+    monitorAudioConnection(peer);
+  }
 
-handleAllowAutoplay() {
-  window.removeEventListener('audioPlayFailed', this.handlePlayElementFailed);
+  handleAllowAutoplay() {
+    window.removeEventListener('audioPlayFailed', this.handlePlayElementFailed);
 
-  logger.info({
-    logCode: 'audiomanager_autoplay_allowed',
-  }, 'Listen only autoplay allowed by the user');
+    logger.info({
+      logCode: 'audiomanager_autoplay_allowed',
+    }, 'Listen only autoplay allowed by the user');
 
-  while (this.failedMediaElements.length) {
-    const { mediaElement, callback } = this.failedMediaElements.shift();
-    if (mediaElement) {
-      playAndRetry(mediaElement).then((played) => {
-        if (!played) {
-          logger.error({
-            logCode: 'audiomanager_autoplay_handling_failed',
-          }, 'Listen only autoplay handling failed to play media');
-        } else {
-          // logCode is listenonly_* to make it consistent with the other tag play log
-          logger.info({
-            logCode: 'listenonly_media_play_success',
-          }, 'Listen only media played successfully');
-        }
+    while (this.failedMediaElements.length) {
+      const { mediaElement, callback } = this.failedMediaElements.shift();
+      if (mediaElement) {
+        playAndRetry(mediaElement).then((played) => {
+          if (!played) {
+            logger.error({
+              logCode: 'audiomanager_autoplay_handling_failed',
+            }, 'Listen only autoplay handling failed to play media');
+          } else {
+            // logCode is listenonly_* to make it consistent with the other tag play log
+            logger.info({
+              logCode: 'listenonly_media_play_success',
+            }, 'Listen only media played successfully');
+          }
+        });
+      }
+
+      if (callback) callback();
+    }
+    this.autoplayBlocked = false;
+  }
+
+  handlePlayElementFailed(e) {
+    const { mediaElement, callback } = e.detail;
+
+    e.stopPropagation();
+    this.failedMediaElements.push({
+      mediaElement,
+      callback,
+    });
+
+    if (!this.autoplayBlocked) {
+      this.autoplayBlocked = true;
+      this.promptAutoplay();
+    }
+  }
+
+  promptAutoplay() {
+    const { AUTOPLAY_BLOCKED } = CALL_STATES;
+
+    if (this.isConnected) {
+      // If the user is already connected, we need to prompt them to allow
+      // autoplay. Otherwise, wait until onAudioJoin to prompt to avoid
+      // disrupting the join flow.
+      logger.info({
+        logCode: 'audiomanager_autoplay_prompt',
+      }, 'Prompting user for action to play listen only media');
+      this.callStateCallback({
+        status: AUTOPLAY_BLOCKED,
+        bridge: this.bridge?.bridgeName,
       });
     }
-
-    if (callback) callback();
   }
-  this.autoplayBlocked = false;
-}
 
-handlePlayElementFailed(e) {
-  const { mediaElement, callback } = e.detail;
-
-  e.stopPropagation();
-  this.failedMediaElements.push({
-    mediaElement,
-    callback,
-  });
-
-  if (!this.autoplayBlocked) {
-    this.autoplayBlocked = true;
-    this.promptAutoplay();
+  setSenderTrackEnabled(shouldEnable) {
+    this.bridge.setSenderTrackEnabled(shouldEnable);
   }
-}
 
-promptAutoplay() {
-  const { AUTOPLAY_BLOCKED } = CALL_STATES;
+  mute() {
+    this.setSenderTrackEnabled(false);
+    // Mute translator call object if active
+    if (this._translatorCallObject) {
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
+    }
+  }
 
-  if (this.isConnected) {
-    // If the user is already connected, we need to prompt them to allow
-    // autoplay. Otherwise, wait until onAudioJoin to prompt to avoid
-    // disrupting the join flow.
-    logger.info({
-      logCode: 'audiomanager_autoplay_prompt',
-    }, 'Prompting user for action to play listen only media');
-    this.callStateCallback({
-      status: AUTOPLAY_BLOCKED,
-      bridge: this.bridge?.bridgeName,
+  unmute() {
+    this.setSenderTrackEnabled(true);
+    // Unmute translator call object if active
+    if (this._translatorCallObject) {
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
+    }
+  }
+
+  playAlertSound(url) {
+    if (!url || !this.bridge) {
+      return Promise.resolve();
+    }
+
+    const audioAlert = new Audio(url);
+
+    audioAlert.addEventListener('ended', () => {
+      audioAlert.src = '';
     });
+
+    const { outputDeviceId } = this.bridge;
+
+    if (outputDeviceId && typeof audioAlert.setSinkId === 'function') {
+      return audioAlert
+        .setSinkId(outputDeviceId)
+        .then(() => AudioManager.playAudioElement(audioAlert));
+    }
+
+    return AudioManager.playAudioElement(audioAlert);
   }
-}
-
-setSenderTrackEnabled(shouldEnable) {
-  this.bridge.setSenderTrackEnabled(shouldEnable);
-}
-
-mute() {
-  this.setSenderTrackEnabled(false);
-  // Mute translator call object if active
-  if (this._translatorCallObject) {
-    const res = this._translatorCallObject.toggleAudio();
-    console.log(res);
-  }
-}
-
-unmute() {
-  this.setSenderTrackEnabled(true);
-  // Unmute translator call object if active
-  if (this._translatorCallObject) {
-    const res = this._translatorCallObject.toggleAudio();
-    console.log(res);
-  }
-}
-
-playAlertSound(url) {
-  if (!url || !this.bridge) {
-    return Promise.resolve();
-  }
-
-  const audioAlert = new Audio(url);
-
-  audioAlert.addEventListener('ended', () => {
-    audioAlert.src = '';
-  });
-
-  const { outputDeviceId } = this.bridge;
-
-  if (outputDeviceId && typeof audioAlert.setSinkId === 'function') {
-    return audioAlert
-      .setSinkId(outputDeviceId)
-      .then(() => AudioManager.playAudioElement(audioAlert));
-  }
-
-  return AudioManager.playAudioElement(audioAlert);
-}
 
   async updateAudioConstraints(constraints) {
-  await this.bridge.updateAudioConstraints(constraints);
-}
+    await this.bridge.updateAudioConstraints(constraints);
+  }
 
   /**
    * Get the info about candidate-pair that is being used by the current peer.
@@ -1533,93 +1532,93 @@ playAlertSound(url) {
    * https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidatePairStats/selected#value
    */
   static getSelectedCandidatePairFromStats(stats) {
-  if (!stats || typeof stats !== 'object') return null;
+    if (!stats || typeof stats !== 'object') return null;
 
-  const transport = Object.values(stats).find((stat) => stat.type === 'transport') || {};
+    const transport = Object.values(stats).find((stat) => stat.type === 'transport') || {};
 
-  return Object.values(stats).find(
-    (stat) =>
-      stat.type === 'candidate-pair' &&
-      stat.nominated &&
-      (stat.selected || stat.id === transport.selectedCandidatePairId)
-  );
-}
-
-/**
- * Get the info about candidate-pair that is being used by the current peer.
- * This function's return value (RTCIceCandidatePair object ) is different
- * from getSelectedCandidatePairFromStats (RTCIceCandidatePairStats object).
- * The information returned here contains the relatedAddress and relatedPort
- * fields (only for candidates that are derived from another candidate, for
- * host candidates, these fields are null). These field can be helpful for
- * debugging network issues. For all the browsers that support iceTransport
- * field of RTCDtlsTransport, we use this function as default to retrieve
- * information about current selected-pair. For other browsers we retrieve it
- * from getSelectedCandidatePairFromStats
- *
- * @returns {Object} An RTCIceCandidatePair represented the selected
- *                   candidate-pair of the active peer.
- *
- * For more info see:
- * https://www.w3.org/TR/webrtc/#dom-rtcicecandidatepair
- * and
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidatePair
- * and
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
- */
-getSelectedCandidatePairFromPeer() {
-  if (!this.bridge) return null;
-
-  const peer = this.bridge.getPeerConnection();
-
-  if (!peer) return null;
-
-  let selectedPair = null;
-
-  const receivers = peer.getReceivers();
-  if (
-    receivers &&
-    receivers[0] &&
-    receivers[0].transport &&
-    receivers[0].transport.iceTransport &&
-    typeof receivers[0].transport.iceTransport.getSelectedCandidatePair === 'function'
-  ) {
-    selectedPair = receivers[0].transport.iceTransport.getSelectedCandidatePair();
+    return Object.values(stats).find(
+      (stat) =>
+        stat.type === 'candidate-pair' &&
+        stat.nominated &&
+        (stat.selected || stat.id === transport.selectedCandidatePairId)
+    );
   }
 
-  return selectedPair;
-}
+  /**
+   * Get the info about candidate-pair that is being used by the current peer.
+   * This function's return value (RTCIceCandidatePair object ) is different
+   * from getSelectedCandidatePairFromStats (RTCIceCandidatePairStats object).
+   * The information returned here contains the relatedAddress and relatedPort
+   * fields (only for candidates that are derived from another candidate, for
+   * host candidates, these fields are null). These field can be helpful for
+   * debugging network issues. For all the browsers that support iceTransport
+   * field of RTCDtlsTransport, we use this function as default to retrieve
+   * information about current selected-pair. For other browsers we retrieve it
+   * from getSelectedCandidatePairFromStats
+   *
+   * @returns {Object} An RTCIceCandidatePair represented the selected
+   *                   candidate-pair of the active peer.
+   *
+   * For more info see:
+   * https://www.w3.org/TR/webrtc/#dom-rtcicecandidatepair
+   * and
+   * https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidatePair
+   * and
+   * https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
+   */
+  getSelectedCandidatePairFromPeer() {
+    if (!this.bridge) return null;
 
-/**
- * Gets the selected local-candidate information. For browsers that support
- * iceTransport property (see getSelectedCandidatePairFromPeer) we get this
- * info from peer, otherwise we retrieve this information from getStats() api
- *
- * @param {Object} [stats] The status object returned from getStats() api
- * @returns {Object} An Object containing the information about the
- *                   local-candidate. For browsers that support iceTransport
- *                   property, the object's type is RCIceCandidate. A
- *                   RTCIceCandidateStats is returned, otherwise.
- *
- * For more info see:
- * https://www.w3.org/TR/webrtc/#dom-rtcicecandidate
- * and
- * https://www.w3.org/TR/webrtc-stats/#dom-rtcicecandidatestats
- *
- */
-getSelectedLocalCandidate(stats) {
-  let selectedPair = this.getSelectedCandidatePairFromPeer();
+    const peer = this.bridge.getPeerConnection();
 
-  if (selectedPair) return selectedPair.local;
+    if (!peer) return null;
 
-  if (!stats) return null;
+    let selectedPair = null;
 
-  selectedPair = AudioManager.getSelectedCandidatePairFromStats(stats);
+    const receivers = peer.getReceivers();
+    if (
+      receivers &&
+      receivers[0] &&
+      receivers[0].transport &&
+      receivers[0].transport.iceTransport &&
+      typeof receivers[0].transport.iceTransport.getSelectedCandidatePair === 'function'
+    ) {
+      selectedPair = receivers[0].transport.iceTransport.getSelectedCandidatePair();
+    }
 
-  if (selectedPair) return stats[selectedPair.localCandidateId];
+    return selectedPair;
+  }
 
-  return null;
-}
+  /**
+   * Gets the selected local-candidate information. For browsers that support
+   * iceTransport property (see getSelectedCandidatePairFromPeer) we get this
+   * info from peer, otherwise we retrieve this information from getStats() api
+   *
+   * @param {Object} [stats] The status object returned from getStats() api
+   * @returns {Object} An Object containing the information about the
+   *                   local-candidate. For browsers that support iceTransport
+   *                   property, the object's type is RCIceCandidate. A
+   *                   RTCIceCandidateStats is returned, otherwise.
+   *
+   * For more info see:
+   * https://www.w3.org/TR/webrtc/#dom-rtcicecandidate
+   * and
+   * https://www.w3.org/TR/webrtc-stats/#dom-rtcicecandidatestats
+   *
+   */
+  getSelectedLocalCandidate(stats) {
+    let selectedPair = this.getSelectedCandidatePairFromPeer();
+
+    if (selectedPair) return selectedPair.local;
+
+    if (!stats) return null;
+
+    selectedPair = AudioManager.getSelectedCandidatePairFromStats(stats);
+
+    if (selectedPair) return stats[selectedPair.localCandidateId];
+
+    return null;
+  }
 
   /**
    * Gets the information about private/public ip address from peer
@@ -1647,28 +1646,28 @@ getSelectedLocalCandidate(stats) {
    * https://www.w3.org/TR/webrtc/#rtcicecandidatetype-enum
    */
   async getInternalExternalIpAddresses(stats) {
-  let transports = {};
+    let transports = {};
 
-  if (stats) {
-    const selectedLocalCandidate = this.getSelectedLocalCandidate(stats);
+    if (stats) {
+      const selectedLocalCandidate = this.getSelectedLocalCandidate(stats);
 
-    if (!selectedLocalCandidate) return transports;
+      if (!selectedLocalCandidate) return transports;
 
-    const candidateType = selectedLocalCandidate.candidateType || selectedLocalCandidate.type;
+      const candidateType = selectedLocalCandidate.candidateType || selectedLocalCandidate.type;
 
-    transports = {
-      isUsingTurn: candidateType === 'relay',
-      address: selectedLocalCandidate.address,
-      relatedAddress: selectedLocalCandidate.relatedAddress,
-      port: selectedLocalCandidate.port,
-      relatedPort: selectedLocalCandidate.relatedPort,
-      candidateType,
-      selectedLocalCandidate,
-    };
+      transports = {
+        isUsingTurn: candidateType === 'relay',
+        address: selectedLocalCandidate.address,
+        relatedAddress: selectedLocalCandidate.relatedAddress,
+        port: selectedLocalCandidate.port,
+        relatedPort: selectedLocalCandidate.relatedPort,
+        candidateType,
+        selectedLocalCandidate,
+      };
+    }
+
+    return transports;
   }
-
-  return transports;
-}
 
   /**
    * Get stats about active audio peer.
@@ -1685,35 +1684,35 @@ getSelectedLocalCandidate(stats) {
    * https://developer.mozilla.org/en-US/docs/Web/API/RTCStatsReport
    */
   async getStats() {
-  if (!this.bridge) return null;
+    if (!this.bridge) return null;
 
-  let stats = null;
+    let stats = null;
 
-  if (typeof this.bridge.getStats === 'function') {
-    stats = await this.bridge.getStats();
-  } else {
-    const peer = this.bridge.getPeerConnection();
+    if (typeof this.bridge.getStats === 'function') {
+      stats = await this.bridge.getStats();
+    } else {
+      const peer = this.bridge.getPeerConnection();
 
-    if (!peer) return null;
+      if (!peer) return null;
 
-    stats = await peer.getStats();
-  }
-
-  if (!stats) return null;
-
-  const audioStats = {};
-
-  stats.forEach((stat) => {
-    if (FILTER_AUDIO_STATS.includes(stat.type)
-      && (!stat.kind || stat.kind === 'audio')) {
-      audioStats[stat.id] = stat;
+      stats = await peer.getStats();
     }
-  });
 
-  const transportStats = await this.getInternalExternalIpAddresses(audioStats);
+    if (!stats) return null;
 
-  return { transportStats, ...audioStats };
-}
+    const audioStats = {};
+
+    stats.forEach((stat) => {
+      if (FILTER_AUDIO_STATS.includes(stat.type)
+        && (!stat.kind || stat.kind === 'audio')) {
+        audioStats[stat.id] = stat;
+      }
+    });
+
+    const transportStats = await this.getInternalExternalIpAddresses(audioStats);
+
+    return { transportStats, ...audioStats };
+  }
 }
 
 // Add a global reactive variable for the latest transcription
