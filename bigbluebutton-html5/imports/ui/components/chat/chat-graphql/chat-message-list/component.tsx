@@ -40,6 +40,7 @@ import Storage from '/imports/ui/services/storage/in-memory';
 import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages, translationMessagesVar } from '/imports/ui/services/audio-manager';
 import { ChatAvatar } from './page/chat-message/styles';
 import audioManager from '/imports/ui/services/audio-manager';
+import { useLocalUserList } from '/imports/ui/core/hooks/useLoadedUserList';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -523,6 +524,15 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   const userLang = audioManager.lastJoinOptions?.language || intl.locale;
   // const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
   const filteredTranslationMessages = useReactiveVar(translationMessagesVar);
+  // Get all users for color lookup
+  const [allUsers] = useLocalUserList((u) => u);
+
+  // Helper to get BBB user color by participant_name
+  function getUserColorByName(name: string) {
+    const user = allUsers.find(u => u.name === name);
+    return user?.color;
+  }
+
   return (
     <>
       {
@@ -657,7 +667,7 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                 <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {filteredTranslationMessages.map((msg, idx) => {
                     // Generate a color based on participant_name (simple hash)
-                    function stringToColor(str) {
+                    function stringToColor(str: string) {
                       let hash = 0;
                       for (let i = 0; i < str.length; i++) {
                         hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -669,7 +679,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                       }
                       return color;
                     }
-                    const avatarColor = stringToColor(msg.participant_name || 'User');
+                    const userColor = getUserColorByName(msg.participant_name);
+                    const avatarColor = userColor || stringToColor(msg.participant_name || 'User');
                     const avatarText = (msg.participant_name || 'U').slice(0, 2).toUpperCase();
                     return (
                       <div
