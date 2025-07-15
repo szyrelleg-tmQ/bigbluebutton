@@ -809,14 +809,13 @@ class AudioManager {
               translationBuffer[messageId] = {
                 original: data.text,
                 translations: {},
-                count: 0,
               };
             }
             translationBuffer[messageId].translations[data.language] = data.translated_text;
-            translationBuffer[messageId].count += 1;
+            const numLanguages = Object.keys(translationBuffer[messageId].translations).length;
             console.log(translationBuffer, "*******************************************************");
-            // When all expected translations are received, send compressed message
-            if (translationBuffer[messageId].count === 2) {
+            // When all expected translations are received, store the message
+            if (numLanguages === this.participantsCount) {
               const messageObj = {
                 timestamp: messageId,
                 original: data.text,
