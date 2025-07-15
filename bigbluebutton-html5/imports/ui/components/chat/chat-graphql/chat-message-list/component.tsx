@@ -677,14 +677,14 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   </ChatAvatar>
                   <div style={{ marginLeft: 12, flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>
-                      {translation.type === 'user'
+                      {transcription.type === 'user'
                         ? (currentUser?.name || 'You')
-                        : (translation.participant_name || 'User')}
+                        : (transcription.participant_name || 'User')}
                     </div>
                     <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {translation.type === 'user'
+                      {transcription.type === 'user'
                         ? (currentUser?.userId || '')
-                        : (translation.participant_name || '')}
+                        : (transcription.participant_name || '')}
                     </div>
                     <div style={{ marginTop: 2 }}>
                       {translation.text}
