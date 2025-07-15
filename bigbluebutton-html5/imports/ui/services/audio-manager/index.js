@@ -765,11 +765,18 @@ class AudioManager {
             videoSource: false,
           },
         });
+        const updateParticipantsCount = () => {
+          const participants = callObject.participants();
+          this.participantsCount = Object.keys(participants).length;
+          console.log('[TRANSLATOR] Participants count updated:=========================', this.participantsCount);
+        };
+        updateParticipantsCount();
+
         console.log('[TRANSLATOR] Initializing translator call object with language:', language, 'and voice:', voice, 'for room:', roomId);
 
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice);
-        console.log(data)
+
         callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
           dailyCoIntegration.initialize(callObject);
@@ -816,11 +823,6 @@ class AudioManager {
             translationBuffer[messageId].count += 1;
             // When all expected translations are received, send compressed message
             if (translationBuffer[messageId].count === this.participantsCount) {
-              const updateParticipantsCount = () => {
-                const participants = callObject.participants();
-                this.participantsCount = Object.keys(participants).length;
-              };
-              updateParticipantsCount();
               const messageObj = {
                 timestamp: messageId,
                 original: data.text,
