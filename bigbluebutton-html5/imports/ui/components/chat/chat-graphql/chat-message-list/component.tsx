@@ -37,7 +37,7 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
-import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages } from '/imports/ui/services/audio-manager';
+import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages, translationMessagesVar } from '/imports/ui/services/audio-manager';
 import { ChatAvatar } from './page/chat-message/styles';
 import audioManager from '/imports/ui/services/audio-manager';
 
@@ -521,7 +521,8 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   }, [loadingPages]);
 
   const userLang = audioManager.lastJoinOptions?.language || intl.locale;
-  const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
+  // const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
+  const filteredTranslationMessages = useReactiveVar(translationMessagesVar);
   console.log(userLang)
   console.log(filteredTranslationMessages)
   return (

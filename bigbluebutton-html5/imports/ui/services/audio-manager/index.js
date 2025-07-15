@@ -824,13 +824,16 @@ class AudioManager {
             console.log(translationBuffers[key], "-----------------------");
             // If we've received all expected translations, store the message and clean up
             if (numTranslations === 2) {
-              translationMessages.push({
-                original: translationBuffers[key].original,
-                translations: { ...translationBuffers[key].translations },
-                participant_name: translationBuffers[key].participant_name,
-              });
+              translationMessagesVar([
+                ...translationMessagesVar(),
+                {
+                  original: translationBuffers[key].original,
+                  translations: { ...translationBuffers[key].translations },
+                  participant_name: translationBuffers[key].participant_name,
+                }
+              ]);
               delete translationBuffers[key];
-              console.log(translationMessages)
+              console.log(translationMessagesVar())
             }
           }
         });
@@ -1719,11 +1722,11 @@ export const latestTranscriptionVar = makeVar(null);
 export const latestTranslationVar = makeVar(null);
 
 const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
-const translationMessages = [];
+export const translationMessagesVar = makeVar([]);
 
 // Expose a function to get messages filtered by user language for rendering
 export function getFilteredTranslationMessages(userLang) {
-  return translationMessages.map(msg => ({
+  return translationMessagesVar().map(msg => ({
     ...msg,
     displayText: msg.translations[userLang] || msg.original,
   }));
