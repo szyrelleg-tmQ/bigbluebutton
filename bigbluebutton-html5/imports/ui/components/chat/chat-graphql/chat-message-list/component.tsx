@@ -527,10 +527,34 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   // Get all users for color lookup
   const [allUsers] = useLocalUserList((u) => u);
 
-  // Helper to get BBB user color by participant_name
-  function getUserColorByName(name: string) {
-    const user = allUsers.find(u => u.name === name);
-    return user?.color;
+  // Utility: deterministic color from string
+  function stringToColor(str: string) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      const value = (hash >> (i * 8)) & 0xFF;
+      color += ('00' + value.toString(16)).slice(-2);
+    }
+    return color;
+  }
+
+  // Centralized avatar color logic
+  function getConsistentAvatarColor(user?: { name?: string; color?: string }, fallbackName?: string) {
+    // 1. Use user.color if present
+    if (user?.color) return user.color;
+    // 2. Try to find user in allUsers by name
+    const name = user?.name || fallbackName;
+    if (name) {
+      const found = allUsers.find(u => u.name === name);
+      if (found?.color) return found.color;
+      // 3. Fallback: deterministic color from name
+      return stringToColor(name);
+    }
+    // 4. Final fallback
+    return '#888';
   }
 
   return (
@@ -666,24 +690,10 @@ const ChatMessageList: React.FC<ChatListProps> = ({
               {filteredTranslationMessages.length > 0 && (
                 <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {filteredTranslationMessages.map((msg, idx) => {
-                    // Generate a color based on participant_name (simple hash)
-                    function stringToColor(str: string) {
-                      let hash = 0;
-                      for (let i = 0; i < str.length; i++) {
-                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-                      }
-                      let color = '#';
-                      for (let i = 0; i < 3; i++) {
-                        const value = (hash >> (i * 8)) & 0xFF;
-                        color += ('00' + value.toString(16)).slice(-2);
-                      }
-                      return color;
-                    }
                     const nameSlug = msg.participant_name.match(/^([a-z-]+)/);
                     const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : '';
-                    const userColor = getUserColorByName(originalName);
-                    const avatarColor = userColor || stringToColor(originalName || 'User');
-                    const avatarText = (originalName || 'U').slice(0, 2).toUpperCase();
+                    const avatarColor = getConsistentAvatarColor(undefined, originalName || 'User');
+                    const avatarText = (originalName || 'U').slice(0, 1).toUpperCase();
                     return (
                       <div
                         key={msg.timestamp || idx}
