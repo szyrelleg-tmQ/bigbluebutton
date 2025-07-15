@@ -523,8 +523,6 @@ const ChatMessageList: React.FC<ChatListProps> = ({
   const userLang = audioManager.lastJoinOptions?.language || intl.locale;
   // const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
   const filteredTranslationMessages = useReactiveVar(translationMessagesVar);
-  console.log(userLang)
-  console.log(filteredTranslationMessages)
   return (
     <>
       {
@@ -693,23 +691,10 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                         </ChatAvatar>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                            {msg.participant_name || 'User'}
-                            <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>
-                              {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
-                            </span>
+                            <b>{intl.formatMessage({ id: 'app.chat.originalLabel', defaultMessage: 'Original:' })}</b> {msg.original}
                           </div>
                           <div style={{ marginBottom: 2 }}>
-                            <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b>
-                            <ul style={{ margin: 0, paddingLeft: 16 }}>
-                              {Object.entries(msg.translations).map(([lang, translation]) => (
-                                <li key={lang} style={{ fontSize: '0.98em' }}>
-                                  <span style={{ fontWeight: 500 }}>{lang}:</span> {String(translation)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div style={{ color: '#888', fontSize: '0.9em' }}>
-                            ({userLang})
+                            <b>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</b> {String(msg.translations[userLang] || msg.original)}
                           </div>
                         </div>
                       </div>
