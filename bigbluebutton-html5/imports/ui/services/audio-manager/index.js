@@ -770,7 +770,7 @@ class AudioManager {
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice);
         console.log(data)
-        callObject.on('joined-meeting', (event) => {
+        callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
           const participantsObj = callObject.participants();
           this.participantsCount = Object.keys(participantsObj).length;
@@ -778,9 +778,11 @@ class AudioManager {
           dailyCoIntegration.initialize(callObject);
         });
 
-        callObject.on('left-meeting', (event) => {
+        callObject.on('participant-left', (event) => {
           console.log('❌ Left Daily room:', event);
-          // Clean up Daily.co integration
+          const participantsObj = callObject.participants();
+          this.participantsCount = Object.keys(participantsObj).length;
+          console.log(this.participantsCount, "--------------------");
           dailyCoIntegration.cleanup();
           this._translatorCallObject = null;
         });
