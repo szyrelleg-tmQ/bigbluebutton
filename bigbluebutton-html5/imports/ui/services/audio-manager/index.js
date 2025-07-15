@@ -804,27 +804,27 @@ class AudioManager {
               type: data.type,
             });
             // Collect translations by timestamp (message id)
-            const messageId = data.timestamp;
-            if (!translationBuffer[messageId]) {
-              translationBuffer[messageId] = {
+
+            if (typeof translationBuffer == 'object') {
+              translationBuffer = {
                 original: data.text,
                 translations: {},
               };
             }
-            translationBuffer[messageId].translations[data.language] = data.translated_text;
-            const numLanguages = Object.keys(translationBuffer[messageId].translations).length;
+            translationBuffer.translations[data.language] = data.translated_text;
+            const numLanguages = Object.keys(translationBuffer.translations).length;
             console.log(translationBuffer, "*******************************************************");
             // When all expected translations are received, store the message
             if (numLanguages === this.participantsCount) {
               const messageObj = {
                 timestamp: messageId,
                 original: data.text,
-                translations: { ...translationBuffer[messageId].translations },
+                translations: { ...translationBuffer.translations },
                 participant_name: data.participant_name,
                 // add any other metadata you need
               };
               translationMessages.push(messageObj);
-              delete translationBuffer[messageId];
+              translationBuffer = {};
             }
           }
         });
