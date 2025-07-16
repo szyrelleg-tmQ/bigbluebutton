@@ -32,6 +32,7 @@ import { getTranslatorClient } from 'translator-client'
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
+import Translator from '../translator';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -754,96 +755,85 @@ class AudioManager {
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const roomId = Auth.meetingID;
         const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
-        // Use selected language/voice if available
         const language = this.lastJoinOptions?.language || 'english';
-        const voice = this.lastJoinOptions?.voice || 'aria';
-        const audioTrack = this.inputStream.getAudioTracks()[0];
-        const callObject = getTranslatorClient({
-          baseUrl: "https://pipecat-translate.ph03.us",
-          inputConfig: {
-            audioSource: audioTrack,
-            videoSource: false,
-          },
-        });
-        console.log('[TRANSLATOR] Initializing translator call object with language:', language, 'and voice:', voice, 'for room:', roomId);
+        const voice = this.lastJoinOptions?.voice || 'aria'
 
-        this._translatorCallObject = callObject;
-        const data = await callObject.startBot(currentName, language, roomId, voice);
-        console.log(data)
-        callObject.on('participant-joined', (event) => {
-          console.log('✅ Successfully joined the Daily room!', event);
-          dailyCoIntegration.initialize(callObject);
-        });
+        await Translator.joinRoom(roomId, currentName)
 
-        callObject.on('participant-left', (event) => {
-          console.log('❌ Left Daily room:', event);
-          dailyCoIntegration.cleanup();
-          this._translatorCallObject = null;
-        });
+        // callObject.on('participant-joined', (event) => {
+        //   console.log('✅ Successfully joined the Daily room!', event);
+        //   dailyCoIntegration.initialize(callObject);
+        // });
 
-        callObject.on("app-message", (message) => {
-          const data = message.data;
-          if (data.event_type === "transcription") {
-            console.log('[TRANSLATOR] Received transcription:', data);
-            latestTranscriptionVar({
-              text: data.text,
-              language: data.language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-          } else if (data.event_type === "translation") {
-            console.log('[TRANSLATOR] Received translation:', data);
-            latestTranslationVar({
-              text: data.text,
-              translated_text: data.translated_text,
-              language: data.language,
-              original_language: data.original_language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-            // Collect translations by timestamp (message id)
+        // callObject.on('participant-left', (event) => {
+        //   console.log('❌ Left Daily room:', event);
+        //   dailyCoIntegration.cleanup();
+        //   this._translatorCallObject = null;
+        // });
 
-            const key = `${data.text}|${data.participant_name}`;
+        // callObject.on("app-message", (message) => {
+        //   const data = message.data;
+        //   if (data.event_type === "transcription") {
+        //     console.log('[TRANSLATOR] Received transcription:', data);
+        //     latestTranscriptionVar({
+        //       text: data.text,
+        //       language: data.language,
+        //       participant_name: data.participant_name,
+        //       timestamp: data.timestamp,
+        //       type: data.type,
+        //     });
+        //   } else if (data.event_type === "translation") {
+        //     console.log('[TRANSLATOR] Received translation:', data);
+        //     latestTranslationVar({
+        //       text: data.text,
+        //       translated_text: data.translated_text,
+        //       language: data.language,
+        //       original_language: data.original_language,
+        //       participant_name: data.participant_name,
+        //       timestamp: data.timestamp,
+        //       type: data.type,
+        //     });
+        //     // Collect translations by timestamp (message id)
 
-            // Initialize buffer for this message if it doesn't exist
-            if (!translationBuffers[key]) {
-              translationBuffers[key] = {
-                original: data.text,
-                translations: {},
-                participant_name: data.participant_name,
-              };
-            }
+        //     const key = `${data.text}|${data.participant_name}`;
 
-            // Add this translation
-            translationBuffers[key].translations[data.language] = data.translated_text;
+        //     // Initialize buffer for this message if it doesn't exist
+        //     if (!translationBuffers[key]) {
+        //       translationBuffers[key] = {
+        //         original: data.text,
+        //         translations: {},
+        //         participant_name: data.participant_name,
+        //       };
+        //     }
 
-            // Count how many translations we have for this message
-            const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            // If we've received all expected translations, store the message and clean up
-            if (numTranslations === 2) {
-              translationMessagesVar([
-                ...translationMessagesVar(),
-                {
-                  original: translationBuffers[key].original,
-                  translations: { ...translationBuffers[key].translations },
-                  participant_name: translationBuffers[key].participant_name,
-                }
-              ]);
-              delete translationBuffers[key];
-              console.log(translationMessagesVar())
-            }
-          }
-        });
+        //     // Add this translation
+        //     translationBuffers[key].translations[data.language] = data.translated_text;
 
-        try {
-          await callObject.joinRoom(data.room_url, data.userName);
-        } catch (err) {
-          console.error('[DAILY] Failed to join Daily room:', err);
-          dailyCoIntegration.cleanup();
-          this._translatorCallObject = null;
-        }
+        //     // Count how many translations we have for this message
+        //     const numTranslations = Object.keys(translationBuffers[key].translations).length;
+        //     // If we've received all expected translations, store the message and clean up
+        //     if (numTranslations === 2) {
+        //       translationMessagesVar([
+        //         ...translationMessagesVar(),
+        //         {
+        //           original: translationBuffers[key].original,
+        //           translations: { ...translationBuffers[key].translations },
+        //           participant_name: translationBuffers[key].participant_name,
+        //         }
+        //       ]);
+        //       delete translationBuffers[key];
+        //       console.log(translationMessagesVar())
+        //     }
+        //   }
+        // });
+
+        // try {
+        //   await callObject.joinRoom(data.room_url, data.userName);
+        // } catch (err) {
+        //   console.error('[DAILY] Failed to join Daily room:', err);
+        //   dailyCoIntegration.cleanup();
+        //   this._translatorCallObject = null;
+        // }
 
         // Set up transcription callback
 

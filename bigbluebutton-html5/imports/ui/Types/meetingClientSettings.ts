@@ -836,6 +836,7 @@ export interface Private {
   analytics: Analytics
   app: App2
   prometheus: Prometheus
+  translatorServer: TranslatorServer
 }
 
 export interface Analytics {
@@ -878,6 +879,10 @@ export interface Prometheus {
   enabled: boolean
   path: string
   collectDefaultMetrics: boolean
+}
+
+export interface TranslatorServer {
+  baseUrl: string
 }
 
 export default MeetingClientSettings;

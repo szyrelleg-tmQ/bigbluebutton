@@ -1194,3 +1194,5 @@ private:
     path: '/metrics'
     # Whether default metrics for Node.js processes should be exported
     collectDefaultMetrics: false
+  translatorServer:
+    baseUrl:'https://pipecat-translate.ph03.us'
