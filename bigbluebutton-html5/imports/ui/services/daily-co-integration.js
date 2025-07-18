@@ -94,7 +94,7 @@ class DailyCoIntegration {
                 const audioStream = new MediaStream([audioTrack]);
 
                 // Route this audio stream to BigBlueButton's audio system
-                this._routeToBigBlueButton(audioStream, participant);
+                // this._routeToBigBlueButton(audioStream, participant);
             }
         }
 
