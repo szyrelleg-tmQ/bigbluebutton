@@ -768,87 +768,81 @@ class AudioManager {
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice, true);
         console.log(data)
-        callObject.on('participant-joined', (event) => {
-          console.log('✅ Successfully joined the Daily room!', event);
-          dailyCoIntegration.initialize(callObject);
-        });
-
-        callObject.on('participant-left', (event) => {
-          console.log('❌ Left Daily room:', event);
-          dailyCoIntegration.cleanup();
-          this._translatorCallObject = null;
-        });
-
-        callObject.on("app-message", (message) => {
-          const data = message.data;
-          if (data.event_type === "transcription") {
-            latestTranscriptionVar({
-              text: data.text,
-              language: data.language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-          } else if (data.event_type === "translation") {
-            latestTranslationVar({
-              text: data.text,
-              translated_text: data.translated_text,
-              language: data.language,
-              original_language: data.original_language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-            // Collect translations by timestamp (message id)
-
-            const key = `${data.text}|${data.participant_name}`;
-
-            // Initialize buffer for this message if it doesn't exist
-            if (!translationBuffers[key]) {
-              translationBuffers[key] = {
-                original: data.text,
-                translations: {},
-                participant_name: data.participant_name,
-              };
-            }
-
-            // Add this translation
-            translationBuffers[key].translations[data.language] = data.translated_text;
-
-            const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            let totalParticipants = 2;
-
-            const callObject = dailyCoIntegration.getCallObject && dailyCoIntegration.getCallObject();
-            if (callObject && typeof callObject.participants === 'function') {
-              totalParticipants = Object.keys(callObject.participants()).length;
-            }
-            if (numTranslations === totalParticipants - 1) {
-              translationMessagesVar([
-                ...translationMessagesVar(),
-                {
-                  original: translationBuffers[key].original,
-                  translations: { ...translationBuffers[key].translations },
-                  participant_name: translationBuffers[key].participant_name,
-                }
-              ]);
-              delete translationBuffers[key];
-            }
-          }
-        });
-
         try {
           await callObject.joinRoom(data.room_url, data.userName);
+
+          callObject.on('participant-joined', (event) => {
+            console.log('✅ Successfully joined the Daily room!');
+            dailyCoIntegration.initialize(callObject);
+          });
+
+          callObject.on('participant-left', (event) => {
+            console.log('❌ Left Daily room:');
+            dailyCoIntegration.cleanup();
+            this._translatorCallObject = null;
+          });
+
+          callObject.on("app-message", (message) => {
+            const data = message.data;
+            if (data.event_type === "transcription") {
+              latestTranscriptionVar({
+                text: data.text,
+                language: data.language,
+                participant_name: data.participant_name,
+                timestamp: data.timestamp,
+                type: data.type,
+              });
+            } else if (data.event_type === "translation") {
+              latestTranslationVar({
+                text: data.text,
+                translated_text: data.translated_text,
+                language: data.language,
+                original_language: data.original_language,
+                participant_name: data.participant_name,
+                timestamp: data.timestamp,
+                type: data.type,
+              });
+              // Collect translations by timestamp (message id)
+
+              const key = `${data.text}|${data.participant_name}`;
+
+              // Initialize buffer for this message if it doesn't exist
+              if (!translationBuffers[key]) {
+                translationBuffers[key] = {
+                  original: data.text,
+                  translations: {},
+                  participant_name: data.participant_name,
+                };
+              }
+
+              // Add this translation
+              translationBuffers[key].translations[data.language] = data.translated_text;
+
+              const numTranslations = Object.keys(translationBuffers[key].translations).length;
+              let totalParticipants = 2;
+
+              const callObject = dailyCoIntegration.getCallObject && dailyCoIntegration.getCallObject();
+              if (callObject && typeof callObject.participants === 'function') {
+                totalParticipants = Object.keys(callObject.participants()).length;
+              }
+              if (numTranslations === totalParticipants - 1) {
+                translationMessagesVar([
+                  ...translationMessagesVar(),
+                  {
+                    original: translationBuffers[key].original,
+                    translations: { ...translationBuffers[key].translations },
+                    participant_name: translationBuffers[key].participant_name,
+                  }
+                ]);
+                delete translationBuffers[key];
+              }
+            }
+          });
         } catch (err) {
           console.error('[DAILY] Failed to join Daily room:', err);
           dailyCoIntegration.cleanup();
           this._translatorCallObject = null;
         }
-
-        // Set up transcription callback
-
-        // Cleanup (on hangup, component unmount, etc.)
-        // callObject.leave();
-        // callObject.destroy();
       }
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
