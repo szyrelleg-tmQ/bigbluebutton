@@ -73,12 +73,48 @@ class DailyCoIntegration {
     }
 
     /**
+     * Helper to check if a participant is a bot
+     * @param {Object} participant
+     * @returns {boolean}
+     * @private
+     */
+    _isBot(participant) {
+        return participant && participant.user_name && participant.user_name.startsWith('bot-');
+    }
+
+    /**
+     * Helper to get the base user id from a bot's name
+     * @param {string} botName
+     * @returns {string}
+     * @private
+     */
+    _getBaseUserId(botName) {
+        return botName.replace(/^bot-/, '');
+    }
+
+    /**
      * Capture audio from a Daily.co participant
      * @param {Object} participant - The Daily.co participant object
      * @private
      */
     _captureParticipantAudio(participant) {
         if (!participant || participant.local) return; // Skip local participant
+
+        // Identify if this participant is a bot
+        const isBot = this._isBot(participant);
+        const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
+
+        // If this is a bot, do not play audio from its own user
+        if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
+            // This is the bot for the current user, do not route audio from the user to its own bot
+            return;
+        }
+
+        // If this is a user, do not play audio from its own bot
+        if (!isBot && myUserName && participant.user_name === myUserName) {
+            // This is the user itself, do not route audio from the bot to its own user
+            return;
+        }
 
         console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
 
@@ -100,6 +136,20 @@ class DailyCoIntegration {
      */
     _removeParticipantAudio(participant) {
         if (!participant || participant.local) return;
+
+        // Identify if this participant is a bot
+        const isBot = this._isBot(participant);
+        const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
+
+        // If this is a bot, do not remove audio from its own user
+        if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
+            return;
+        }
+
+        // If this is a user, do not remove audio from its own bot
+        if (!isBot && myUserName && participant.user_name === myUserName) {
+            return;
+        }
 
         console.log('[DAILY] Removing audio from participant:', participant.user_name || participant.session_id);
 

@@ -819,16 +819,13 @@ class AudioManager {
             // Add this translation
             translationBuffers[key].translations[data.language] = data.translated_text;
 
-            // Count how many translations we have for this message
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            // Get the total number of Daily.co participants
-            let totalParticipants = 2; // fallback default
+            let totalParticipants = 2;
+
             const callObject = dailyCoIntegration.getCallObject && dailyCoIntegration.getCallObject();
             if (callObject && typeof callObject.participants === 'function') {
               totalParticipants = Object.keys(callObject.participants()).length;
             }
-            console.log(totalParticipants, "*********************************")
-            // If we've received all expected translations, store the message and clean up
             if (numTranslations === totalParticipants - 1) {
               translationMessagesVar([
                 ...translationMessagesVar(),
