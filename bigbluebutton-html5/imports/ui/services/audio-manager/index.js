@@ -768,7 +768,7 @@ class AudioManager {
         console.log('[TRANSLATOR] Initializing translator call object with language:', language, 'and voice:', voice, 'for room:', roomId);
 
         this._translatorCallObject = callObject;
-        const data = await callObject.startBot(currentName, language, roomId, voice);
+        const data = await callObject.startBot(currentName, language, roomId, voice, true);
         console.log(data)
         callObject.on('participant-joined', (event) => {
           console.log('✅ Successfully joined the Daily room!', event);
@@ -821,8 +821,15 @@ class AudioManager {
 
             // Count how many translations we have for this message
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
+            // Get the total number of Daily.co participants
+            let totalParticipants = 2; // fallback default
+            const callObject = dailyCoIntegration.getCallObject && dailyCoIntegration.getCallObject();
+            if (callObject && typeof callObject.participants === 'function') {
+              totalParticipants = Object.keys(callObject.participants()).length;
+            }
+            console.log(totalParticipants, "*********************************")
             // If we've received all expected translations, store the message and clean up
-            if (numTranslations === 2) {
+            if (numTranslations === totalParticipants - 1) {
               translationMessagesVar([
                 ...translationMessagesVar(),
                 {
