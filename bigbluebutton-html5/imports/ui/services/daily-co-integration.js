@@ -100,31 +100,33 @@ class DailyCoIntegration {
     _captureParticipantAudio(participant) {
         if (!participant || participant.local) return; // Skip local participant
 
-        // Identify if this participant is a bot
         const isBot = this._isBot(participant);
         const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
 
-        // If this is a bot, do not play audio from its own user
+        // Debug logs
+        console.log('[DEBUG] _captureParticipantAudio called');
+        console.log('[DEBUG] Current user:', myUserName);
+        console.log('[DEBUG] Processing participant:', participant.user_name);
+        console.log('[DEBUG] Is bot:', isBot);
+
+        // Kung ang participant ay bot at pangalan niya ay bot ng current user, wag i-play
         if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
-            // This is the bot for the current user, do not route audio from the user to its own bot
+            console.log('[DEBUG] Skipping audio: This is my own bot.');
             return;
         }
 
-        // If this is a user, do not play audio from its own bot
+        // Kung hindi bot at pangalan niya ay ikaw mismo, wag i-play
         if (!isBot && myUserName && participant.user_name === myUserName) {
-            // This is the user itself, do not route audio from the bot to its own user
+            console.log('[DEBUG] Skipping audio: This is myself.');
             return;
         }
 
-        console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
+        console.log('[DEBUG] Playing audio from participant:', participant.user_name);
 
         // Get the participant's audio track
         const audioTrack = participant.audioTrack;
         if (audioTrack) {
-            // Create a MediaStream from the audio track
             const audioStream = new MediaStream([audioTrack]);
-
-            // Route this audio stream to BigBlueButton's audio system
             this._routeToBigBlueButton(audioStream, participant);
         }
     }
