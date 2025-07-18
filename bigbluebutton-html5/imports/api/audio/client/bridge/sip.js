@@ -826,7 +826,7 @@ class SIPSession {
 
         if (iceCompleted) {
           this.webrtcConnected = true;
-          setupRemoteMedia();
+          // setupRemoteMedia();
         }
 
         if (fsReady) {
