@@ -1471,19 +1471,19 @@ class AudioManager {
   mute() {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
-    // if (this._translatorCallObject) {
-    //   const res = this._translatorCallObject.toggleAudio();
-    //   console.log(res);
-    // }
+    if (this._translatorCallObject) {
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
+    }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
-    // if (this._translatorCallObject) {
-    //   const res = this._translatorCallObject.toggleAudio();
-    //   console.log(res);
-    // }
+    if (this._translatorCallObject) {
+      const res = this._translatorCallObject.toggleAudio();
+      console.log(res);
+    }
   }
 
   playAlertSound(url) {
