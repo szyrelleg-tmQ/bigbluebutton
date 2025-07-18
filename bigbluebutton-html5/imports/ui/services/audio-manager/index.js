@@ -750,7 +750,6 @@ class AudioManager {
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
       // Log the actual stream after join
-      console.log('[AUDIO] User joined audio, inputStream:', this.inputStream);
       if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
         const roomId = Auth.meetingID;
         const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
@@ -765,7 +764,6 @@ class AudioManager {
             videoSource: false,
           },
         });
-        console.log('[TRANSLATOR] Initializing translator call object with language:', language, 'and voice:', voice, 'for room:', roomId);
 
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice, true);
@@ -1473,7 +1471,6 @@ class AudioManager {
     // Mute translator call object if active
     if (this._translatorCallObject) {
       const res = this._translatorCallObject.toggleAudio();
-      console.log(res);
     }
   }
 
@@ -1482,7 +1479,6 @@ class AudioManager {
     // Unmute translator call object if active
     if (this._translatorCallObject) {
       const res = this._translatorCallObject.toggleAudio();
-      console.log(res);
     }
   }
 

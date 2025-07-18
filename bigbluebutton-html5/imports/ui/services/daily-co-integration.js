@@ -103,19 +103,23 @@ class DailyCoIntegration {
         const isBot = this._isBot(participant);
         const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
 
+        // If current user is not yet available, skip processing
+        if (!myUserName) {
+            console.log('[DEBUG] Skipping audio: Current user is undefined, waiting for local participant info.');
+            return;
+        }
+
         // Debug logs
         console.log('[DEBUG] _captureParticipantAudio called');
         console.log('[DEBUG] Current user:', myUserName);
         console.log('[DEBUG] Processing participant:', participant.user_name);
         console.log('[DEBUG] Is bot:', isBot);
 
-        // Kung ang participant ay bot at pangalan niya ay bot ng current user, wag i-play
         if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
             console.log('[DEBUG] Skipping audio: This is my own bot.');
             return;
         }
 
-        // Kung hindi bot at pangalan niya ay ikaw mismo, wag i-play
         if (!isBot && myUserName && participant.user_name === myUserName) {
             console.log('[DEBUG] Skipping audio: This is myself.');
             return;
@@ -123,7 +127,6 @@ class DailyCoIntegration {
 
         console.log('[DEBUG] Playing audio from participant:', participant.user_name);
 
-        // Get the participant's audio track
         const audioTrack = participant.audioTrack;
         if (audioTrack) {
             const audioStream = new MediaStream([audioTrack]);
