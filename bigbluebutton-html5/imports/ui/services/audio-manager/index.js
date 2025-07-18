@@ -762,6 +762,7 @@ class AudioManager {
           inputConfig: {
             audioSource: audioTrack,
             videoSource: false,
+            subscribeToTracksAutomatically: false,
           },
         });
 

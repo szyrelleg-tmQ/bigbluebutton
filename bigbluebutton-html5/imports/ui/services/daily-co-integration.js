@@ -83,7 +83,7 @@ class DailyCoIntegration {
         console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
 
         const isBot = participant.user_name.startsWith('bot-user-');
-        if (isBot) {
+        if (!isBot) {
             console.log('[DAILY] Not a bot =============================');
             return
         } else {
@@ -94,10 +94,9 @@ class DailyCoIntegration {
                 const audioStream = new MediaStream([audioTrack]);
 
                 // Route this audio stream to BigBlueButton's audio system
-                // this._routeToBigBlueButton(audioStream, participant);
+                this._routeToBigBlueButton(audioStream, participant);
             }
         }
-
     }
 
     /**
