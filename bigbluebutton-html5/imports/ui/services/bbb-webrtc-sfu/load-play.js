@@ -24,8 +24,8 @@ const playMediaElement = (mediaElement) => {
   });
 }
 
-export default function loadAndPlayMediaStream (mediaStream, mediaElement, muted = true) {
-  mediaElement.muted = muted;
+export default function loadAndPlayMediaStream(mediaStream, mediaElement, muted = true) {
+  mediaElement.muted = true;
   mediaElement.pause();
   mediaElement.srcObject = mediaStream;
   return playMediaElement(mediaElement);
