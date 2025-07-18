@@ -758,19 +758,21 @@ class AudioManager {
         const voice = this.lastJoinOptions?.voice || 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
         const callObject = getTranslatorClient({
-          baseUrl: "https://pipecat-translate.ph03.us",
-          inputConfig: {
-            audioSource: audioTrack,
-            videoSource: false,
-            subscribeToTracksAutomatically: false,
-          },
+          baseUrl: "https://pipecat-translate.ph03.us"
         });
 
         this._translatorCallObject = callObject;
         const data = await callObject.startBot(currentName, language, roomId, voice, true);
-        console.log(data)
+
         try {
-          await callObject.joinRoom(data.room_url, data.userName);
+          const res = await callObject.joinRoom(data.room_url, data.userName);
+          if (res) {
+            setTimeout(() => {
+              await callObject.setInputDevicesAsync({
+                audioDeviceId: this.inputDeviceId,
+              });
+            }, 1000);
+          }
 
           callObject.on('participant-joined', (event) => {
             console.log('✅ Successfully joined the Daily room!');
