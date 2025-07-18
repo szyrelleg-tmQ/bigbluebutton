@@ -727,6 +727,20 @@ class AudioManager {
     }
   }
 
+
+  async setInputDevicesAsync() {
+    try {
+      const result = await this._translatorCallObject.setInputDevicesAsync({
+        audioDeviceId: this.inputDeviceId
+      });
+
+      console.log('Input devices set successfully:', result);
+
+    } catch (error) {
+      console.error('Failed to set input devices:', error);
+    }
+  }
+
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -762,30 +776,28 @@ class AudioManager {
         });
 
         this._translatorCallObject = callObject;
-        const data = await callObject.startBot(currentName, language, roomId, voice, true);
+        const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
 
         try {
-          const res = await callObject.joinRoom(data.room_url, data.userName);
+          const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
             setTimeout(() => {
-              await callObject.setInputDevicesAsync({
-                audioDeviceId: this.inputDeviceId,
-              });
+              this.setInputDevicesAsync();
             }, 1000);
           }
 
-          callObject.on('participant-joined', (event) => {
+          this._translatorCallObject.on('participant-joined', (event) => {
             console.log('✅ Successfully joined the Daily room!');
             dailyCoIntegration.initialize(callObject);
           });
 
-          callObject.on('participant-left', (event) => {
+          this._translatorCallObject.on('participant-left', (event) => {
             console.log('❌ Left Daily room:');
             dailyCoIntegration.cleanup();
             this._translatorCallObject = null;
           });
 
-          callObject.on("app-message", (message) => {
+          this._translatorCallObject.on("app-message", (message) => {
             const data = message.data;
             if (data.event_type === "transcription") {
               latestTranscriptionVar({
