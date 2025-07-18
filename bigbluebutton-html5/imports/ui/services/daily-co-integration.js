@@ -82,7 +82,7 @@ class DailyCoIntegration {
 
         console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
 
-        const isBot = user_name.startsWith('bot-user-');
+        const isBot = participant.user_name.startsWith('bot-user-');
         if (!isBot) {
             console.log('[DAILY] Not a bot =============================');
             return
