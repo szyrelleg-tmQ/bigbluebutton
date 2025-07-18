@@ -34,7 +34,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  console.log('Intercepting:', event.request.url);
+//   console.log('Intercepting:', event.request.url);
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
