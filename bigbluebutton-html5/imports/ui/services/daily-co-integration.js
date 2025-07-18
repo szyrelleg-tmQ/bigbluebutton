@@ -73,26 +73,6 @@ class DailyCoIntegration {
     }
 
     /**
-     * Helper to check if a participant is a bot
-     * @param {Object} participant
-     * @returns {boolean}
-     * @private
-     */
-    _isBot(participant) {
-        return participant && participant.user_name && participant.user_name.startsWith('bot-');
-    }
-
-    /**
-     * Helper to get the base user id from a bot's name
-     * @param {string} botName
-     * @returns {string}
-     * @private
-     */
-    _getBaseUserId(botName) {
-        return botName.replace(/^bot-/, '');
-    }
-
-    /**
      * Capture audio from a Daily.co participant
      * @param {Object} participant - The Daily.co participant object
      * @private
@@ -100,36 +80,17 @@ class DailyCoIntegration {
     _captureParticipantAudio(participant) {
         if (!participant || participant.local) return; // Skip local participant
 
-        const isBot = this._isBot(participant);
-        const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
+        console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
 
-        // If current user is not yet available, skip processing
-        if (!myUserName) {
-            console.log('[DEBUG] Skipping audio: Current user is undefined, waiting for local participant info.');
-            return;
-        }
 
-        // Debug logs
-        console.log('[DEBUG] _captureParticipantAudio called');
-        console.log('[DEBUG] Current user:', myUserName);
-        console.log('[DEBUG] Processing participant:', participant.user_name);
-        console.log('[DEBUG] Is bot:', isBot);
 
-        if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
-            console.log('[DEBUG] Skipping audio: This is my own bot.');
-            return;
-        }
-
-        if (!isBot && myUserName && participant.user_name === myUserName) {
-            console.log('[DEBUG] Skipping audio: This is myself.');
-            return;
-        }
-
-        console.log('[DEBUG] Playing audio from participant:', participant.user_name);
-
+        // Get the participant's audio track
         const audioTrack = participant.audioTrack;
         if (audioTrack) {
+            // Create a MediaStream from the audio track
             const audioStream = new MediaStream([audioTrack]);
+
+            // Route this audio stream to BigBlueButton's audio system
             this._routeToBigBlueButton(audioStream, participant);
         }
     }
@@ -142,22 +103,13 @@ class DailyCoIntegration {
     _removeParticipantAudio(participant) {
         if (!participant || participant.local) return;
 
-        // Identify if this participant is a bot
-        const isBot = this._isBot(participant);
-        const myUserName = this.callObject && this.callObject.participants && this.callObject.participants().local && this.callObject.participants().local.user_name;
-
-        // If this is a bot, do not remove audio from its own user
-        if (isBot && myUserName && participant.user_name === `bot-${myUserName}`) {
-            return;
-        }
-
-        // If this is a user, do not remove audio from its own bot
-        if (!isBot && myUserName && participant.user_name === myUserName) {
-            return;
-        }
-
         console.log('[DAILY] Removing audio from participant:', participant.user_name || participant.session_id);
 
+        const isBot = user_name.startsWith('bot-user-');
+        if (!isBot) {
+            console.log('[DAILY] Not a bot =============================');
+            return
+        }
         // Remove the participant's audio from BigBlueButton
         this._removeFromBigBlueButton(participant.session_id);
     }
