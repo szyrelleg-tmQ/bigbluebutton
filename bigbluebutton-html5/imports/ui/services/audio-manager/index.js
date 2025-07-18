@@ -727,20 +727,6 @@ class AudioManager {
     }
   }
 
-
-  async setInputDevicesAsync() {
-    try {
-      const result = await this._translatorCallObject.setInputDevicesAsync({
-        audioDeviceId: this.inputDeviceId
-      });
-
-      console.log('Input devices set successfully:', result);
-
-    } catch (error) {
-      console.error('Failed to set input devices:', error);
-    }
-  }
-
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -781,8 +767,17 @@ class AudioManager {
         try {
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
-            setTimeout(() => {
-              this.setInputDevicesAsync();
+            setTimeout(async () => {
+              try {
+                if (this._translatorCallObject) {
+                  const result = await this._translatorCallObject.setInputDevicesAsync({
+                    audioDeviceId: this.inputDeviceId
+                  });
+                  console.log('[TRANSLATOR] setInputDevicesAsync result:', result);
+                }
+              } catch (err) {
+                console.error('[TRANSLATOR] setInputDevicesAsync error:', err);
+              }
             }, 1000);
           }
 
