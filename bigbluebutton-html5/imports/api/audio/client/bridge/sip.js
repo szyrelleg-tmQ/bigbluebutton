@@ -805,6 +805,8 @@ class SIPSession {
         }, 'Audio call - playing remote media');
 
         mediaElement.srcObject = this.remoteStream;
+        // Mute only for FreeSWITCH (SIP) audio, not for Daily.co
+        mediaElement.muted = true;
         mediaElement.play();
       };
 
