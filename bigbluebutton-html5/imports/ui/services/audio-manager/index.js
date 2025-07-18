@@ -763,7 +763,7 @@ class AudioManager {
 
         this._translatorCallObject = callObject;
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-
+        console.log(data)
         try {
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
