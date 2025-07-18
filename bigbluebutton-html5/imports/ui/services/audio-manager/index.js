@@ -770,7 +770,7 @@ class AudioManager {
             setTimeout(async () => {
               try {
                 if (this._translatorCallObject) {
-                  const result = await this._translatorCallObject.setInputDevicesAsync({
+                  const result = await this._translatorCallObject.CallObject.setInputDevicesAsync({
                     audioDeviceId: this.inputDeviceId
                   });
                   console.log('[TRANSLATOR] setInputDevicesAsync result:', result);
