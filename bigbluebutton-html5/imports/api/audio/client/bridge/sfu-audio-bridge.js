@@ -313,8 +313,6 @@ export default class SFUAudioBridge extends BaseAudioBridge {
     const stream = this.broker.webRtcPeer.getRemoteStream();
     const mediaElement = document.getElementById(MEDIA_TAG);
 
-    console.log("------------------------", stream)
-
     return loadAndPlayMediaStream(stream, mediaElement, false).then(() => {
       this.callback({
         status: this.baseCallStates.started,

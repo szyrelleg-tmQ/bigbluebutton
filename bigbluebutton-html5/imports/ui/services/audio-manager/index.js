@@ -784,7 +784,6 @@ class AudioManager {
         callObject.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "transcription") {
-            console.log('[TRANSLATOR] Received transcription:', data);
             latestTranscriptionVar({
               text: data.text,
               language: data.language,
@@ -793,7 +792,6 @@ class AudioManager {
               type: data.type,
             });
           } else if (data.event_type === "translation") {
-            console.log('[TRANSLATOR] Received translation:', data);
             latestTranslationVar({
               text: data.text,
               translated_text: data.translated_text,
@@ -836,7 +834,6 @@ class AudioManager {
                 }
               ]);
               delete translationBuffers[key];
-              console.log(translationMessagesVar())
             }
           }
         });
@@ -1474,19 +1471,19 @@ class AudioManager {
   mute() {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
-      console.log(res);
-    }
+    // if (this._translatorCallObject) {
+    //   const res = this._translatorCallObject.toggleAudio();
+    //   console.log(res);
+    // }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
-      console.log(res);
-    }
+    // if (this._translatorCallObject) {
+    //   const res = this._translatorCallObject.toggleAudio();
+    //   console.log(res);
+    // }
   }
 
   playAlertSound(url) {
