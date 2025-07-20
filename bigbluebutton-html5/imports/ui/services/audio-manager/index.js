@@ -28,7 +28,7 @@ import {
   setUserSelectedMicrophone,
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
-import { getTranslatorClient } from 'translator-client'
+import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService } from 'translator-client'
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
@@ -137,6 +137,24 @@ class AudioManager {
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
+    this.initTranslator();
+    this.audioService = getAudioRoutingService();
+  }
+
+  initTranslator() {
+    try {
+      this._translatorCallObject = getTranslatorClient({
+        baseUrl: "https://pipecat-translate.ph03.us"
+      });
+    } catch (error) {
+      logger.error({
+        logCode: 'translator_client_init_failed',
+        extraInfo: {
+          errorName: error.name,
+          errorMessage: error.message,
+        },
+      }, `Failed to initialize translator client: ${error.message}`);
+    }
   }
 
   onBeforeUnload() {
@@ -757,11 +775,7 @@ class AudioManager {
         const language = this.lastJoinOptions?.language || 'english';
         const voice = this.lastJoinOptions?.voice || 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
-        const callObject = getTranslatorClient({
-          baseUrl: "https://pipecat-translate.ph03.us"
-        });
 
-        this._translatorCallObject = callObject;
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
         console.log(data)
         try {
@@ -782,14 +796,32 @@ class AudioManager {
           }
 
           this._translatorCallObject.on('participant-joined', (event) => {
-            console.log('✅ Successfully joined the Daily room!');
-            dailyCoIntegration.initialize(callObject);
+            const participant = event.participant;
+            const audioElement = document.createElement('audio');
+            audioElement.autoplay = true;
+            document.body.appendChild(audioElement);
+
+            audioService.registerAudioElement(participant.session_id, audioElement);
           });
 
           this._translatorCallObject.on('participant-left', (event) => {
-            console.log('❌ Left Daily room:');
-            dailyCoIntegration.cleanup();
-            this._translatorCallObject = null;
+            const participant = event.participant;
+            audioService.unregisterAudioElement(participant.session_id);
+          });
+
+          this._translatorCallObject.on('participant-updated', async (event) => {
+            const allParticipants = Object.values(this._translatorCallObject.callObject.participants());
+            const currentUserName = this._translatorCallObject.callObject.participants().local.user_name;
+
+            // I-filter ang participants
+            const filtered = audioService.filterParticipants(allParticipants, currentUserName);
+
+            // I-setup ang audio routing
+            await audioService.setupAudioRouting(filtered);
+          });
+
+          this._translatorCallObject.on('left-meeting', () => {
+            resetAudioRoutingService();
           });
 
           this._translatorCallObject.on("app-message", (message) => {
@@ -831,7 +863,7 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
               let totalParticipants = 2;
 
-              const callObject = dailyCoIntegration.getCallObject && dailyCoIntegration.getCallObject();
+              const callObject = this._translatorCallObject.callObject;
               if (callObject && typeof callObject.participants === 'function') {
                 totalParticipants = Object.keys(callObject.participants()).length;
               }
