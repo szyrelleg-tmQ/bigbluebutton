@@ -888,6 +888,8 @@ class AudioManager {
               if (callObject && typeof callObject.participants === 'function') {
                 totalParticipants = Object.keys(callObject.participants()).length;
               }
+              console.log('[TRANSLATION] Total participants:', totalParticipants);
+              console.log('[TRANSLATION] Number of translations for this message:', numTranslations);
               if (numTranslations === totalParticipants - 1) {
                 translationMessagesVar([
                   ...translationMessagesVar(),
