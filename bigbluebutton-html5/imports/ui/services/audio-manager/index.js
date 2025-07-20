@@ -821,7 +821,7 @@ class AudioManager {
               filtered.botRemote.tracks?.audio?.subscribed &&
               filtered.botRemote.tracks.audio.state === 'playable'
             ) {
-              this._translatorCallObject.CallObject.setParticipantAudio(filtered.botRemote.session_id, false);
+              this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, { setAudio: false });
               console.log(`🔇 Muted botRemote: ${filtered.botRemote.user_name}`);
             }
           });
