@@ -820,11 +820,20 @@ class AudioManager {
             // I-setup ang audio routing
             if (
               filtered.botRemote &&
-              filtered.botRemote.tracks?.audio?.subscribed &&
               filtered.botRemote.tracks.audio.state === 'playable'
             ) {
               this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
                 setSubscribedTracks: { audio: false }
+              });
+              console.log(`🔇 Muted botRemote: ${filtered.botRemote.user_name}`);
+            }
+
+            if (
+              filtered.botLocal &&
+              filtered.botLocal.tracks.audio.state === 'playable'
+            ) {
+              this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
+                setSubscribedTracks: { audio: true }
               });
               console.log(`🔇 Muted botRemote: ${filtered.botRemote.user_name}`);
             }
