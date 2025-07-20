@@ -813,10 +813,10 @@ class AudioManager {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             console.log(allParticipants);
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-
+            console.log('[TRANSLATOR] Current user name:', currentUserName);
             // I-filter ang participants
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
-
+            console.log('[TRANSLATOR] Filtered participants:', filtered);
             // I-setup ang audio routing
             await this.audioService.setupAudioRouting(filtered);
           });
