@@ -816,8 +816,8 @@ class AudioManager {
             // I-filter ang participants
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
             // I-setup ang audio routing
-            if (filtered.botLocal && filtered.botLocal.tracks.audio) {
-              this._translatorCallObject.updateParticipant(filtered.session_id, { setAudio: false });
+            if (filtered.botRemote && filtered.botRemote.tracks.audio) {
+              this._translatorCallObject.CallObject.updateParticipant(filtered.session_id, { setAudio: false });
             }
           });
 
