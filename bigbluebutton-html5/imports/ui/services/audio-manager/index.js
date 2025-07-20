@@ -855,41 +855,6 @@ class AudioManager {
               });
             } else if (data.event_type === "translation") {
               console.log('[TRANSLATION] Received translation message:', data);
-
-              // Create a unique key for this message
-              const key = `${data.text}|${data.participant_name}`;
-
-              // Clear any existing timeout for this message
-              if (translationTimeouts[key]) {
-                console.log('[TRANSLATION] Clearing existing timeout for:', key);
-                clearTimeout(translationTimeouts[key]);
-                delete translationTimeouts[key];
-              }
-
-              // Initialize buffer for this message if it doesn't exist
-              if (!translationBuffers[key]) {
-                translationBuffers[key] = {
-                  original: data.text,
-                  translations: {},
-                  participant_name: data.participant_name,
-                  timestamp: data.timestamp,
-                };
-              }
-
-              // Add this translation to the buffer
-              translationBuffers[key].translations[data.language] = data.translated_text;
-              console.log('[TRANSLATION] Added translation to buffer:', key, data.language, data.translated_text);
-
-              // Update the current accumulating message for real-time UI updates
-              currentAccumulatingTranslationVar({
-                original: translationBuffers[key].original,
-                translations: { ...translationBuffers[key].translations },
-                participant_name: translationBuffers[key].participant_name,
-                timestamp: translationBuffers[key].timestamp,
-                isAccumulating: true,
-              });
-
-              // Update latest translation for immediate UI feedback
               latestTranslationVar({
                 text: data.text,
                 translated_text: data.translated_text,
@@ -899,29 +864,38 @@ class AudioManager {
                 timestamp: data.timestamp,
                 type: data.type,
               });
+              // Collect translations by timestamp (message id)
 
-              // Set a 5-second timeout to finalize this message
-              translationTimeouts[key] = setTimeout(() => {
-                console.log('[TRANSLATION] Finalizing message after 5 seconds:', key, translationBuffers[key]);
+              const key = `${data.text}|${data.participant_name}`;
 
-                // Add the finalized message to the messages array
+              // Initialize buffer for this message if it doesn't exist
+              if (!translationBuffers[key]) {
+                translationBuffers[key] = {
+                  original: data.text,
+                  translations: {},
+                  participant_name: data.participant_name,
+                };
+              }
+
+              // Add this translation
+              translationBuffers[key].translations[data.language] = data.translated_text;
+
+              const numTranslations = Object.keys(translationBuffers[key].translations).length;
+              let totalParticipants = 2;
+
+              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("user-")).length;
+
+              if (numTranslations === totalParticipants - 1) {
                 translationMessagesVar([
                   ...translationMessagesVar(),
                   {
                     original: translationBuffers[key].original,
                     translations: { ...translationBuffers[key].translations },
                     participant_name: translationBuffers[key].participant_name,
-                    timestamp: translationBuffers[key].timestamp,
                   }
                 ]);
-
-                // Clear the accumulating message
-                currentAccumulatingTranslationVar(null);
-
-                // Clean up
                 delete translationBuffers[key];
-                delete translationTimeouts[key];
-              }, 5000); // 5 seconds
+              }
             }
           });
         } catch (err) {
@@ -1026,17 +1000,6 @@ class AudioManager {
       console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
       this._translatorCallObject = null;
     }
-
-    // Clean up translation timeouts
-    Object.values(translationTimeouts).forEach(timeoutId => {
-      clearTimeout(timeoutId);
-    });
-    Object.keys(translationTimeouts).forEach(key => {
-      delete translationTimeouts[key];
-    });
-
-    // Clear accumulating message
-    currentAccumulatingTranslationVar(null);
 
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
       this.inputStream.getTracks().forEach((track) => track.stop());
@@ -1809,11 +1772,7 @@ export const latestTranscriptionVar = makeVar(null);
 export const latestTranslationVar = makeVar(null);
 
 const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
-const translationTimeouts = {}; // Key: messageId/timestamp, Value: timeoutId
 export const translationMessagesVar = makeVar([]);
-
-// Add a reactive variable for the current accumulating message (for real-time UI updates)
-export const currentAccumulatingTranslationVar = makeVar(null);
 
 // Expose a function to get messages filtered by user language for rendering
 export function getFilteredTranslationMessages(userLang) {

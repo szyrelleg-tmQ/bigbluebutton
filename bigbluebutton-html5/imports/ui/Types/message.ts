@@ -45,14 +45,3 @@ export interface Message {
     }
   }[];
 }
-
-export interface TranslationMessage {
-  original: string;
-  translations: Record<string, string>;
-  participant_name: string;
-  timestamp?: string;
-}
-
-export interface AccumulatingTranslationMessage extends TranslationMessage {
-  isAccumulating: boolean;
-}
