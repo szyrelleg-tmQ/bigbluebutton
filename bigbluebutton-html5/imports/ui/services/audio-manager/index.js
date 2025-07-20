@@ -801,23 +801,23 @@ class AudioManager {
             audioElement.autoplay = true;
             document.body.appendChild(audioElement);
 
-            audioService.registerAudioElement(participant.session_id, audioElement);
+            this.audioService.registerAudioElement(participant.session_id, audioElement);
           });
 
           this._translatorCallObject.on('participant-left', (event) => {
             const participant = event.participant;
-            audioService.unregisterAudioElement(participant.session_id);
+            this.audioService.unregisterAudioElement(participant.session_id);
           });
 
           this._translatorCallObject.on('participant-updated', async (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.callObject.participants());
-            const currentUserName = this._translatorCallObject.callObject.participants().local.user_name;
+            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
 
             // I-filter ang participants
-            const filtered = audioService.filterParticipants(allParticipants, currentUserName);
+            const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
 
             // I-setup ang audio routing
-            await audioService.setupAudioRouting(filtered);
+            await this.audioService.setupAudioRouting(filtered);
           });
 
           this._translatorCallObject.on('left-meeting', () => {
