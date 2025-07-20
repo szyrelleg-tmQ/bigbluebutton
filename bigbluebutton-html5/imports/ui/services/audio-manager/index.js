@@ -824,14 +824,18 @@ class AudioManager {
               this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
                 setSubscribedTracks: { audio: false }
               });
-              console.log(`🔇 Muted botRemote: ${filtered.botRemote.user_name}`);
             }
 
             if (filtered.botLocal) {
               this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
                 setSubscribedTracks: { audio: true }
               });
-              console.log(`botLocal: ${filtered.botRemote.user_name}`);
+            }
+
+            if (filtered.remote) {
+              this._translatorCallObject.CallObject.updateParticipant(filtered.remote.session_id, {
+                setSubscribedTracks: { audio: true }
+              });
             }
           });
 
