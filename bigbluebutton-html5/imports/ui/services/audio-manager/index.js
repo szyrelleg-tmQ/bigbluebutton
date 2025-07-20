@@ -816,8 +816,13 @@ class AudioManager {
             // I-filter ang participants
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
             // I-setup ang audio routing
-            if (filtered.botRemote && filtered.botRemote.tracks.audio) {
-              this._translatorCallObject.CallObject.updateParticipant(filtered.session_id, { setAudio: false });
+            if (
+              filtered.botRemote &&
+              filtered.botRemote.tracks?.audio?.subscribed &&
+              filtered.botRemote.tracks.audio.state === 'playable'
+            ) {
+              this._translatorCallObject.CallObject.setParticipantAudio(filtered.botRemote.session_id, false);
+              console.log(`🔇 Muted botRemote: ${filtered.botRemote.user_name}`);
             }
           });
 
