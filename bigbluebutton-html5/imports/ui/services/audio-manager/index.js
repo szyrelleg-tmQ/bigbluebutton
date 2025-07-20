@@ -884,13 +884,11 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
               let totalParticipants = 2;
 
-              const callObject = this._translatorCallObject.CallObject;
-              if (callObject && typeof callObject.participants === 'function') {
-                totalParticipants = Object.keys(callObject.participants()).length;
-              }
-              console.log('[TRANSLATION] Total participants:', totalParticipants);
+              const participants = this._translatorCallObject.getParticipants();
+
+              console.log('[TRANSLATION] Total participants:', participants);
               console.log('[TRANSLATION] Number of translations for this message:', numTranslations);
-              if (numTranslations === totalParticipants - 1) {
+              if (numTranslations === 2) {
                 translationMessagesVar([
                   ...translationMessagesVar(),
                   {
