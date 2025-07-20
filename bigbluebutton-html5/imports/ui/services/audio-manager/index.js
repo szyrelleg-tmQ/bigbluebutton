@@ -846,6 +846,7 @@ class AudioManager {
           this._translatorCallObject.on("app-message", (message) => {
             const data = message.data;
             if (data.event_type === "transcription") {
+              console.log('[TRANSLATOR] Received transcription message:', data);
               latestTranscriptionVar({
                 text: data.text,
                 language: data.language,
@@ -854,6 +855,7 @@ class AudioManager {
                 type: data.type,
               });
             } else if (data.event_type === "translation") {
+              console.log('[TRANSLATION] Received translation message:', data);
               latestTranslationVar({
                 text: data.text,
                 translated_text: data.translated_text,
