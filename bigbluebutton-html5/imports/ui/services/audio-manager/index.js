@@ -811,6 +811,7 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            console.log(allParticipants);
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
 
             // I-filter ang participants
