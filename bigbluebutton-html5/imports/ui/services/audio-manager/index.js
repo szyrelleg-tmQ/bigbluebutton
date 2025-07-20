@@ -795,6 +795,8 @@ class AudioManager {
             }, 1000);
           }
 
+          this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+
           this._translatorCallObject.on('participant-joined', (event) => {
             const participant = event.participant;
             const audioElement = document.createElement('audio');
