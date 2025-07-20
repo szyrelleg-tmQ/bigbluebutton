@@ -811,14 +811,14 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-            console.log(allParticipants);
+
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-            console.log('[TRANSLATOR] Current user name:', currentUserName);
             // I-filter ang participants
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
-            console.log('[TRANSLATOR] Filtered participants:', filtered);
             // I-setup ang audio routing
-            await this.audioService.setupAudioRouting(filtered);
+            if (filtered.botLocal && filtered.botLocal.tracks.audio) {
+              this._translatorCallObject.updateParticipant(filtered.session_id, { setAudio: false });
+            }
           });
 
           this._translatorCallObject.on('left-meeting', () => {
@@ -864,7 +864,7 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
               let totalParticipants = 2;
 
-              const callObject = this._translatorCallObject.callObject;
+              const callObject = this._translatorCallObject.CallObject;
               if (callObject && typeof callObject.participants === 'function') {
                 totalParticipants = Object.keys(callObject.participants()).length;
               }
