@@ -777,6 +777,7 @@ class AudioManager {
         const audioTrack = this.inputStream.getAudioTracks()[0];
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
+        console.log(data)
         try {
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
@@ -853,6 +854,7 @@ class AudioManager {
                 type: data.type,
               });
             } else if (data.event_type === "translation") {
+              console.log('[TRANSLATION] Received translation message:', data);
               latestTranslationVar({
                 text: data.text,
                 translated_text: data.translated_text,
@@ -862,9 +864,11 @@ class AudioManager {
                 timestamp: data.timestamp,
                 type: data.type,
               });
-              // Collect translations by timestamp (message id)
 
+              // --- ACCUMULATION LOGIC START ---
               const key = `${data.text}|${data.participant_name}`;
+              // Timers for each message/user
+              if (!window.translationTimers) window.translationTimers = {};
 
               // Initialize buffer for this message if it doesn't exist
               if (!translationBuffers[key]) {
@@ -872,28 +876,62 @@ class AudioManager {
                   original: data.text,
                   translations: {},
                   participant_name: data.participant_name,
+                  // For live accumulation
+                  lastUpdate: Date.now(),
                 };
               }
 
-              // Add this translation
+              // Add/update this translation
               translationBuffers[key].translations[data.language] = data.translated_text;
+              translationBuffers[key].lastUpdate = Date.now();
 
-              const numTranslations = Object.keys(translationBuffers[key].translations).length;
-              let totalParticipants = 2;
+              // Live update: show current accumulation in UI (not final yet)
+              // Remove any previous live message for this key
+              let currentMessages = translationMessagesVar();
+              const liveIndex = currentMessages.findIndex(
+                m => m._liveKey === key
+              );
+              const liveMsg = {
+                original: translationBuffers[key].original,
+                translations: { ...translationBuffers[key].translations },
+                participant_name: translationBuffers[key].participant_name,
+                _liveKey: key, // mark as live
+                _final: false,
+              };
+              if (liveIndex !== -1) {
+                // Update existing live message
+                currentMessages[liveIndex] = liveMsg;
+              } else {
+                // Add new live message
+                currentMessages = [...currentMessages, liveMsg];
+              }
+              translationMessagesVar(currentMessages);
 
-              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("bot-")).length;
-
-              if (numTranslations === totalParticipants - 1) {
-                translationMessagesVar([
-                  ...translationMessagesVar(),
+              // Clear any previous timer for this key
+              if (window.translationTimers[key]) {
+                clearTimeout(window.translationTimers[key]);
+              }
+              // Set a new timer: after 5s of no new event, finalize
+              window.translationTimers[key] = setTimeout(() => {
+                // Finalize: remove live message, push as final
+                let msgs = translationMessagesVar();
+                // Remove live version
+                msgs = msgs.filter(m => m._liveKey !== key);
+                // Push final version (without _liveKey/_final)
+                msgs = [
+                  ...msgs,
                   {
                     original: translationBuffers[key].original,
                     translations: { ...translationBuffers[key].translations },
                     participant_name: translationBuffers[key].participant_name,
                   }
-                ]);
+                ];
+                translationMessagesVar(msgs);
+                // Clean up
                 delete translationBuffers[key];
-              }
+                delete window.translationTimers[key];
+              }, 5000);
+              // --- ACCUMULATION LOGIC END ---
             }
           });
         } catch (err) {
