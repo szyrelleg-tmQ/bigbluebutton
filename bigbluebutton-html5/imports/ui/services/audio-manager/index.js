@@ -885,7 +885,11 @@ class AudioManager {
               if (numTranslations === totalParticipants - 1) {
                 const existingMessages = translationMessagesVar();
                 const participantName = translationBuffers[key].participant_name;
-                const existingMsgIndex = existingMessages.findIndex(msg => msg.participant_name === participantName);
+                const originalText = translationBuffers[key].original;
+                // Use both participant_name and original text for uniqueness
+                const existingMsgIndex = existingMessages.findIndex(
+                  msg => msg.participant_name === participantName && msg.original === originalText
+                );
 
                 if (existingMsgIndex !== -1) {
                   // Accumulate (merge) translations
@@ -898,16 +902,19 @@ class AudioManager {
                     }
                   };
                   translationMessagesVar(updatedMessages);
+                  console.debug('[TRANSLATION] Updated existing message:', updatedMessages[existingMsgIndex]);
                 } else {
                   // Add new message
+                  const newMessage = {
+                    original: translationBuffers[key].original,
+                    translations: { ...translationBuffers[key].translations },
+                    participant_name: participantName,
+                  };
                   translationMessagesVar([
                     ...existingMessages,
-                    {
-                      original: translationBuffers[key].original,
-                      translations: { ...translationBuffers[key].translations },
-                      participant_name: participantName,
-                    }
+                    newMessage
                   ]);
+                  console.debug('[TRANSLATION] Added new message:', newMessage);
                 }
                 delete translationBuffers[key];
               }
