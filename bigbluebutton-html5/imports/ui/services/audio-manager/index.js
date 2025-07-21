@@ -886,31 +886,33 @@ class AudioManager {
                 console.log('[TRANSLATION] All translations received for message:', translationBuffers[key]);
                 const existingMessages = translationMessagesVar();
                 const participantName = translationBuffers[key].participant_name;
-                const originalText = translationBuffers[key].original;
-                // Use both participant_name and original text for uniqueness
+                const newText = translationBuffers[key].original;
+                const newTranslations = translationBuffers[key].translations;
+
                 const existingMsgIndex = existingMessages.findIndex(
                   msg => msg.participant_name === participantName
                 );
 
-                console.log('[TRANSLATION] Checking for existing message with participant name:', existingMsgIndex);
-
                 if (existingMsgIndex !== -1) {
-                  // Accumulate (merge) translations
+                  // Accumulate: append new text and merge translations
                   const updatedMessages = [...existingMessages];
                   updatedMessages[existingMsgIndex] = {
                     ...updatedMessages[existingMsgIndex],
+                    original: updatedMessages[existingMsgIndex].original
+                      ? `${updatedMessages[existingMsgIndex].original} ${newText}`
+                      : newText,
                     translations: {
                       ...updatedMessages[existingMsgIndex].translations,
-                      ...translationBuffers[key].translations,
+                      ...newTranslations,
                     }
                   };
                   translationMessagesVar(updatedMessages);
-                  console.debug('[TRANSLATION] Updated existing message:', updatedMessages[existingMsgIndex]);
+                  console.debug('[TRANSLATION] Accumulated message:', updatedMessages[existingMsgIndex]);
                 } else {
                   // Add new message
                   const newMessage = {
-                    original: translationBuffers[key].original,
-                    translations: { ...translationBuffers[key].translations },
+                    original: newText,
+                    translations: { ...newTranslations },
                     participant_name: participantName,
                   };
                   translationMessagesVar([
