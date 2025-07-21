@@ -701,7 +701,9 @@ const ChatMessageList: React.FC<ChatListProps> = ({
               {filteredTranslationMessages.length > 0 && (
                 <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {filteredTranslationMessages.map((msg, idx) => {
-                    const nameSlug = msg.participant_name.match(/^([a-z-]+)/);
+                    const nameSlug = typeof msg.participant_name === 'string'
+                      ? msg.participant_name.match(/^([a-z-]+)/)
+                      : null;
                     const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : '';
                     const avatarColor = getConsistentAvatarColor(undefined, originalName || 'User');
                     const avatarText = (originalName || 'U').slice(0, 1).toUpperCase();
