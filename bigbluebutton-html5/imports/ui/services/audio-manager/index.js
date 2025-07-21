@@ -883,7 +883,7 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
               let totalParticipants = 2;
 
-              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("user-")).length;
+              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("bot-")).length;
 
               if (numTranslations === totalParticipants - 1) {
                 translationMessagesVar([
