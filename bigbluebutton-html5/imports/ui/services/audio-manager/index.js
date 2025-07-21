@@ -813,27 +813,30 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            console.log('[DEBUG] All participants:', allParticipants);
+
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
 
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-            // I-filter ang participants
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
-            // I-setup ang audio routing
-            console.log('[TRANSLATOR] Setting up audio routing for participants:', filtered);
-            if (
-              filtered.botRemote) {
+            console.log('[DEBUG] Filtered participants:', filtered);
+
+            if (filtered.botRemote) {
+              console.log('[DEBUG] Unsubscribing botRemote audio:', filtered.botRemote.session_id);
               this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
                 setSubscribedTracks: { audio: false }
               });
             }
 
             if (filtered.botLocal) {
+              console.log('[DEBUG] Subscribing botLocal audio:', filtered.botLocal.session_id);
               this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
                 setSubscribedTracks: { audio: true }
               });
             }
 
             if (filtered.remote) {
+              console.log('[DEBUG] Subscribing remote audio:', filtered.remote.session_id);
               this._translatorCallObject.CallObject.updateParticipant(filtered.remote.session_id, {
                 setSubscribedTracks: { audio: true }
               });
