@@ -889,7 +889,7 @@ class AudioManager {
                 const originalText = translationBuffers[key].original;
                 // Use both participant_name and original text for uniqueness
                 const existingMsgIndex = existingMessages.findIndex(
-                  msg => msg.participant_name === participantName
+                  msg => msg.participant_name === participantName && msg.original === originalText
                 );
 
                 console.log('[TRANSLATION] Checking for existing message with participant name:', existingMsgIndex);
@@ -920,6 +920,7 @@ class AudioManager {
                   console.debug('[TRANSLATION] Added new message:', newMessage);
                 }
                 delete translationBuffers[key];
+                console.log('----------------------------', existingMessages);
               }
             }
           });
