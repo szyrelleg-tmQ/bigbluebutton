@@ -883,6 +883,7 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
 
               if (numTranslations === totalParticipants - 1) {
+                console.log('[TRANSLATION] All translations received for message:', translationBuffers[key]);
                 const existingMessages = translationMessagesVar();
                 const participantName = translationBuffers[key].participant_name;
                 const originalText = translationBuffers[key].original;
