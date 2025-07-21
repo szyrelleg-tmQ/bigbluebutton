@@ -148,6 +148,7 @@ class AudioSettings extends React.Component {
       languages: [],
       selectedVoice: '',
       selectedLanguage: '',
+      loadingVoicesAndLanguages: false,
     };
 
     this._isMounted = false;
@@ -483,6 +484,7 @@ class AudioSettings extends React.Component {
   }
 
   async fetchVoicesAndLanguages() {
+    this.setState({ loadingVoicesAndLanguages: true });
     try {
       const translatorClient = getTranslatorClient({ baseUrl: "https://pipecat-translate.ph03.us" });
       const voices = await translatorClient.fetchVoices();
@@ -492,10 +494,11 @@ class AudioSettings extends React.Component {
         languages,
         selectedVoice: voices[0]?.key || '',
         selectedLanguage: languages[0]?.key || languages[0] || '',
+        loadingVoicesAndLanguages: false,
       });
     } catch (err) {
       // fallback: leave empty or log
-      this.setState({ voices: [], languages: [] });
+      this.setState({ voices: [], languages: [], loadingVoicesAndLanguages: false });
     }
   }
 
@@ -523,8 +526,9 @@ class AudioSettings extends React.Component {
   }
 
   renderVoiceSelector() {
-    const { voices, selectedVoice } = this.state;
+    const { voices, selectedVoice, loadingVoicesAndLanguages } = this.state;
     const { intl } = this.props;
+    if (loadingVoicesAndLanguages) return <div>Loading voices...</div>;
     if (!voices.length) return null;
     // Map voices to DeviceSelector-like format
     const devices = voices.map((v, i) => ({
@@ -551,8 +555,9 @@ class AudioSettings extends React.Component {
   }
 
   renderLanguageSelector() {
-    const { languages, selectedLanguage } = this.state;
+    const { languages, selectedLanguage, loadingVoicesAndLanguages } = this.state;
     const { intl } = this.props;
+    if (loadingVoicesAndLanguages) return <div>Loading languages...</div>;
     if (!languages.length) return null;
     // Map languages to DeviceSelector-like format
     const devices = languages.map((l, i) => ({

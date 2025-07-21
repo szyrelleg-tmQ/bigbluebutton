@@ -777,7 +777,6 @@ class AudioManager {
         const audioTrack = this.inputStream.getAudioTracks()[0];
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-        console.log(data)
         try {
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
@@ -854,7 +853,6 @@ class AudioManager {
                 type: data.type,
               });
             } else if (data.event_type === "translation") {
-              console.log('[TRANSLATION] Received translation message:', data);
               latestTranslationVar({
                 text: data.text,
                 translated_text: data.translated_text,
