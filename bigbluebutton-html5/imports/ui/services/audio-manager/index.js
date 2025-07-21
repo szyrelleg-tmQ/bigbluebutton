@@ -775,6 +775,7 @@ class AudioManager {
         const language = this.lastJoinOptions?.language || 'english';
         const voice = this.lastJoinOptions?.voice || 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
+        let totalParticipants = 2;
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
         try {
@@ -812,6 +813,7 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
 
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
             // I-filter ang participants
@@ -879,19 +881,34 @@ class AudioManager {
               translationBuffers[key].translations[data.language] = data.translated_text;
 
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
-              let totalParticipants = 2;
-
-              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("bot-")).length;
 
               if (numTranslations === totalParticipants - 1) {
-                translationMessagesVar([
-                  ...translationMessagesVar(),
-                  {
-                    original: translationBuffers[key].original,
-                    translations: { ...translationBuffers[key].translations },
-                    participant_name: translationBuffers[key].participant_name,
-                  }
-                ]);
+                const existingMessages = translationMessagesVar();
+                const participantName = translationBuffers[key].participant_name;
+                const existingMsgIndex = existingMessages.findIndex(msg => msg.participant_name === participantName);
+
+                if (existingMsgIndex !== -1) {
+                  // Accumulate (merge) translations
+                  const updatedMessages = [...existingMessages];
+                  updatedMessages[existingMsgIndex] = {
+                    ...updatedMessages[existingMsgIndex],
+                    translations: {
+                      ...updatedMessages[existingMsgIndex].translations,
+                      ...translationBuffers[key].translations,
+                    }
+                  };
+                  translationMessagesVar(updatedMessages);
+                } else {
+                  // Add new message
+                  translationMessagesVar([
+                    ...existingMessages,
+                    {
+                      original: translationBuffers[key].original,
+                      translations: { ...translationBuffers[key].translations },
+                      participant_name: participantName,
+                    }
+                  ]);
+                }
                 delete translationBuffers[key];
               }
             }
