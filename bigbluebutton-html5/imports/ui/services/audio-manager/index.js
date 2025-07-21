@@ -811,58 +811,36 @@ class AudioManager {
             this.audioService.unregisterAudioElement(participant.session_id);
           });
 
-          // Helper to subscribe to the correct tracks
-          async function ensureBotLocalSubscribed(allParticipants, currentUserName) {
+          this._translatorCallObject.on('participant-updated', async (event) => {
+            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            console.log('[DEBUG] All participants:', allParticipants);
+
+            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).lengt h;
+
+            const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
             console.log('[DEBUG] Filtered participants:', filtered);
 
-            try {
-              if (filtered.botRemote) {
-                console.log('[DEBUG] Unsubscribing botRemote audio:', filtered.botRemote.session_id);
-                await this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
-                  setSubscribedTracks: { audio: false }
-                });
-              }
-
-              if (filtered.botLocal) {
-                // Check if botLocal has an audio track
-                const botLocalTracks = filtered.botLocal.tracks || {};
-                if (botLocalTracks.audio && botLocalTracks.audio.state === 'playable') {
-                  console.log('[DEBUG] Subscribing botLocal audio:', filtered.botLocal.session_id);
-                  await this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
-                    setSubscribedTracks: { audio: true }
-                  });
-                } else {
-                  // Retry after a short delay if track is not ready
-                  console.log('[DEBUG] botLocal audio track not ready, retrying...');
-                  setTimeout(() => {
-                    ensureBotLocalSubscribed.call(this, allParticipants, currentUserName);
-                  }, 500);
-                }
-              }
-
-              if (filtered.remote) {
-                console.log('[DEBUG] Subscribing remote audio:', filtered.remote.session_id);
-                await this._translatorCallObject.CallObject.updateParticipant(filtered.remote.session_id, {
-                  setSubscribedTracks: { audio: true }
-                });
-              }
-            } catch (err) {
-              console.error('[DEBUG] Error updating participant subscription:', err);
+            if (filtered.botRemote) {
+              console.log('[DEBUG] Unsubscribing botRemote audio:', filtered.botRemote.session_id);
+              this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
+                setSubscribedTracks: { audio: false }
+              });
             }
-          }
 
-          // In your event handlers:
-          this._translatorCallObject.on('participant-joined', (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-            const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-            ensureBotLocalSubscribed.call(this, allParticipants, currentUserName);
-          });
+            if (filtered.botLocal) {
+              console.log('[DEBUG] Subscribing botLocal audio:', filtered.botLocal.session_id);
+              this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
+                setSubscribedTracks: { audio: true }
+              });
+            }
 
-          this._translatorCallObject.on('participant-updated', (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-            const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-            ensureBotLocalSubscribed.call(this, allParticipants, currentUserName);
+            if (filtered.remote) {
+              console.log('[DEBUG] Subscribing remote audio:', filtered.remote.session_id);
+              this._translatorCallObject.CallObject.updateParticipant(filtered.remote.session_id, {
+                setSubscribedTracks: { audio: true }
+              });
+            }
           });
 
           this._translatorCallObject.on('left-meeting', () => {
