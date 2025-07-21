@@ -815,7 +815,7 @@ class AudioManager {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             console.log('[DEBUG] All participants:', allParticipants);
 
-            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).lengt h;
+            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
 
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
