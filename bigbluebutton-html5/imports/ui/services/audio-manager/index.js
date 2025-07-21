@@ -144,7 +144,7 @@ class AudioManager {
   initTranslator() {
     try {
       this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-translate.ph03.us"
+        baseUrl: "https://pipecat-prod-translate.ph03.us"
       });
     } catch (error) {
       logger.error({
@@ -862,36 +862,38 @@ class AudioManager {
                 timestamp: data.timestamp,
                 type: data.type,
               });
+              // Collect translations by timestamp (message id)
 
-              // Use data.text as the key to group translations
-              const key = data.text;
+              const key = `${data.text}|${data.participant_name}`;
 
-              // Find or create the message in translationMessagesVar
-              let messages = translationMessagesVar();
-              let msgIndex = messages.findIndex(msg => msg.original === key);
-
-              if (msgIndex === -1) {
-                // Create new message object
-                messages.push({
-                  original: key,
-                  originals: [data.text],
-                  translations: { [data.language]: data.translated_text },
-                  participant_names: [data.participant_name],
-                });
-              } else {
-                // Update existing message
-                let msg = messages[msgIndex];
-                msg.translations[data.language] = data.translated_text;
-                if (!msg.originals.includes(data.text)) {
-                  msg.originals.push(data.text);
-                }
-                if (!msg.participant_names.includes(data.participant_name)) {
-                  msg.participant_names.push(data.participant_name);
-                }
-                messages[msgIndex] = msg;
+              // Initialize buffer for this message if it doesn't exist
+              if (!translationBuffers[key]) {
+                translationBuffers[key] = {
+                  original: data.text,
+                  translations: {},
+                  participant_name: data.participant_name,
+                };
               }
 
-              translationMessagesVar([...messages]);
+              // Add this translation
+              translationBuffers[key].translations[data.language] = data.translated_text;
+
+              const numTranslations = Object.keys(translationBuffers[key].translations).length;
+              let totalParticipants = 2;
+
+              totalParticipants = this._translatorCallObject.getParticipants().filter(item => item.user_name.startsWith("bot-")).length;
+
+              if (numTranslations === totalParticipants - 1) {
+                translationMessagesVar([
+                  ...translationMessagesVar(),
+                  {
+                    original: translationBuffers[key].original,
+                    translations: { ...translationBuffers[key].translations },
+                    participant_name: translationBuffers[key].participant_name,
+                  }
+                ]);
+                delete translationBuffers[key];
+              }
             }
           });
         } catch (err) {

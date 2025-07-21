@@ -486,7 +486,7 @@ class AudioSettings extends React.Component {
   async fetchVoicesAndLanguages() {
     this.setState({ loadingVoicesAndLanguages: true });
     try {
-      const translatorClient = getTranslatorClient({ baseUrl: "https://pipecat-translate.ph03.us" });
+      const translatorClient = getTranslatorClient({ baseUrl: "https://pipecat-prod-translate.ph03.us" });
       const voices = await translatorClient.fetchVoices();
       const languages = await translatorClient.fetchLanguages();
       this.setState({
