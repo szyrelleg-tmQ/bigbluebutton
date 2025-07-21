@@ -853,7 +853,6 @@ class AudioManager {
                 type: data.type,
               });
             } else if (data.event_type === "translation") {
-              console.log('[TRANSLATION] Received translation message:', data);
               latestTranslationVar({
                 text: data.text,
                 translated_text: data.translated_text,
@@ -864,33 +863,35 @@ class AudioManager {
                 type: data.type,
               });
 
-              // Accumulate translations per message (per user)
-              const currentMessages = translationMessagesVar();
-              const msgIndex = currentMessages.findIndex(
-                msg => msg.original === data.text && msg.participant_name === data.participant_name
-              );
+              // Use data.text as the key to group translations
+              const key = data.text;
 
-              if (msgIndex !== -1) {
-                // Update existing message's translations
-                const updatedMsg = { ...currentMessages[msgIndex] };
-                updatedMsg.translations = {
-                  ...updatedMsg.translations,
-                  [data.language]: data.translated_text,
-                };
-                const newMessages = [...currentMessages];
-                newMessages[msgIndex] = updatedMsg;
-                translationMessagesVar(newMessages);
+              // Find or create the message in translationMessagesVar
+              let messages = translationMessagesVar();
+              let msgIndex = messages.findIndex(msg => msg.original === key);
+
+              if (msgIndex === -1) {
+                // Create new message object
+                messages.push({
+                  original: key,
+                  originals: [data.text],
+                  translations: { [data.language]: data.translated_text },
+                  participant_names: [data.participant_name],
+                });
               } else {
-                // Create new message
-                translationMessagesVar([
-                  ...currentMessages,
-                  {
-                    original: data.text,
-                    translations: { [data.language]: data.translated_text },
-                    participant_name: data.participant_name,
-                  }
-                ]);
+                // Update existing message
+                let msg = messages[msgIndex];
+                msg.translations[data.language] = data.translated_text;
+                if (!msg.originals.includes(data.text)) {
+                  msg.originals.push(data.text);
+                }
+                if (!msg.participant_names.includes(data.participant_name)) {
+                  msg.participant_names.push(data.participant_name);
+                }
+                messages[msgIndex] = msg;
               }
+
+              translationMessagesVar([...messages]);
             }
           });
         } catch (err) {
