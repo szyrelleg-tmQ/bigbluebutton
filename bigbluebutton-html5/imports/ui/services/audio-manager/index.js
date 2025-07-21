@@ -903,7 +903,7 @@ class AudioManager {
                       : newText,
                     translations: {
                       ...updatedMessages[existingMsgIndex].translations,
-                      ...newTranslations,
+                      ...translationBuffers[key].translations, // This should contain all translations so far
                     }
                   };
                   translationMessagesVar(updatedMessages);
@@ -912,7 +912,7 @@ class AudioManager {
                   // Add new message
                   const newMessage = {
                     original: newText,
-                    translations: { ...newTranslations },
+                    translations: { ...translationBuffers[key].translations },
                     participant_name: participantName,
                   };
                   translationMessagesVar([
