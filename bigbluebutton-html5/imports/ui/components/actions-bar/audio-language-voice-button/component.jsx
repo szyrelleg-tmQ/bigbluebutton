@@ -6,6 +6,7 @@ import { getTranslatorClient } from 'translator-client';
 import { defineMessages, useIntl } from 'react-intl';
 import AudioManager from '/imports/ui/services/audio-manager';
 import LanguageIcon from '/public/svgs/language.svg';
+import { selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
 
 const intlMessages = defineMessages({
     buttonLabel: {
@@ -91,6 +92,8 @@ const AudioLanguageVoiceButton = () => {
                 voice: selectedVoice,
                 language: selectedLanguage,
             };
+            // Set the selected translation language for reactivity
+            selectedTranslationLanguageVar(selectedLanguage);
         } catch (err) {
             // Optionally, handle error
             // notify('Failed to update voice/language', true);

@@ -883,46 +883,15 @@ class AudioManager {
               const numTranslations = Object.keys(translationBuffers[key].translations).length;
 
               if (numTranslations === totalParticipants - 1) {
-                console.log('[TRANSLATION] All translations received for message:', translationBuffers[key]);
-                const existingMessages = translationMessagesVar();
-                const participantName = translationBuffers[key].participant_name;
-                const newText = translationBuffers[key].original;
-                const newTranslations = translationBuffers[key].translations;
-
-                const existingMsgIndex = existingMessages.findIndex(
-                  msg => msg.participant_name === participantName
-                );
-
-                if (existingMsgIndex !== -1) {
-                  // Accumulate: append new text and merge translations
-                  const updatedMessages = [...existingMessages];
-                  updatedMessages[existingMsgIndex] = {
-                    ...updatedMessages[existingMsgIndex],
-                    original: updatedMessages[existingMsgIndex].original
-                      ? `${updatedMessages[existingMsgIndex].original} ${newText}`
-                      : newText,
-                    translations: {
-                      ...updatedMessages[existingMsgIndex].translations,
-                      ...translationBuffers[key].translations, // This should contain all translations so far
-                    }
-                  };
-                  translationMessagesVar(updatedMessages);
-                  console.debug('[TRANSLATION] Accumulated message:', updatedMessages[existingMsgIndex]);
-                } else {
-                  // Add new message
-                  const newMessage = {
-                    original: newText,
+                translationMessagesVar([
+                  ...translationMessagesVar(),
+                  {
+                    original: translationBuffers[key].original,
                     translations: { ...translationBuffers[key].translations },
-                    participant_name: participantName,
-                  };
-                  translationMessagesVar([
-                    ...existingMessages,
-                    newMessage
-                  ]);
-                  console.debug('[TRANSLATION] Added new message:', newMessage);
-                }
+                    participant_name: translationBuffers[key].participant_name,
+                  }
+                ]);
                 delete translationBuffers[key];
-                console.log('----------------------------', existingMessages);
               }
             }
           });
@@ -1801,6 +1770,9 @@ export const latestTranslationVar = makeVar(null);
 
 const translationBuffers = {}; // Key: messageId/timestamp, Value: { original, translations, participant_name }
 export const translationMessagesVar = makeVar([]);
+
+// Add a reactive variable for the selected translation language
+export const selectedTranslationLanguageVar = makeVar(null);
 
 // Expose a function to get messages filtered by user language for rendering
 export function getFilteredTranslationMessages(userLang) {

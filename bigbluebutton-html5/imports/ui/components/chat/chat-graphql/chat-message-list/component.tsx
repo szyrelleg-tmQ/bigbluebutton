@@ -37,7 +37,7 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
-import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages, translationMessagesVar } from '/imports/ui/services/audio-manager';
+import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages, translationMessagesVar, selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
 import { ChatAvatar } from './page/chat-message/styles';
 import audioManager from '/imports/ui/services/audio-manager';
 import { useLocalUserList } from '/imports/ui/core/hooks/useLoadedUserList';
@@ -55,6 +55,15 @@ const intlMessages = defineMessages({
     description: 'Chat message when the user has unread messages below the scroll',
   },
 });
+
+// Define the type for translation messages at the top level
+export interface TranslationMessage {
+  participant_name: string;
+  timestamp?: string | number;
+  original: string;
+  translations: { [lang: string]: string };
+  [key: string]: any;
+}
 
 interface ChatListProps {
   totalUnread: number;
@@ -521,9 +530,11 @@ const ChatMessageList: React.FC<ChatListProps> = ({
     setLockLoadingNewPages(loadingPages.size !== 0);
   }, [loadingPages]);
 
-  const userLang = audioManager.lastJoinOptions?.language || intl.locale;
-  // const filteredTranslationMessages = getFilteredTranslationMessages(userLang);
-  const filteredTranslationMessages = useReactiveVar(translationMessagesVar);
+  // Get the current selected language reactively
+  const selectedLang = useReactiveVar(selectedTranslationLanguageVar);
+  const userLang = selectedLang || audioManager.lastJoinOptions?.language || intl.locale;
+  // Use the correct type for translation messages
+  const filteredTranslationMessages: TranslationMessage[] = useReactiveVar(translationMessagesVar);
   // Get all users for color lookup
   const [allUsers] = useLocalUserList((u) => u);
 
