@@ -757,8 +757,10 @@ class AudioManager {
       if (userName.startsWith('user-')) {
         updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
       } else if (userName.startsWith('bot-user-')) {
-        console.log("==========", participants[id]);
-        if (userName === this.localBot + participants[id].session_id) {
+        console.log("==========", participants[id].session_id);
+        console.log(this.localBot);
+        console.log(userName)
+        if (userName === `${this.localBot}-${participants[id].session_id}`) {
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
@@ -806,12 +808,12 @@ class AudioManager {
             videoSource: false,
           },
         });
-        this.localBot = `bot-${currentName}`;
+
         let totalParticipants = 2;
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
         try {
-
+          this.localBot = `bot-${data.userName}`;
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
           if (res) {
             this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
