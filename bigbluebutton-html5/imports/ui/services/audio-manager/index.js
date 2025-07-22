@@ -825,7 +825,8 @@ class AudioManager {
           });
 
           this._translatorCallObject.on('participant-updated', async (event) => {
-            totalParticipants = this._translatorCallObject.CallObject.participants().filter(item => item.user_name.startsWith("bot-")).length;
+            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
             this.handleSubscription();
           });
 
