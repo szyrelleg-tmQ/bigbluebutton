@@ -808,8 +808,11 @@ class AudioManager {
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
         try {
-          this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+
           const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
+          if (res) {
+            this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+          }
 
           this._translatorCallObject.on('participant-joined', (event) => {
             const participant = event.participant;
