@@ -23,7 +23,7 @@ const intlMessages = defineMessages({
     },
     botToggleLabel: {
         id: 'app.audio.languageVoiceButton.botToggle',
-        defaultMessage: 'Enable Bot',
+        defaultMessage: 'Enable Voice Translation',
     },
     confirm: {
         id: 'app.audio.languageVoiceButton.confirm',
@@ -113,7 +113,7 @@ const AudioLanguageVoiceButton = () => {
     const handleBotToggle = (enabled) => {
         setBotEnabled(enabled);
         try {
-            AudioManager.toggleTranslation(enabled);
+
         } catch (err) {
             // Optionally handle error
             console.warn('Failed to update bot settings:', err);
