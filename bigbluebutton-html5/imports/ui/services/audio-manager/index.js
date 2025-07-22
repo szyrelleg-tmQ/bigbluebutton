@@ -134,10 +134,10 @@ class AudioManager {
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
     this.participantsCount = makeVar(2);
+    this.localBot = makeVar(null);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
-    this.initTranslator();
     this.audioService = getAudioRoutingService();
   }
 
@@ -745,6 +745,27 @@ class AudioManager {
     }
   }
 
+  async handleSubscription() {
+    if (this.localBot) return;
+    const participants = this._translatorCallObject.CallObject.participants();
+    let updateList = {};
+
+    for (let id in participants) {
+      if (id === 'local') continue;
+      const userName = participants[id].user_name || '';
+      if (userName === 'user-') {
+        updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
+      } else if (userName === 'bot-user') {
+        if (userName === this.localBot) {
+          updateList[id] = { setSubscribedTracks: { audio: true } };
+        } else {
+          updateList[id] = { setSubscribedTracks: { audio: false } };
+        }
+      }
+    }
+    this._translatorCallObject.CallObject.updateParticipants(updateList);
+  }
+
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -775,27 +796,20 @@ class AudioManager {
         const language = this.lastJoinOptions?.language || 'english';
         const voice = this.lastJoinOptions?.voice || 'aria';
         const audioTrack = this.inputStream.getAudioTracks()[0];
+        this._translatorCallObject = getTranslatorClient({
+          baseUrl: "https://pipecat-prod-translate.ph03.us",
+          inputConfig: {
+            audioSource: audioTrack,
+            videoSource: false,
+          },
+        });
+        this.localBot = `bot-user-${currentName}`;
         let totalParticipants = 2;
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
         try {
-          const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
-          if (res) {
-            setTimeout(async () => {
-              try {
-                if (this._translatorCallObject) {
-                  const result = await this._translatorCallObject.CallObject.setInputDevicesAsync({
-                    audioDeviceId: this.inputDeviceId
-                  });
-                  console.log('[TRANSLATOR] setInputDevicesAsync result:', result);
-                }
-              } catch (err) {
-                console.error('[TRANSLATOR] setInputDevicesAsync error:', err);
-              }
-            }, 1000);
-          }
-
           this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+          const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
 
           this._translatorCallObject.on('participant-joined', (event) => {
             const participant = event.participant;
@@ -808,24 +822,8 @@ class AudioManager {
           });
 
           this._translatorCallObject.on('participant-updated', async (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-            console.log('============================:', allParticipants);
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-            const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
-            const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
-            console.log('[DEBUG] Filtered participants:', filtered);
-
-            if (filtered.botLocal) {
-              this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
-                setSubscribedTracks: { audio: true }
-              });
-            }
-
-            if (filtered.remote) {
-              this._translatorCallObject.CallObject.updateParticipant(filtered.remote.session_id, {
-                setSubscribedTracks: { audio: true }
-              });
-            }
+            this.handleSubscription();
           });
 
           this._translatorCallObject.on('left-meeting', () => {
