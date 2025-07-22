@@ -748,6 +748,7 @@ class AudioManager {
   async handleSubscription() {
     if (!this.localBot) return;
     const participants = this._translatorCallObject.CallObject.participants();
+    console.log('[TRANSLATOR] Handling subscription for participants:', participants);
     let updateList = {};
 
     for (let id in participants) {
