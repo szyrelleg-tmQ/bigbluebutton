@@ -760,7 +760,7 @@ class AudioManager {
         console.log("==========", participants[id].session_id);
         console.log(this.localBot);
         console.log(userName)
-        if (userName === `${this.localBot}-${participants[id].session_id}`) {
+        if (userName === this.localBot) {
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
