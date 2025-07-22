@@ -808,7 +808,7 @@ class AudioManager {
           });
 
           this._translatorCallObject.on('participant-updated', async (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants()); \
+            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             console.log('============================:', allParticipants);
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
