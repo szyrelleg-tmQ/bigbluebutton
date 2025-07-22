@@ -808,17 +808,12 @@ class AudioManager {
           });
 
           this._translatorCallObject.on('participant-updated', async (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants()); \
+            console.log('============================:', allParticipants);
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
             const currentUserName = this._translatorCallObject.CallObject.participants().local.user_name;
             const filtered = this.audioService.filterParticipants(allParticipants, currentUserName);
             console.log('[DEBUG] Filtered participants:', filtered);
-
-            if (filtered.botRemote) {
-              this._translatorCallObject.CallObject.updateParticipant(filtered.botRemote.session_id, {
-                setSubscribedTracks: { audio: false }
-              });
-            }
 
             if (filtered.botLocal) {
               this._translatorCallObject.CallObject.updateParticipant(filtered.botLocal.session_id, {
