@@ -772,6 +772,64 @@ class AudioManager {
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
 
+  captureParticipantAudio(participant) {
+    if (!participant || participant.local) return; // Skip local participant
+
+    console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
+
+    const isBot = participant.user_name.startsWith('bot-');
+    if (!isBot) {
+      return;
+    } else {
+      // Get the participant's audio track
+      const audioTrack = participant.audioTrack;
+      if (audioTrack) {
+        const audioStream = new MediaStream([audioTrack]);
+
+        // --- Volume control using Web Audio API ---
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(audioStream);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.5; // Set volume (0.0 = mute, 1.0 = full volume)
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        // -----------------------------------------
+
+        // If you still need to route to BigBlueButton, you can do so here
+        this.routeToBigBlueButton(audioStream, participant);
+      }
+    }
+  }
+
+  routeToBigBlueButton(audioStream, participant) {
+    try {
+      // Get BigBlueButton's remote media element
+      const MEDIA = window.meetingClientSettings.public.media;
+      const MEDIA_TAG = MEDIA.mediaTag;
+      const bbbAudioElement = document.querySelector(MEDIA_TAG);
+
+      if (bbbAudioElement) {
+        // Replace BigBlueButton's remote stream with Daily.co's audio
+        bbbAudioElement.srcObject = audioStream;
+        bbbAudioElement.play().catch((error) => {
+          console.error('[DAILY] Failed to play Daily.co audio in BBB element:', error);
+        });
+
+        console.log('[DAILY] Successfully routed Daily.co audio to BigBlueButton');
+      }
+    } catch (error) {
+      logger.error({
+        logCode: 'daily_co_route_to_bbb_failed',
+        extraInfo: {
+          errorName: error.name,
+          errorMessage: error.message,
+          participantId: participant.session_id,
+        },
+      }, `Failed to route Daily.co audio to BigBlueButton: ${error.message}`);
+    }
+  }
+
+
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -833,6 +891,10 @@ class AudioManager {
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
+            allParticipants.forEach((participant) => {
+              if (participant.local) return; // Skip local participant
+              this.captureParticipantAudio(participant);
+            });
             this.handleSubscription();
           });
 
