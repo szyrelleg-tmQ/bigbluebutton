@@ -758,7 +758,7 @@ class AudioManager {
         updateList[id] = { setSubscribedTracks: { audio: true } };
       } else if (userName.startsWith('bot-user-')) {
         if (userName === this.localBot) {
-          this.localBotSessionId = updateList[id].session_id
+          this.localBotSessionId = participants[id].session_id
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
