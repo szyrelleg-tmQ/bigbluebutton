@@ -757,8 +757,7 @@ class AudioManager {
       if (userName.startsWith('user-')) {
         updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
       } else if (userName.startsWith('bot-user-')) {
-        console.log(this.localBot + participants[id].session_id, 'is the local bot *****************');
-        console.log(userName, 'is the local bot');
+        console.log("==========", participants[id]);
         if (userName === this.localBot + participants[id].session_id) {
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
@@ -807,7 +806,7 @@ class AudioManager {
             videoSource: false,
           },
         });
-        this.localBot = `bot-user-${currentName}`;
+        this.localBot = `bot-${currentName}`;
         let totalParticipants = 2;
 
         const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
