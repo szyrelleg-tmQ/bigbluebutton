@@ -21,6 +21,10 @@ const intlMessages = defineMessages({
         id: 'app.audio.languageVoiceButton.language',
         defaultMessage: 'Language',
     },
+    botToggleLabel: {
+        id: 'app.audio.languageVoiceButton.botToggle',
+        defaultMessage: 'Enable Bot',
+    },
     confirm: {
         id: 'app.audio.languageVoiceButton.confirm',
         defaultMessage: 'Confirm',
@@ -38,6 +42,7 @@ const AudioLanguageVoiceButton = () => {
     const [languages, setLanguages] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
+    const [botEnabled, setBotEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -51,9 +56,10 @@ const AudioLanguageVoiceButton = () => {
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
 
-                    // Get last used voice/language
+                    // Get last used voice/language/bot settings
                     const lastVoice = AudioManager.lastJoinOptions?.voice;
                     const lastLanguage = AudioManager.lastJoinOptions?.language;
+                    const lastBotEnabled = AudioManager.lastJoinOptions?.botEnabled ?? false;
 
                     // Use last used if available, else default to first
                     setSelectedVoice(
@@ -62,6 +68,7 @@ const AudioLanguageVoiceButton = () => {
                     setSelectedLanguage(
                         fetchedLanguages.find(l => l.key === lastLanguage) ? lastLanguage : (fetchedLanguages[0]?.key || fetchedLanguages[0] || '')
                     );
+                    setBotEnabled(lastBotEnabled);
                 } catch (err) {
                     setVoices([]);
                     setLanguages([]);
@@ -85,23 +92,46 @@ const AudioLanguageVoiceButton = () => {
                 if (typeof translatorClient.setLanguage === 'function') {
                     translatorClient.setLanguage(selectedLanguage);
                 }
+                // Handle bot enable/disable
+                if (typeof translatorClient.setBotEnabled === 'function') {
+                    translatorClient.setBotEnabled(botEnabled);
+                } else if (typeof translatorClient.enableBot === 'function' && typeof translatorClient.disableBot === 'function') {
+                    if (botEnabled) {
+                        translatorClient.enableBot();
+                    } else {
+                        translatorClient.disableBot();
+                    }
+                }
             }
+
             // Update AudioManager.lastJoinOptions so the new values are reflected next time
             AudioManager.lastJoinOptions = {
                 ...(AudioManager.lastJoinOptions || {}),
                 voice: selectedVoice,
                 language: selectedLanguage,
+                botEnabled: botEnabled,
             };
+
             // Set the selected translation language for reactivity
             selectedTranslationLanguageVar(selectedLanguage);
         } catch (err) {
             // Optionally, handle error
-            // notify('Failed to update voice/language', true);
+            // notify('Failed to update voice/language/bot settings', true);
         }
         setOpen(false);
     };
 
     const handleCancel = () => setOpen(false);
+
+    const handleBotToggle = (enabled) => {
+        setBotEnabled(enabled);
+        try {
+            AudioManager.toggleTranslation(enabled);
+        } catch (err) {
+            // Optionally handle error
+            console.warn('Failed to update bot settings:', err);
+        }
+    };
 
     return (
         <>
@@ -148,6 +178,17 @@ const AudioLanguageVoiceButton = () => {
                                     supportsTransparentListenOnly={false}
                                 />
                             </div>
+                            <div style={{ marginTop: 16, marginBottom: 16 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={botEnabled}
+                                        onChange={(e) => handleBotToggle(e.target.checked)}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                    {intl.formatMessage(intlMessages.botToggleLabel)}
+                                </label>
+                            </div>
                             <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                 <Button
                                     label={intl.formatMessage(intlMessages.cancel)}
@@ -170,4 +211,4 @@ const AudioLanguageVoiceButton = () => {
     );
 };
 
-export default AudioLanguageVoiceButton; 
+export default AudioLanguageVoiceButton;

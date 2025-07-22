@@ -135,6 +135,7 @@ class AudioManager {
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
     this.participantsCount = makeVar(2);
     this.localBot = makeVar(null);
+    this.localBotSessionId = makeVar(null);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -748,19 +749,16 @@ class AudioManager {
   async handleSubscription() {
     if (!this.localBot) return;
     const participants = this._translatorCallObject.CallObject.participants();
-    console.log('[TRANSLATOR] Handling subscription for participants:', participants);
     let updateList = {};
 
     for (let id in participants) {
       if (id === 'local') continue;
       const userName = participants[id].user_name || '';
       if (userName.startsWith('user-')) {
-        updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
+        updateList[id] = { setSubscribedTracks: { audio: true } };
       } else if (userName.startsWith('bot-user-')) {
-        console.log("==========", participants[id].session_id);
-        console.log(this.localBot);
-        console.log(userName)
         if (userName === this.localBot) {
+          this.localBotSessionId = updateList[id].session_id
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
@@ -1526,6 +1524,12 @@ class AudioManager {
     if (this._translatorCallObject) {
       const res = this._translatorCallObject.toggleAudio();
     }
+  }
+
+  toggleTranslation(flag) {
+    this._translatorCallObject.CallObject.updateParticipant(this.localBotSessionId, {
+      setSubscribedTracks: { audio: flag }
+    });
   }
 
   playAlertSound(url) {
