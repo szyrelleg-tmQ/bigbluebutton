@@ -790,7 +790,7 @@ class AudioManager {
         const audioCtx = new AudioContext();
         const source = audioCtx.createMediaStreamSource(audioStream);
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.5; // Set volume (0.0 = mute, 1.0 = full volume)
+        gainNode.gain.value = 0.1; // Set volume (0.0 = mute, 1.0 = full volume)
         source.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         // -----------------------------------------
