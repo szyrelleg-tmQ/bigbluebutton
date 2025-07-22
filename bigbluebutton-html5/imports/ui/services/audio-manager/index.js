@@ -755,17 +755,19 @@ class AudioManager {
     for (let id in participants) {
       if (id === 'local') continue;
       const userName = participants[id].user_name || '';
-      if (userName.startsWith('user-')) {
+
+      if (!userName.startsWith('bot-')) {
         updateList[id] = { setSubscribedTracks: { audio: true } };
-      } else if (userName.startsWith('bot-user-')) {
+      } else {
         if (userName === this.localBot && this.enableBot) {
-          this.localBotSessionId = participants[id].session_id
+          this.localBotSessionId = participants[id].session_id;
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
         }
       }
     }
+
     console.log('[TRANSLATOR] Updating participants subscription:', updateList);
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
