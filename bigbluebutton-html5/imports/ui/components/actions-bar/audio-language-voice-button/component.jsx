@@ -113,7 +113,7 @@ const AudioLanguageVoiceButton = () => {
     const handleBotToggle = (enabled) => {
         setBotEnabled(enabled);
         try {
-
+            AudioManager.toggleTranslation(enabled);
         } catch (err) {
             // Optionally handle error
             console.warn('Failed to update bot settings:', err);
