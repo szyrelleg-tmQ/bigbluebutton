@@ -757,6 +757,7 @@ class AudioManager {
         updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
       } else if (userName === 'bot-user') {
         if (userName === this.localBot) {
+          console.log('[TRANSLATOR] Subscribing to local bot audio');
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
           updateList[id] = { setSubscribedTracks: { audio: false } };
