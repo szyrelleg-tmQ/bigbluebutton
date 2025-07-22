@@ -758,6 +758,8 @@ class AudioManager {
         updateList[id] = { setSubscribedTracks: { audio: true, video: false } };
       } else if (userName.startsWith('bot-user-')) {
         if (userName === this.localBot) {
+          console.log(this.localBot, 'is the local bot');
+          console.log(userName, 'is the local bot');
           console.log('[TRANSLATOR] Subscribing to local bot audio');
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
