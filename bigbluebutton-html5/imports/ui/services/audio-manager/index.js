@@ -776,7 +776,7 @@ class AudioManager {
     if (!participant || participant.local) return; // Skip local participant
     console.log(participant)
     const isBot = participant.user_name.startsWith('bot-');
-    if (!isBot) {
+    if (isBot) {
       return;
     } else {
       console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
