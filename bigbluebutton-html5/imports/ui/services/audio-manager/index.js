@@ -764,6 +764,7 @@ class AudioManager {
         }
       }
     }
+    console.log('[TRANSLATOR] Updating participants subscription:', updateList);
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
 
