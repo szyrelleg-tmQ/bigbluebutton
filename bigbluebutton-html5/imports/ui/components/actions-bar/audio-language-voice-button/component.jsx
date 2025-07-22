@@ -59,7 +59,6 @@ const AudioLanguageVoiceButton = () => {
                     // Get last used voice/language/bot settings
                     const lastVoice = AudioManager.lastJoinOptions?.voice;
                     const lastLanguage = AudioManager.lastJoinOptions?.language;
-                    const lastBotEnabled = AudioManager.lastJoinOptions?.botEnabled ?? false;
 
                     // Use last used if available, else default to first
                     setSelectedVoice(
@@ -68,7 +67,6 @@ const AudioLanguageVoiceButton = () => {
                     setSelectedLanguage(
                         fetchedLanguages.find(l => l.key === lastLanguage) ? lastLanguage : (fetchedLanguages[0]?.key || fetchedLanguages[0] || '')
                     );
-                    setBotEnabled(lastBotEnabled);
                 } catch (err) {
                     setVoices([]);
                     setLanguages([]);
