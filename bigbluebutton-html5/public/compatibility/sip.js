@@ -20661,18 +20661,18 @@ class SimpleUser {
             }
             mediaElement.autoplay = true; // Safari hack, because you cannot call .play() from a non user action
             mediaElement.srcObject = remoteStream;
-            mediaElement.play().catch((error) => {
-                this.logger.error(`[${this.id}] Failed to play remote media`);
-                this.logger.error(error.message);
-            });
-            remoteStream.onaddtrack = () => {
-                this.logger.log(`[${this.id}] Remote media onaddtrack`);
-                mediaElement.load(); // Safari hack, as it doesn't work otherwise
-                mediaElement.play().catch((error) => {
-                    this.logger.error(`[${this.id}] Failed to play remote media`);
-                    this.logger.error(error.message);
-                });
-            };
+            // mediaElement.play().catch((error) => {
+            //     this.logger.error(`[${this.id}] Failed to play remote media`);
+            //     this.logger.error(error.message);
+            // });
+            // remoteStream.onaddtrack = () => {
+            //     this.logger.log(`[${this.id}] Remote media onaddtrack`);
+            //     mediaElement.load(); // Safari hack, as it doesn't work otherwise
+            //     mediaElement.play().catch((error) => {
+            //         this.logger.error(`[${this.id}] Failed to play remote media`);
+            //         this.logger.error(error.message);
+            //     });
+            // };
         }
     }
     /**

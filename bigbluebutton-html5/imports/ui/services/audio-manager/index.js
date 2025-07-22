@@ -891,7 +891,7 @@ class AudioManager {
               if (participant.local) return; // Skip local participant
               this.captureParticipantAudio(participant);
             });
-            this.handleSubscription();
+            // this.handleSubscription();
           });
 
           this._translatorCallObject.on('left-meeting', () => {
