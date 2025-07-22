@@ -12,8 +12,8 @@ const playMediaElement = (mediaElement) => {
       //     // try playing again a few times until it works or fails for good
       //     const played = playAndRetry(mediaElement);
       //     if (!played) return reject(error);
-      //     return resolve();
       //   });
+      return resolve();
     } else {
       // Media tag is already playing, so log a success. This is really a
       // logging fallback for a case that shouldn't happen. But if it does
