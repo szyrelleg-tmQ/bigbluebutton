@@ -774,13 +774,12 @@ class AudioManager {
 
   captureParticipantAudio(participant) {
     if (!participant || participant.local) return; // Skip local participant
-
-    console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
-
+    console.log(participant)
     const isBot = participant.user_name.startsWith('bot-');
     if (!isBot) {
       return;
     } else {
+      console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
       // Get the participant's audio track
       const audioTrack = participant.audioTrack;
       if (audioTrack) {
@@ -793,9 +792,6 @@ class AudioManager {
         gainNode.gain.value = 0.1; // Set volume (0.0 = mute, 1.0 = full volume)
         source.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        // -----------------------------------------
-
-        // If you still need to route to BigBlueButton, you can do so here
         this.routeToBigBlueButton(audioStream, participant);
       }
     }
