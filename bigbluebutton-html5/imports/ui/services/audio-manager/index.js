@@ -136,6 +136,7 @@ class AudioManager {
     this.participantsCount = makeVar(2);
     this.localBot = makeVar(null);
     this.localBotSessionId = makeVar(null);
+    this.enableBot = makeVar(true);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -757,7 +758,7 @@ class AudioManager {
       if (userName.startsWith('user-')) {
         updateList[id] = { setSubscribedTracks: { audio: true } };
       } else if (userName.startsWith('bot-user-')) {
-        if (userName === this.localBot) {
+        if (userName === this.localBot && this.enableBot) {
           this.localBotSessionId = participants[id].session_id
           updateList[id] = { setSubscribedTracks: { audio: true } };
         } else {
@@ -1527,6 +1528,7 @@ class AudioManager {
   }
 
   toggleTranslation(flag) {
+    this.enableBot = flag;
     this._translatorCallObject.CallObject.updateParticipant(this.localBotSessionId, {
       setSubscribedTracks: { audio: flag }
     });

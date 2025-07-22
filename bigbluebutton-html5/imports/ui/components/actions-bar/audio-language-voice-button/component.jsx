@@ -42,7 +42,7 @@ const AudioLanguageVoiceButton = () => {
     const [languages, setLanguages] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
-    const [botEnabled, setBotEnabled] = useState(false);
+    const [botEnabled, setBotEnabled] = useState(true);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -92,16 +92,6 @@ const AudioLanguageVoiceButton = () => {
                 if (typeof translatorClient.setLanguage === 'function') {
                     translatorClient.setLanguage(selectedLanguage);
                 }
-                // Handle bot enable/disable
-                if (typeof translatorClient.setBotEnabled === 'function') {
-                    translatorClient.setBotEnabled(botEnabled);
-                } else if (typeof translatorClient.enableBot === 'function' && typeof translatorClient.disableBot === 'function') {
-                    if (botEnabled) {
-                        translatorClient.enableBot();
-                    } else {
-                        translatorClient.disableBot();
-                    }
-                }
             }
 
             // Update AudioManager.lastJoinOptions so the new values are reflected next time
@@ -109,7 +99,6 @@ const AudioLanguageVoiceButton = () => {
                 ...(AudioManager.lastJoinOptions || {}),
                 voice: selectedVoice,
                 language: selectedLanguage,
-                botEnabled: botEnabled,
             };
 
             // Set the selected translation language for reactivity
