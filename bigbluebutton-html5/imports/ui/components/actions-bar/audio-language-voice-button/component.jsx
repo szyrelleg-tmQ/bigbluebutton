@@ -48,6 +48,7 @@ const AudioLanguageVoiceButton = () => {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [botEnabled, setBotEnabled] = useState(true);
     const [volume, setVolume] = useState(50);
+    const [originalVolume, setOriginalVolume] = useState(50);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -74,6 +75,7 @@ const AudioLanguageVoiceButton = () => {
                         fetchedLanguages.find(l => l.key === lastLanguage) ? lastLanguage : (fetchedLanguages[0]?.key || fetchedLanguages[0] || '')
                     );
                     setVolume(lastVolume);
+                    setOriginalVolume(lastVolume);
                 } catch (err) {
                     setVoices([]);
                     setLanguages([]);
@@ -97,8 +99,8 @@ const AudioLanguageVoiceButton = () => {
                 if (typeof translatorClient.setLanguage === 'function') {
                     translatorClient.setLanguage(selectedLanguage);
                 }
-                if (typeof translatorClient.setVolume === 'function') {
-                    translatorClient.setVolume(volume / 100); // Convert to 0-1 range
+                if (typeof AudioManager.setParticipantVolume === 'function') {
+                    AudioManager.setParticipantVolume(volume / 100); // Convert to 0-1 range
                 }
             }
 
@@ -119,7 +121,22 @@ const AudioLanguageVoiceButton = () => {
         setOpen(false);
     };
 
-    const handleCancel = () => setOpen(false);
+    const handleCancel = () => {
+        // Revert volume to original value
+        setVolume(originalVolume);
+
+        // Revert volume in the translator client if available
+        try {
+            const translatorClient = AudioManager._translatorCallObject;
+            if (translatorClient && typeof translatorClient.setVolume === 'function') {
+                translatorClient.setVolume(originalVolume / 100);
+            }
+        } catch (err) {
+            console.warn('Failed to revert volume settings:', err);
+        }
+
+        setOpen(false);
+    };
 
     const handleBotToggle = (enabled) => {
         setBotEnabled(enabled);
@@ -134,11 +151,9 @@ const AudioLanguageVoiceButton = () => {
     const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
 
-        // Immediately apply volume setting if translator client is available
+        // Apply volume change immediately for preview, but don't save to AudioManager
         try {
-            if (AudioManager.setParticipantVolume === 'function') {
-                AudioManager.setParticipantVolume(newVolume / 100); // Convert to 0-1 range
-            }
+            AudioManager.setParticipantVolume(newVolume / 100); // Convert to 0-1 range
         } catch (err) {
             console.warn('Failed to update volume settings:', err);
         }

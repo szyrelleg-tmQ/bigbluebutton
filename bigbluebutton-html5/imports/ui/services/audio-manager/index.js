@@ -1539,15 +1539,14 @@ class AudioManager {
 
   setParticipantVolume(volume = 0.1) {
     const participants = this._translatorCallObject.CallObject.participants();
-
+    console.log(volume);
     for (let id in participants) {
       if (id === 'local') continue;
-
       const participant = participants[id];
       const userName = participant.user_name || '';
-
       // Check if it's NOT a bot
       if (!userName.startsWith('bot-')) {
+        console.log(`➡️ Adjusting volume for: ${userName} (session: ${participant.session_id})`);
         this._translatorCallObject.setParticipantVolume(participant.session_id, volume);
       }
     }
