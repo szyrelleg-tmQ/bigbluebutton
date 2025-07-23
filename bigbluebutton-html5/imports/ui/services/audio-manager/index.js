@@ -777,26 +777,17 @@ class AudioManager {
     // Get the participant's audio track
     const audioTrack = participant.audioTrack;
     if (audioTrack) {
-      // Create a MediaStream for the track
-      const audioStream = new MediaStream([audioTrack]);
-
-      // Create a new AudioContext for this participant
-      const audioCtx = new AudioContext();
-
-      // Create a source node from the MediaStream
-      const source = audioCtx.createMediaStreamSource(audioStream);
-
-      // Create a GainNode for volume control
-      const gainNode = audioCtx.createGain();
-      gainNode.gain.value = 0.5; // Set initial volume (0.0 = mute, 1.0 = full volume)
-
-      // Connect the nodes: source -> gain -> destination
-      source.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      // Store references for cleanup or later volume adjustment
-      this._currentAudioContexts = this._currentAudioContexts || {};
-      this._currentAudioContexts[participant.session_id] = { audioCtx, gainNode };
+      // Create a new audio element for this participant
+      const audioElementId = `audio-${participant.session_id}`;
+      let audioElement = document.getElementById(audioElementId);
+      if (!audioElement) {
+        audioElement = document.createElement('audio');
+        audioElement.id = audioElementId;
+        audioElement.autoplay = true;
+        audioElement.playsInline = true;
+        document.body.appendChild(audioElement);
+      }
+      audioElement.srcObject = new MediaStream([audioTrack]);
     }
   }
 
