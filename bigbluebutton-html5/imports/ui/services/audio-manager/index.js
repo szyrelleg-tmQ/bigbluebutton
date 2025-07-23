@@ -1250,7 +1250,7 @@ class AudioManager {
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
         if (this._translatorCallObject) {
-          await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: this.outputDeviceId });
+          await this._translatorCallObject.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
         }
 
         return this.outputDeviceId;
