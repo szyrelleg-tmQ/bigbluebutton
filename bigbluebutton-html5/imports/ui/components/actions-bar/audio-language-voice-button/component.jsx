@@ -25,6 +25,10 @@ const intlMessages = defineMessages({
         id: 'app.audio.languageVoiceButton.botToggle',
         defaultMessage: 'Enable Voice Translation',
     },
+    volumeLabel: {
+        id: 'app.audio.languageVoiceButton.volume',
+        defaultMessage: 'Volume',
+    },
     confirm: {
         id: 'app.audio.languageVoiceButton.confirm',
         defaultMessage: 'Confirm',
@@ -43,6 +47,7 @@ const AudioLanguageVoiceButton = () => {
     const [selectedVoice, setSelectedVoice] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [botEnabled, setBotEnabled] = useState(true);
+    const [volume, setVolume] = useState(50);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -56,9 +61,10 @@ const AudioLanguageVoiceButton = () => {
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
 
-                    // Get last used voice/language/bot settings
+                    // Get last used voice/language/volume settings
                     const lastVoice = AudioManager.lastJoinOptions?.voice;
                     const lastLanguage = AudioManager.lastJoinOptions?.language;
+                    const lastVolume = AudioManager.lastJoinOptions?.volume ?? 50;
 
                     // Use last used if available, else default to first
                     setSelectedVoice(
@@ -67,6 +73,7 @@ const AudioLanguageVoiceButton = () => {
                     setSelectedLanguage(
                         fetchedLanguages.find(l => l.key === lastLanguage) ? lastLanguage : (fetchedLanguages[0]?.key || fetchedLanguages[0] || '')
                     );
+                    setVolume(lastVolume);
                 } catch (err) {
                     setVoices([]);
                     setLanguages([]);
@@ -90,6 +97,9 @@ const AudioLanguageVoiceButton = () => {
                 if (typeof translatorClient.setLanguage === 'function') {
                     translatorClient.setLanguage(selectedLanguage);
                 }
+                if (typeof translatorClient.setVolume === 'function') {
+                    translatorClient.setVolume(volume / 100); // Convert to 0-1 range
+                }
             }
 
             // Update AudioManager.lastJoinOptions so the new values are reflected next time
@@ -97,13 +107,14 @@ const AudioLanguageVoiceButton = () => {
                 ...(AudioManager.lastJoinOptions || {}),
                 voice: selectedVoice,
                 language: selectedLanguage,
+                volume: volume,
             };
 
             // Set the selected translation language for reactivity
             selectedTranslationLanguageVar(selectedLanguage);
         } catch (err) {
             // Optionally, handle error
-            // notify('Failed to update voice/language/bot settings', true);
+            // notify('Failed to update voice/language/volume settings', true);
         }
         setOpen(false);
     };
@@ -117,6 +128,19 @@ const AudioLanguageVoiceButton = () => {
         } catch (err) {
             // Optionally handle error
             console.warn('Failed to update bot settings:', err);
+        }
+    };
+
+    const handleVolumeChange = (newVolume) => {
+        setVolume(newVolume);
+
+        // Immediately apply volume setting if translator client is available
+        try {
+            if (AudioManager.setParticipantVolume === 'function') {
+                AudioManager.setParticipantVolume(newVolume / 100); // Convert to 0-1 range
+            }
+        } catch (err) {
+            console.warn('Failed to update volume settings:', err);
         }
     };
 
@@ -175,6 +199,32 @@ const AudioLanguageVoiceButton = () => {
                                     />
                                     {intl.formatMessage(intlMessages.botToggleLabel)}
                                 </label>
+                            </div>
+                            <div style={{ marginTop: 16, marginBottom: 16 }}>
+                                <label style={{ display: 'block', marginBottom: 8 }}>
+                                    {intl.formatMessage(intlMessages.volumeLabel)}: {volume}%
+                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: '14px', color: '#666' }}>0%</span>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={volume}
+                                        onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                                        style={{
+                                            flex: 1,
+                                            cursor: 'pointer',
+                                            height: '4px',
+                                            background: '#ddd',
+                                            borderRadius: '2px',
+                                            outline: 'none',
+                                            WebkitAppearance: 'none',
+                                        }}
+                                    />
+                                    <span style={{ fontSize: '14px', color: '#666' }}>100%</span>
+                                </div>
                             </div>
                             <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                 <Button

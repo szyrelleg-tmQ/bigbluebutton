@@ -822,9 +822,6 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-joined', (event) => {
             const { participant } = event;
-            if (!participant.user_name.startsWith("bot-")) {
-              this._translatorCallObject.setParticipantVolume(participant.session_id, 0.1);
-            }
             console.log('[TRANSLATOR] Participant joined:', participant);
 
           });
@@ -1538,6 +1535,22 @@ class AudioManager {
     this._translatorCallObject.CallObject.updateParticipant(this.localBotSessionId, {
       setSubscribedTracks: { audio: flag }
     });
+  }
+
+  setParticipantVolume(volume = 0.1) {
+    const participants = this._translatorCallObject.CallObject.participants();
+
+    for (let id in participants) {
+      if (id === 'local') continue;
+
+      const participant = participants[id];
+      const userName = participant.user_name || '';
+
+      // Check if it's NOT a bot
+      if (!userName.startsWith('bot-')) {
+        this._translatorCallObject.setParticipantVolume(participant.session_id, volume);
+      }
+    }
   }
 
   playAlertSound(url) {
