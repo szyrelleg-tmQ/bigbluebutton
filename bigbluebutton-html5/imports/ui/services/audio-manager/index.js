@@ -1249,7 +1249,8 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
-        if (this._translatorCallObject) {
+        if (this._translatorCallObject && this.outputDeviceId) {
+          console.log(this.outputDeviceId);
           await this._translatorCallObject.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
         }
 
