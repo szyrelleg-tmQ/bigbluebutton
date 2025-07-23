@@ -812,6 +812,28 @@ class AudioManager {
           this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
         }
 
+        this._translatorCallObject.on('participant-joined', (event) => {
+          const participant = event.participant;
+          logger.info({
+            logCode: 'translator_participant_joined',
+            extraInfo: {
+              participantId: participant.session_id,
+              userName: participant.user_name,
+            },
+          }, '[TRANSLATOR] Participant joined:', participant);
+        });
+
+        this._translatorCallObject.on('participant-left', (event) => {
+          const participant = event.participant;
+          logger.info({
+            logCode: 'translator_participant_left',
+            extraInfo: {
+              participantId: participant.session_id,
+              userName: participant.user_name,
+            },
+          }, '[TRANSLATOR] Participant left:', participant);
+        });
+
         this._translatorCallObject.on('participant-updated', async (event) => {
           const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
           totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
@@ -1251,7 +1273,7 @@ class AudioManager {
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
         if (this._translatorCallObject && this.outputDeviceId) {
-          console.log(this.outputDeviceId);
+          console.log('[DAILY] Changing output device in Daily.co:', this.outputDeviceId);
           await this._translatorCallObject.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
         }
 
