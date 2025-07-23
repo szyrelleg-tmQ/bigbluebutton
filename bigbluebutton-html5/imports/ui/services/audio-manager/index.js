@@ -1163,13 +1163,9 @@ class AudioManager {
 
   changeInputDevice(deviceId) {
     if (deviceId === this.inputDeviceId) return this.inputDeviceId;
-    // if (this._translatorCallObject) {
-    //   console.log('[DAILY] Changing input device in Daily.co:', deviceId);
-    //   this._translatorCallObject.CallObject.setInputDeviceAsync({ audioDeviceId: deviceId });
-    // }
-
     const currentDeviceId = this.inputDeviceId ?? 'none';
     this.inputDeviceId = deviceId;
+
     logger.debug({
       logCode: 'audiomanager_input_device_change',
       extraInfo: {
@@ -1177,6 +1173,11 @@ class AudioManager {
         newDeviceId: deviceId || 'none',
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
+
+    if (this._translatorCallObject && this.inputDeviceId) {
+      console.log('[DAILY] Changing input device in Daily.co:', deviceId);
+      this._translatorCallObject.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
+    }
 
     return this.inputDeviceId;
   }
