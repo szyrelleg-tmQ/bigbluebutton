@@ -139,7 +139,7 @@ class AudioManager {
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
-    this.initTranslator
+    this.initTranslator();
     this.audioService = getAudioRoutingService();
   }
 
@@ -794,6 +794,10 @@ class AudioManager {
       }
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
+
+      if (this._translatorCallObject) {
+        this.initTranslator();
+      }
       const roomId = Auth.meetingID;
       const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
       const language = this.lastJoinOptions?.language || 'english';
