@@ -159,6 +159,10 @@ class AudioManager {
     }
   }
 
+  get TranslatorCallObject() {
+    return this._translatorCallObject;
+  }
+
   onBeforeUnload() {
     const CONFIRMATION_ON_LEAVE = window.meetingClientSettings.public.app.askForConfirmationOnLeave;
     if (!CONFIRMATION_ON_LEAVE) {

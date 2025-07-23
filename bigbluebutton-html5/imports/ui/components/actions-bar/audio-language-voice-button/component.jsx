@@ -56,9 +56,8 @@ const AudioLanguageVoiceButton = () => {
             setLoading(true);
             const fetchData = async () => {
                 try {
-                    const translatorClient = getTranslatorClient({ baseUrl: "https://pipecat-prod-translate.ph03.us" });
-                    const fetchedVoices = await translatorClient.fetchVoices();
-                    const fetchedLanguages = await translatorClient.fetchLanguages();
+                    const fetchedVoices = await AudioManager.TranslatorCallObject.fetchVoices();
+                    const fetchedLanguages = await AudioManager.TranslatorCallObject.fetchLanguages();
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
 
