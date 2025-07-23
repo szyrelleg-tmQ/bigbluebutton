@@ -1221,41 +1221,6 @@ class AudioManager {
   async changeOutputDevice(deviceId, isLive) {
     const targetDeviceId = deviceId;
     const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
-
-    // If Daily.co is active, route the output device change to Daily.co
-    // if (this._translatorCallObject) {
-    //   console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
-    //   try {
-    //     // Change output device in Daily.co
-    //     await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: deviceId });
-    //     this.outputDeviceId = deviceId;
-
-    //     // Live output device change - add device ID to session storage
-    //     if (isLive) storeAudioOutputDeviceId(deviceId);
-
-    //     logger.debug({
-    //       logCode: 'audiomanager_daily_output_device_change',
-    //       extraInfo: {
-    //         deviceId: currentDeviceId,
-    //         newDeviceId: deviceId,
-    //       },
-    //     }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
-
-    //     return this.outputDeviceId;
-    //   } catch (error) {
-    //     logger.error({
-    //       logCode: 'audiomanager_daily_output_device_change_failure',
-    //       extraInfo: {
-    //         errorName: error.name,
-    //         errorMessage: error.message,
-    //         deviceId: currentDeviceId,
-    //         newDeviceId: targetDeviceId,
-    //       },
-    //     }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
-    //     throw error;
-    //   }
-    // }
-
     const MEDIA = window.meetingClientSettings.public.media;
     const MEDIA_TAG = MEDIA.mediaTag;
     const audioElement = document.querySelector(MEDIA_TAG);
@@ -1284,6 +1249,9 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
+        if (this._translatorCallObject) {
+          await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: this.outputDeviceId });
+        }
 
         return this.outputDeviceId;
       } catch (error) {
