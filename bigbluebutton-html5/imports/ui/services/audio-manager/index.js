@@ -29,7 +29,6 @@ import {
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
 import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService } from 'translator-client'
-import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 
@@ -140,6 +139,7 @@ class AudioManager {
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
+    this.initTranslator
     this.audioService = getAudioRoutingService();
   }
 
@@ -794,110 +794,82 @@ class AudioManager {
       }
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
-      // Log the actual stream after join
-      if (this.inputStream && this.inputStream.getAudioTracks().length > 0) {
-        const roomId = Auth.meetingID;
-        const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
-        // Use selected language/voice if available
-        const language = this.lastJoinOptions?.language || 'english';
-        const voice = this.lastJoinOptions?.voice || 'aria';
-        const audioTrack = this.inputStream.getAudioTracks()[0];
-        this._translatorCallObject = getTranslatorClient({
-          baseUrl: "https://pipecat-prod-translate.ph03.us",
-          inputConfig: {
-            audioSource: audioTrack,
-            videoSource: false,
-          },
+      const roomId = Auth.meetingID;
+      const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
+      const language = this.lastJoinOptions?.language || 'english';
+      const voice = this.lastJoinOptions?.voice || 'aria';
+      let totalParticipants = 2;
+
+      const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
+      try {
+        this.localBot = `bot-${data.userName}`;
+        const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
+        if (res) {
+          this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+        }
+
+        this._translatorCallObject.on('participant-updated', async (event) => {
+          const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+          totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
+          this.handleSubscription();
         });
 
-        let totalParticipants = 2;
+        this._translatorCallObject.on("app-message", (message) => {
+          const data = message.data;
+          if (data.event_type === "transcription") {
+            latestTranscriptionVar({
+              text: data.text,
+              language: data.language,
+              participant_name: data.participant_name,
+              timestamp: data.timestamp,
+              type: data.type,
+            });
+          } else if (data.event_type === "translation") {
+            latestTranslationVar({
+              text: data.text,
+              translated_text: data.translated_text,
+              language: data.language,
+              original_language: data.original_language,
+              participant_name: data.participant_name,
+              timestamp: data.timestamp,
+              type: data.type,
+            });
+            // Collect translations by timestamp (message id)
 
-        const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-        try {
-          this.localBot = `bot-${data.userName}`;
-          const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
-          if (res) {
-            this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
-          }
+            const key = `${data.text}|${data.participant_name}`;
 
-          this._translatorCallObject.on('participant-joined', (event) => {
-            const { participant } = event;
-            console.log('[TRANSLATOR] Participant joined:', participant);
-
-          });
-
-          this._translatorCallObject.on('participant-left', (event) => {
-            const participant = event.participant;
-            console.log('[TRANSLATOR] Participant left:', participant);
-          });
-
-          this._translatorCallObject.on('participant-updated', async (event) => {
-            const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-            totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-            this.handleSubscription();
-          });
-
-          this._translatorCallObject.on('left-meeting', () => {
-            resetAudioRoutingService();
-          });
-
-          this._translatorCallObject.on("app-message", (message) => {
-            const data = message.data;
-            if (data.event_type === "transcription") {
-              latestTranscriptionVar({
-                text: data.text,
-                language: data.language,
+            // Initialize buffer for this message if it doesn't exist
+            if (!translationBuffers[key]) {
+              translationBuffers[key] = {
+                original: data.text,
+                translations: {},
                 participant_name: data.participant_name,
-                timestamp: data.timestamp,
-                type: data.type,
-              });
-            } else if (data.event_type === "translation") {
-              latestTranslationVar({
-                text: data.text,
-                translated_text: data.translated_text,
-                language: data.language,
-                original_language: data.original_language,
-                participant_name: data.participant_name,
-                timestamp: data.timestamp,
-                type: data.type,
-              });
-              // Collect translations by timestamp (message id)
-
-              const key = `${data.text}|${data.participant_name}`;
-
-              // Initialize buffer for this message if it doesn't exist
-              if (!translationBuffers[key]) {
-                translationBuffers[key] = {
-                  original: data.text,
-                  translations: {},
-                  participant_name: data.participant_name,
-                };
-              }
-
-              // Add this translation
-              translationBuffers[key].translations[data.language] = data.translated_text;
-
-              const numTranslations = Object.keys(translationBuffers[key].translations).length;
-
-              if (numTranslations === totalParticipants - 1) {
-                translationMessagesVar([
-                  ...translationMessagesVar(),
-                  {
-                    original: translationBuffers[key].original,
-                    translations: { ...translationBuffers[key].translations },
-                    participant_name: translationBuffers[key].participant_name,
-                  }
-                ]);
-                delete translationBuffers[key];
-              }
+              };
             }
-          });
-        } catch (err) {
-          console.error('[DAILY] Failed to join Daily room:', err);
-          dailyCoIntegration.cleanup();
-          this._translatorCallObject = null;
-        }
+
+            // Add this translation
+            translationBuffers[key].translations[data.language] = data.translated_text;
+
+            const numTranslations = Object.keys(translationBuffers[key].translations).length;
+
+            if (numTranslations === totalParticipants - 1) {
+              translationMessagesVar([
+                ...translationMessagesVar(),
+                {
+                  original: translationBuffers[key].original,
+                  translations: { ...translationBuffers[key].translations },
+                  participant_name: translationBuffers[key].participant_name,
+                }
+              ]);
+              delete translationBuffers[key];
+            }
+          }
+        });
+      } catch (err) {
+        console.error('[DAILY] Failed to join Daily room:', err);
+        this._translatorCallObject = null;
       }
+
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
       storeAudioOutputDeviceId(this.outputDeviceId);
@@ -983,13 +955,6 @@ class AudioManager {
     this.isDeafened = true;
     this.failedMediaElements = [];
 
-    // Clean up Daily.co if active
-    if (dailyCoIntegration.isIntegrationActive()) {
-      console.log('[DAILY] Cleaning up Daily.co on audio exit');
-      dailyCoIntegration.cleanup();
-    }
-
-    // Clean up translator call object
     if (this._translatorCallObject) {
       console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
       this._translatorCallObject = null;
@@ -1117,22 +1082,6 @@ class AudioManager {
     return Boolean(this.isConnected || this.isConnecting || this.isHangingUp);
   }
 
-  /**
-   * Check if Daily.co integration is currently active
-   * @returns {boolean}
-   */
-  isDailyActive() {
-    return dailyCoIntegration.isIntegrationActive();
-  }
-
-  /**
-   * Get the Daily.co call object if available
-   * @returns {Object|null}
-   */
-  getDailyCallObject() {
-    return dailyCoIntegration.getCallObject();
-  }
-
   handleMediaStreamInactive(stream) {
     logger.warn({
       logCode: 'audiomanager_stream_inactive',
@@ -1210,6 +1159,10 @@ class AudioManager {
 
   changeInputDevice(deviceId) {
     if (deviceId === this.inputDeviceId) return this.inputDeviceId;
+    if (this._translatorCallObject) {
+      console.log('[DAILY] Changing input device in Daily.co:', deviceId);
+      this._translatorCallObject.CallObject.setInputDeviceAsync(deviceId);
+    }
 
     const currentDeviceId = this.inputDeviceId ?? 'none';
     this.inputDeviceId = deviceId;
@@ -1266,11 +1219,11 @@ class AudioManager {
     const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
 
     // If Daily.co is active, route the output device change to Daily.co
-    if (dailyCoIntegration.isIntegrationActive()) {
+    if (this._translatorCallObject) {
       console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
       try {
         // Change output device in Daily.co
-        await dailyCoIntegration.changeOutputDevice(deviceId);
+        await this._translatorCallObject.CallObject.setOutputDeviceAsync(deviceId);
         this.outputDeviceId = deviceId;
 
         // Live output device change - add device ID to session storage
@@ -1539,14 +1492,12 @@ class AudioManager {
 
   setParticipantVolume(volume = 0.1) {
     const participants = this._translatorCallObject.CallObject.participants();
-    console.log(volume);
     for (let id in participants) {
       if (id === 'local') continue;
       const participant = participants[id];
       const userName = participant.user_name || '';
       // Check if it's NOT a bot
       if (!userName.startsWith('bot-')) {
-        console.log(`➡️ Adjusting volume for: ${userName} (session: ${participant.session_id})`);
         this._translatorCallObject.setParticipantVolume(participant.session_id, volume);
       }
     }
