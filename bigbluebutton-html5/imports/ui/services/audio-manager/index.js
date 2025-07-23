@@ -32,6 +32,7 @@ import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService }
 import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
+import { TranslationManager } from './translationManager';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -137,6 +138,7 @@ class AudioManager {
     this.localBot = makeVar(null);
     this.localBotSessionId = makeVar(null);
     this.enableBot = makeVar(true);
+    this.translationManager = new TranslationManager();
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -772,60 +774,6 @@ class AudioManager {
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
 
-  captureParticipantAudio(participant) {
-    if (!participant || participant.local) return; // Skip local participant
-    console.log(participant)
-    const isBot = participant.user_name.startsWith('bot-');
-    if (isBot) {
-      return;
-    } else {
-      console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
-      // Get the participant's audio track
-      const audioTrack = participant.audioTrack;
-      if (audioTrack) {
-        const audioStream = new MediaStream([audioTrack]);
-
-        // --- Volume control using Web Audio API ---
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaStreamSource(audioStream);
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.1; // Set volume (0.0 = mute, 1.0 = full volume)
-        source.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        this.routeToBigBlueButton(audioStream, participant);
-      }
-    }
-  }
-
-  routeToBigBlueButton(audioStream, participant) {
-    try {
-      // Get BigBlueButton's remote media element
-      const MEDIA = window.meetingClientSettings.public.media;
-      const MEDIA_TAG = MEDIA.mediaTag;
-      const bbbAudioElement = document.querySelector(MEDIA_TAG);
-
-      if (bbbAudioElement) {
-        // Replace BigBlueButton's remote stream with Daily.co's audio
-        bbbAudioElement.srcObject = audioStream;
-        bbbAudioElement.play().catch((error) => {
-          console.error('[DAILY] Failed to play Daily.co audio in BBB element:', error);
-        });
-
-        console.log('[DAILY] Successfully routed Daily.co audio to BigBlueButton');
-      }
-    } catch (error) {
-      logger.error({
-        logCode: 'daily_co_route_to_bbb_failed',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-          participantId: participant.session_id,
-        },
-      }, `Failed to route Daily.co audio to BigBlueButton: ${error.message}`);
-    }
-  }
-
-
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -887,10 +835,10 @@ class AudioManager {
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-            // allParticipants.forEach((participant) => {
-            //   if (participant.local) return; // Skip local participant
-            //   this.captureParticipantAudio(participant);
-            // });
+            allParticipants.forEach((participant) => {
+              if (participant.local) return; // Skip local participant
+              this.translationManager.captureParticipantAudio(participant, this.localBot);
+            });
             this.handleSubscription();
           });
 
