@@ -776,25 +776,32 @@ class AudioManager {
     if (!participant || participant.local) return; // Skip local participant
 
     console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
-    // Get the participant's audio track
-    const audioTrack = participant.audioTrack;
-    if (audioTrack) {
-      const audioStream = new MediaStream([audioTrack]);
-      // // --- Volume control using Web Audio API ---
-      // const audioCtx = new AudioContext();
-      // const source = audioCtx.createMediaStreamSource(audioStream);
-      // const gainNode = audioCtx.createGain();
-      // gainNode.gain.value = 0.2; // Set volume (0.0 = mute, 1.0 = full volume)
-      // source.connect(gainNode);
-      // gainNode.connect(audioCtx.destination);
-      // // -----------------------------------------
 
-      // If you still need to route to BigBlueButton, you can do so here
-      this.routeToBigBlueButton(audioStream, participant);
+    const isBot = participant.user_name.startsWith('bot-');
+    if (!isBot) {
+      return;
+    } else {
+      // Get the participant's audio track
+      const audioTrack = participant.audioTrack;
+      if (audioTrack) {
+        const audioStream = new MediaStream([audioTrack]);
+
+        // --- Volume control using Web Audio API ---
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(audioStream);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.5; // Set volume (0.0 = mute, 1.0 = full volume)
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        // -----------------------------------------
+
+        // If you still need to route to BigBlueButton, you can do so here
+        this._routeToBigBlueButton(audioStream, participant);
+      }
     }
   }
 
-  routeToBigBlueButton(audioStream, participant) {
+  _routeToBigBlueButton(audioStream, participant) {
     try {
       // Get BigBlueButton's remote media element
       const MEDIA = window.meetingClientSettings.public.media;
@@ -809,6 +816,10 @@ class AudioManager {
         });
 
         console.log('[DAILY] Successfully routed Daily.co audio to BigBlueButton');
+
+        // Store reference for cleanup
+        this._currentDailyStream = audioStream;
+        this._currentParticipantId = participant.session_id;
       }
     } catch (error) {
       logger.error({
@@ -872,7 +883,8 @@ class AudioManager {
           }
 
           this._translatorCallObject.on('participant-joined', (event) => {
-            const participant = event.participant;
+            const { participant } = event;
+            this.captureParticipantAudio(participant);
             console.log('[TRANSLATOR] Participant joined:', participant);
           });
 
@@ -884,10 +896,6 @@ class AudioManager {
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-            allParticipants.forEach((participant) => {
-              if (participant.local) return; // Skip local participant
-              this.captureParticipantAudio(participant);
-            });
             this.handleSubscription();
           });
 
