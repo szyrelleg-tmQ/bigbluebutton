@@ -773,66 +773,45 @@ class AudioManager {
   }
 
   captureParticipantAudio(participant) {
-    if (!participant || participant.local) return; // Skip local participant
+    if (!participant || participant.local) return;
+    // Get the participant's audio track
+    const audioTrack = participant.audioTrack;
+    if (audioTrack) {
+      // Create a MediaStream for the track
+      const audioStream = new MediaStream([audioTrack]);
 
-    console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
+      // Create a new AudioContext for this participant
+      const audioCtx = new AudioContext();
 
-    const isBot = participant.user_name.startsWith('bot-');
-    if (!isBot) {
-      return;
-    } else {
-      // Get the participant's audio track
-      const audioTrack = participant.audioTrack;
-      if (audioTrack) {
-        const audioStream = new MediaStream([audioTrack]);
+      // Create a source node from the MediaStream
+      const source = audioCtx.createMediaStreamSource(audioStream);
 
-        // --- Volume control using Web Audio API ---
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaStreamSource(audioStream);
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.5; // Set volume (0.0 = mute, 1.0 = full volume)
-        source.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        // -----------------------------------------
+      // Create a GainNode for volume control
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.5; // Set initial volume (0.0 = mute, 1.0 = full volume)
 
-        // If you still need to route to BigBlueButton, you can do so here
-        this._routeToBigBlueButton(audioStream, participant);
-      }
+      // Connect the nodes: source -> gain -> destination
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      // Store references for cleanup or later volume adjustment
+      this._currentAudioContexts = this._currentAudioContexts || {};
+      this._currentAudioContexts[participant.session_id] = { audioCtx, gainNode };
     }
   }
 
-  _routeToBigBlueButton(audioStream, participant) {
-    try {
-      // Get BigBlueButton's remote media element
-      const MEDIA = window.meetingClientSettings.public.media;
-      const MEDIA_TAG = MEDIA.mediaTag;
-      const bbbAudioElement = document.querySelector(MEDIA_TAG);
-
-      if (bbbAudioElement) {
-        // Replace BigBlueButton's remote stream with Daily.co's audio
-        bbbAudioElement.srcObject = audioStream;
-        bbbAudioElement.play().catch((error) => {
-          console.error('[DAILY] Failed to play Daily.co audio in BBB element:', error);
-        });
-
-        console.log('[DAILY] Successfully routed Daily.co audio to BigBlueButton');
-
-        // Store reference for cleanup
-        this._currentDailyStream = audioStream;
-        this._currentParticipantId = participant.session_id;
+  // Cleanup when participant leaves
+  removeParticipantAudio(participant) {
+    const audioElementId = `audio-${participant.session_id}`;
+    const audioElement = document.getElementById(audioElementId);
+    if (audioElement) {
+      audioElement.srcObject = null;
+      audioElement.remove();
+      if (this._currentAudioElements) {
+        delete this._currentAudioElements[participant.session_id];
       }
-    } catch (error) {
-      logger.error({
-        logCode: 'daily_co_route_to_bbb_failed',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-          participantId: participant.session_id,
-        },
-      }, `Failed to route Daily.co audio to BigBlueButton: ${error.message}`);
     }
   }
-
 
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
@@ -882,7 +861,7 @@ class AudioManager {
             this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
           }
 
-          this._translatorCallObject.on('participant-joined', (event) => {
+          this._translatorCallObject.CallObject.on('participant-joined', (event) => {
             const { participant } = event;
             this.captureParticipantAudio(participant);
             console.log('[TRANSLATOR] Participant joined:', participant);
