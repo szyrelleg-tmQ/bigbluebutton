@@ -18,6 +18,22 @@ export class TranslationManager {
     captureParticipantAudio(participant, localBot) {
         if (!participant || participant.local) return;
 
+        const isBot = participant.user_name?.startsWith('bot-');
+
+        // Determine if we should process this participant's audio
+        let shouldCaptureAudio = false;
+
+        if (!isBot) {
+            // Regular user - always capture
+            shouldCaptureAudio = true;
+        } else if (participant.user_name === localBot) {
+            // This is our local bot - capture it
+            shouldCaptureAudio = true;
+        }
+        // For other bots, shouldCaptureAudio remains false
+
+        if (!shouldCaptureAudio) return;
+
         console.log('[DAILY] Capturing audio from participant:', participant.user_name || participant.session_id);
 
         const audioTrack = participant.audioTrack;
