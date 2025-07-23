@@ -37,10 +37,11 @@ import { CHAT_DELETE_REACTION_MUTATION, CHAT_SEND_REACTION_MUTATION } from './pa
 import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
-import { latestTranscriptionVar, latestTranslationVar, getFilteredTranslationMessages, translationMessagesVar, selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
+import { translationMessagesVar, selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
 import { ChatAvatar } from './page/chat-message/styles';
 import audioManager from '/imports/ui/services/audio-manager';
 import { useLocalUserList } from '/imports/ui/core/hooks/useLoadedUserList';
+import { TranslationMessageCard } from './TranslationMessageCard';
 
 const PAGE_SIZE = 50;
 const CLEANUP_TIMEOUT = 3000;
@@ -700,77 +701,14 @@ const ChatMessageList: React.FC<ChatListProps> = ({
               {/* Display all translation messages as a map, filtered by user language */}
               {filteredTranslationMessages.length > 0 && (
                 <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {filteredTranslationMessages.map((msg, idx) => {
-                    const nameSlug = typeof msg.participant_name === 'string'
-                      ? msg.participant_name.match(/^([a-z-]+)/)
-                      : null;
-                    const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : '';
-                    const avatarColor = getConsistentAvatarColor(undefined, originalName || 'User');
-                    const avatarText = (originalName || 'U').slice(0, 1).toUpperCase();
-                    return (
-                      <div
-                        key={msg.timestamp || idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          background: '#fff',
-                          borderRadius: 12,
-                          padding: '18px 20px',
-                          marginBottom: 0,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
-                          border: '1px solid #ececec',
-                          maxWidth: 520,
-                          width: '100%',
-                          minWidth: 0,
-                          gap: 18,
-                        }}
-                      >
-                        <ChatAvatar
-                          avatar={''}
-                          color={avatarColor}
-                          moderator={false}
-                          style={{
-                            marginRight: 0,
-                            width: 48,
-                            height: 48,
-                            minWidth: 48,
-                            minHeight: 48,
-                            borderRadius: '50%',
-                            fontSize: 22,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                          }}
-                        >
-                          {avatarText}
-                        </ChatAvatar>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 500, fontSize: 15, color: '#222', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#888', fontWeight: 400, fontSize: 13 }}>{intl.formatMessage({ id: 'app.chat.originalLabel', defaultMessage: 'Original:' })}</span>
-                            <span style={{ wordBreak: 'break-word', fontWeight: 500 }}>{msg.original}</span>
-                          </div>
-                          <div style={{
-                            background: '#f0f7ff',
-                            borderRadius: 8,
-                            padding: '10px 14px',
-                            fontWeight: 500,
-                            fontSize: 15,
-                            color: '#1a237e',
-                            marginBottom: 0,
-                            boxShadow: '0 1px 2px rgba(26,35,126,0.04)',
-                            wordBreak: 'break-word',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}>
-                            <span style={{ color: '#1976d2', fontWeight: 400, fontSize: 13 }}>{intl.formatMessage({ id: 'app.chat.translatedLabel', defaultMessage: 'Translated:' })}</span>
-                            <span>{String(msg.translations[userLang] || msg.original)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* The mapping logic is now extremely simple and readable */}
+                  {filteredTranslationMessages.map((msg, idx) => (
+                    <TranslationMessageCard
+                      key={msg.timestamp || idx}
+                      message={msg}
+                      userLang={userLang}
+                    />
+                  ))}
                 </div>
               )}
             </PageWrapper>
