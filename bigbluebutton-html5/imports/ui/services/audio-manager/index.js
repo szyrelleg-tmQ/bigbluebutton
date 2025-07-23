@@ -799,7 +799,8 @@ class AudioManager {
         this.initTranslator();
       }
       const roomId = Auth.meetingID;
-      const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
+      const name = (Auth.fullname || 'unknown').trim().toLowerCase().replace(/\s+/g, '-');
+      const currentName = name + Math.random().toString(36).substring(2, 15);
       const language = this.lastJoinOptions?.language || 'english';
       const voice = this.lastJoinOptions?.voice || 'aria';
       let totalParticipants = 2;
