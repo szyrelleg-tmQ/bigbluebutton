@@ -1165,7 +1165,7 @@ class AudioManager {
     if (deviceId === this.inputDeviceId) return this.inputDeviceId;
     if (this._translatorCallObject) {
       console.log('[DAILY] Changing input device in Daily.co:', deviceId);
-      this._translatorCallObject.CallObject.setInputDeviceAsync(deviceId);
+      this._translatorCallObject.CallObject.setInputDeviceAsync({ audioDeviceId: deviceId });
     }
 
     const currentDeviceId = this.inputDeviceId ?? 'none';
@@ -1227,7 +1227,7 @@ class AudioManager {
       console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
       try {
         // Change output device in Daily.co
-        await this._translatorCallObject.CallObject.setOutputDeviceAsync(deviceId);
+        await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: deviceId });
         this.outputDeviceId = deviceId;
 
         // Live output device change - add device ID to session storage
