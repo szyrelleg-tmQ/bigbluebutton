@@ -87,6 +87,7 @@ const ActionButton = styled.button`
 // --- Helper Functions ---
 
 const getAvatarInfo = (participantName) => {
+    console.log('getAvatarInfo called with:', participantName);
     const nameSlug = typeof participantName === 'string' ? participantName.match(/^([a-z-]+)/) : null;
     const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : 'User';
     // Note: getConsistentAvatarColor should be defined in a shared utility file

@@ -655,49 +655,6 @@ const ChatMessageList: React.FC<ChatListProps> = ({
                   />
                 );
               })}
-              {/* Display live transcription and translation at the bottom if available */}
-              {/* {transcription && (
-                <div style={{
-                  background: '#f0f0f0',
-                  color: '#333',
-                  padding: '8px 16px',
-                  margin: '8px 0',
-                  borderRadius: '8px',
-                  fontStyle: 'italic',
-                  textAlign: isRTL ? 'right' : 'left',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  maxWidth: '70%',
-                  alignSelf: transcription.type === 'user' ? 'flex-end' : 'flex-start',
-                }}>
-                  <ChatAvatar
-                    avatar={transcription.type === 'user' ? (currentUser?.avatar || '') : ''}
-                    color={transcription.type === 'user' ? (currentUser?.color || '#888') : '#888'}
-                    moderator={transcription.type === 'user' ? !!currentUser?.isModerator : false}
-                  >
-                    {transcription.type === 'user'
-                      ? (currentUser?.name ? currentUser.name[0] : '?')
-                      : (transcription.participant_name ? transcription.participant_name[0] : '?')}
-                  </ChatAvatar>
-                  <div style={{ marginLeft: 12, flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.name || 'You')
-                        : (transcription.participant_name || 'User')}
-                    </div>
-                    <div style={{ fontSize: '0.85em', color: '#888' }}>
-                      {transcription.type === 'user'
-                        ? (currentUser?.userId || '')
-                        : (transcription.participant_name || '')}
-                    </div>
-                    <div style={{ marginTop: 2 }}>
-                      {transcription.text}
-                      <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>({transcription.language})</span>
-                    </div>
-                  </div>
-                </div>
-              )} */}
               {/* Display all translation messages as a map, filtered by user language */}
               {filteredTranslationMessages.length > 0 && (
                 <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
