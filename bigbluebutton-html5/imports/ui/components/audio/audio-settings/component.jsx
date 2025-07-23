@@ -487,8 +487,10 @@ class AudioSettings extends React.Component {
     this.setState({ loadingVoicesAndLanguages: true });
     try {
 
-      const voices = await AudioManager.TranslatorCallObject.translatorClient.fetchVoices();
+      const voices = await AudioManager.TranslatorCallObject.fetchVoices();
       const languages = await AudioManager.TranslatorCallObject.fetchLanguages();
+      console.log('Fetched voices:', voices);
+      console.log('Fetched languages:', languages);
       this.setState({
         voices,
         languages,

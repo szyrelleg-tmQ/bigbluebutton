@@ -58,6 +58,8 @@ const AudioLanguageVoiceButton = () => {
                 try {
                     const fetchedVoices = await AudioManager.TranslatorCallObject.fetchVoices();
                     const fetchedLanguages = await AudioManager.TranslatorCallObject.fetchLanguages();
+                    console.log('Fetched voices:', fetchedVoices);
+                    console.log('Fetched languages:', fetchedLanguages);
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
 
