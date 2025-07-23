@@ -822,8 +822,11 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-joined', (event) => {
             const { participant } = event;
-            this._translatorCallObject.setParticipantVolume(participant.session_id, 0.2);
+            if (!participant.user_name.startsWith("bot-")) {
+              this._translatorCallObject.setParticipantVolume(participant.session_id, 0.1);
+            }
             console.log('[TRANSLATOR] Participant joined:', participant);
+
           });
 
           this._translatorCallObject.on('participant-left', (event) => {
