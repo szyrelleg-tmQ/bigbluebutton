@@ -114,7 +114,7 @@
     "string-hash": "~1.1.3",
     "styled-components": "^5.3.3",
     "tippy.js": "^6.3.7",
-    "translator-client": "file:.packages/translator-client-1.1.3.tgz",
+    "translator-client": "file:.packages/translator-client-1.1.5.tgz",
     "use-context-selector": "^1.3.7",
     "util": "^0.12.5",
     "uuid": "^9.0.0",
