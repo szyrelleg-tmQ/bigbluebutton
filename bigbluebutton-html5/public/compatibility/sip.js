@@ -20843,27 +20843,27 @@
                     if (!this.session) {
                         throw new Error("Session does not exist.");
                     }
-                    // const mediaElement = ((_b = (_a = this.options.media) === null || _a === void 0 ? void 0 : _a.remote) === null || _b === void 0 ? void 0 : _b.video) || ((_d = (_c = this.options.media) === null || _c === void 0 ? void 0 : _c.remote) === null || _d === void 0 ? void 0 : _d.audio);
-                    // if (mediaElement) {
-                    //     const remoteStream = this.remoteMediaStream;
-                    //     if (!remoteStream) {
-                    //         throw new Error("Remote media stream undefined.");
-                    //     }
-                    //     mediaElement.autoplay = true; // Safari hack, because you cannot call .play() from a non user action
-                    //     mediaElement.srcObject = remoteStream;
-                    //     mediaElement.play().catch((error) => {
-                    //         this.logger.error(`[${this.id}] Failed to play remote media`);
-                    //         this.logger.error(error.message);
-                    //     });
-                    //     remoteStream.onaddtrack = () => {
-                    //         this.logger.log(`[${this.id}] Remote media onaddtrack`);
-                    //         mediaElement.load(); // Safari hack, as it doesn't work otherwise
-                    //         mediaElement.play().catch((error) => {
-                    //             this.logger.error(`[${this.id}] Failed to play remote media`);
-                    //             this.logger.error(error.message);
-                    //         });
-                    //     };
-                    // }
+                    const mediaElement = ((_b = (_a = this.options.media) === null || _a === void 0 ? void 0 : _a.remote) === null || _b === void 0 ? void 0 : _b.video) || ((_d = (_c = this.options.media) === null || _c === void 0 ? void 0 : _c.remote) === null || _d === void 0 ? void 0 : _d.audio);
+                    if (mediaElement) {
+                        const remoteStream = this.remoteMediaStream;
+                        if (!remoteStream) {
+                            throw new Error("Remote media stream undefined.");
+                        }
+                        mediaElement.autoplay = true; // Safari hack, because you cannot call .play() from a non user action
+                        mediaElement.srcObject = remoteStream;
+                        mediaElement.play().catch((error) => {
+                            this.logger.error(`[${this.id}] Failed to play remote media`);
+                            this.logger.error(error.message);
+                        });
+                        remoteStream.onaddtrack = () => {
+                            this.logger.log(`[${this.id}] Remote media onaddtrack`);
+                            mediaElement.load(); // Safari hack, as it doesn't work otherwise
+                            mediaElement.play().catch((error) => {
+                                this.logger.error(`[${this.id}] Failed to play remote media`);
+                                this.logger.error(error.message);
+                            });
+                        };
+                    }
                 }
                 /**
                  * End a session.
