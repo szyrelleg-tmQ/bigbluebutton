@@ -860,9 +860,9 @@ class AudioManager {
               timestamp: data.timestamp,
               type: data.type,
             });
-            // Collect translations by timestamp (message id)
 
-            const key = `${data.text}|${data.participant_name}`;
+            // Use a more robust key, like the message timestamp, if available
+            const key = data.timestamp || `${data.text}|${data.participant_name}`;
 
             // Initialize buffer for this message if it doesn't exist
             if (!translationBuffers[key]) {
@@ -870,23 +870,58 @@ class AudioManager {
                 original: data.text,
                 translations: {},
                 participant_name: data.participant_name,
+                timestamp: data.timestamp, // Store timestamp for future reference
               };
             }
 
-            // Add this translation
+            // Add the new translation to the buffer
             translationBuffers[key].translations[data.language] = data.translated_text;
 
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
+            const bufferEntry = translationBuffers[key];
 
+            // Check if all translations have been received
             if (numTranslations === totalParticipants - 1) {
-              translationMessagesVar([
-                ...translationMessagesVar(),
-                {
-                  original: translationBuffers[key].original,
-                  translations: { ...translationBuffers[key].translations },
-                  participant_name: translationBuffers[key].participant_name,
-                }
-              ]);
+              const currentMessages = translationMessagesVar();
+
+              // Find if a message from this participant already exists
+              const existingMessageIndex = currentMessages.findIndex(
+                (msg) => msg.participant_name === bufferEntry.participant_name
+              );
+
+              let newMessages;
+
+              if (existingMessageIndex !== -1) {
+
+                newMessages = currentMessages.map((msg, index) => {
+                  if (index === existingMessageIndex) {
+                    return {
+                      ...msg,
+                      translations: {
+                        ...msg.translations,
+                        ...bufferEntry.translations,
+                      },
+                      original: bufferEntry.original, // Update original text as well
+                    };
+                  }
+                  return msg; // Return other messages unchanged
+                });
+              } else {
+                // **WRITE AS NEW**: No existing message object for this participant. Add a new one.
+                newMessages = [
+                  ...currentMessages,
+                  {
+                    original: bufferEntry.original,
+                    translations: { ...bufferEntry.translations },
+                    participant_name: bufferEntry.participant_name,
+                  },
+                ];
+              }
+
+              // Update the reactive variable with the new immutable array
+              translationMessagesVar(newMessages);
+
+              // Clean up the buffer
               delete translationBuffers[key];
             }
           }
