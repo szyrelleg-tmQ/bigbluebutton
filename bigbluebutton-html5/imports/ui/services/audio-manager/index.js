@@ -822,6 +822,7 @@ class AudioManager {
 
           this._translatorCallObject.on('participant-joined', (event) => {
             const { participant } = event;
+            this._translatorCallObject.setParticipantVolume(participant.session_id, 0.2);
             console.log('[TRANSLATOR] Participant joined:', participant);
           });
 
