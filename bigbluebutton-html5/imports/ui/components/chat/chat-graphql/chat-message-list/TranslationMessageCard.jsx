@@ -90,7 +90,7 @@ const getAvatarInfo = (participantName) => {
     const nameSlug = typeof participantName === 'string' ? participantName.match(/^([a-z-]+)/) : null;
     const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : 'User';
     // Note: getConsistentAvatarColor should be defined in a shared utility file
-    const avatarColor = getConsistentAvatarColor(undefined, originalName);
+    const avatarColor = '#3B48A9';
     const avatarText = originalName.slice(0, 1).toUpperCase();
     return { originalName, avatarColor, avatarText };
 };
