@@ -887,10 +887,10 @@ class AudioManager {
           this._translatorCallObject.on('participant-updated', async (event) => {
             const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
             totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-            allParticipants.forEach((participant) => {
-              if (participant.local) return; // Skip local participant
-              this.captureParticipantAudio(participant);
-            });
+            // allParticipants.forEach((participant) => {
+            //   if (participant.local) return; // Skip local participant
+            //   this.captureParticipantAudio(participant);
+            // });
             this.handleSubscription();
           });
 
