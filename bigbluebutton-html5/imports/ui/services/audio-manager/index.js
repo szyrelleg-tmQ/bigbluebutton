@@ -772,38 +772,6 @@ class AudioManager {
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
 
-  captureParticipantAudio(participant) {
-    if (!participant || participant.local) return;
-    // Get the participant's audio track
-    const audioTrack = participant.audioTrack;
-    if (audioTrack) {
-      // Create a new audio element for this participant
-      const audioElementId = `audio-${participant.session_id}`;
-      let audioElement = document.getElementById(audioElementId);
-      if (!audioElement) {
-        audioElement = document.createElement('audio');
-        audioElement.id = audioElementId;
-        audioElement.autoplay = true;
-        audioElement.playsInline = true;
-        document.body.appendChild(audioElement);
-      }
-      audioElement.srcObject = new MediaStream([audioTrack]);
-    }
-  }
-
-  // Cleanup when participant leaves
-  removeParticipantAudio(participant) {
-    const audioElementId = `audio-${participant.session_id}`;
-    const audioElement = document.getElementById(audioElementId);
-    if (audioElement) {
-      audioElement.srcObject = null;
-      audioElement.remove();
-      if (this._currentAudioElements) {
-        delete this._currentAudioElements[participant.session_id];
-      }
-    }
-  }
-
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -852,9 +820,8 @@ class AudioManager {
             this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
           }
 
-          this._translatorCallObject.CallObject.on('participant-joined', (event) => {
+          this._translatorCallObject.on('participant-joined', (event) => {
             const { participant } = event;
-            this.captureParticipantAudio(participant);
             console.log('[TRANSLATOR] Participant joined:', participant);
           });
 
