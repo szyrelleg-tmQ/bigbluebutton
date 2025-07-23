@@ -799,8 +799,7 @@ class AudioManager {
         this.initTranslator();
       }
       const roomId = Auth.meetingID;
-      const name = (Auth.fullname || 'unknown').trim().toLowerCase().replace(/\s+/g, '-');
-      const currentName = name + Math.random().toString(36).substring(2, 15);
+      const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
       const language = this.lastJoinOptions?.language || 'english';
       const voice = this.lastJoinOptions?.voice || 'aria';
       let totalParticipants = 2;
@@ -1224,38 +1223,38 @@ class AudioManager {
     const currentDeviceId = this.outputDeviceId ?? getCurrentAudioSinkId();
 
     // If Daily.co is active, route the output device change to Daily.co
-    if (this._translatorCallObject) {
-      console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
-      try {
-        // Change output device in Daily.co
-        await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: deviceId });
-        this.outputDeviceId = deviceId;
+    // if (this._translatorCallObject) {
+    //   console.log('[DAILY] Routing output device change to Daily.co:', deviceId);
+    //   try {
+    //     // Change output device in Daily.co
+    //     await this._translatorCallObject.CallObject.setOutputDeviceAsync({ audioDeviceId: deviceId });
+    //     this.outputDeviceId = deviceId;
 
-        // Live output device change - add device ID to session storage
-        if (isLive) storeAudioOutputDeviceId(deviceId);
+    //     // Live output device change - add device ID to session storage
+    //     if (isLive) storeAudioOutputDeviceId(deviceId);
 
-        logger.debug({
-          logCode: 'audiomanager_daily_output_device_change',
-          extraInfo: {
-            deviceId: currentDeviceId,
-            newDeviceId: deviceId,
-          },
-        }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
+    //     logger.debug({
+    //       logCode: 'audiomanager_daily_output_device_change',
+    //       extraInfo: {
+    //         deviceId: currentDeviceId,
+    //         newDeviceId: deviceId,
+    //       },
+    //     }, `Daily.co audio output device changed: ${currentDeviceId || 'default'} to ${deviceId || 'default'}`);
 
-        return this.outputDeviceId;
-      } catch (error) {
-        logger.error({
-          logCode: 'audiomanager_daily_output_device_change_failure',
-          extraInfo: {
-            errorName: error.name,
-            errorMessage: error.message,
-            deviceId: currentDeviceId,
-            newDeviceId: targetDeviceId,
-          },
-        }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
-        throw error;
-      }
-    }
+    //     return this.outputDeviceId;
+    //   } catch (error) {
+    //     logger.error({
+    //       logCode: 'audiomanager_daily_output_device_change_failure',
+    //       extraInfo: {
+    //         errorName: error.name,
+    //         errorMessage: error.message,
+    //         deviceId: currentDeviceId,
+    //         newDeviceId: targetDeviceId,
+    //       },
+    //     }, `Error changing Daily.co output device - {${error.name}: ${error.message}}`);
+    //     throw error;
+    //   }
+    // }
 
     const MEDIA = window.meetingClientSettings.public.media;
     const MEDIA_TAG = MEDIA.mediaTag;
