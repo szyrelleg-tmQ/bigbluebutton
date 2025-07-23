@@ -16,7 +16,6 @@ import {
   doGUM,
 } from '/imports/api/audio/client/bridge/service';
 import { shouldForceRelay } from '/imports/ui/services/bbb-webrtc-sfu/utils';
-import dailyCoIntegration from '/imports/ui/services/daily-co-integration';
 
 const SENDRECV_ROLE = 'sendrecv';
 const RECV_ROLE = 'recv';
