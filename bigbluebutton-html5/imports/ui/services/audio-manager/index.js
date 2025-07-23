@@ -1163,10 +1163,10 @@ class AudioManager {
 
   changeInputDevice(deviceId) {
     if (deviceId === this.inputDeviceId) return this.inputDeviceId;
-    if (this._translatorCallObject) {
-      console.log('[DAILY] Changing input device in Daily.co:', deviceId);
-      this._translatorCallObject.CallObject.setInputDeviceAsync({ audioDeviceId: deviceId });
-    }
+    // if (this._translatorCallObject) {
+    //   console.log('[DAILY] Changing input device in Daily.co:', deviceId);
+    //   this._translatorCallObject.CallObject.setInputDeviceAsync({ audioDeviceId: deviceId });
+    // }
 
     const currentDeviceId = this.inputDeviceId ?? 'none';
     this.inputDeviceId = deviceId;
