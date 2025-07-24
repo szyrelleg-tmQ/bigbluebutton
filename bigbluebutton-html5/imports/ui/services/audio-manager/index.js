@@ -891,6 +891,8 @@ class AudioManager {
 
             translationBuffers[key].translations[data.language] = data.translated_text;
 
+            console.log(translationBuffers[key]);
+
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
             const bufferEntry = translationBuffers[key];
             console.log('[TRANSLATOR] Translation buffer entry:', numTranslations);
