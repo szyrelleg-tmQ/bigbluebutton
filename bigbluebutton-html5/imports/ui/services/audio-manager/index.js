@@ -850,6 +850,7 @@ class AudioManager {
               userName: participant.user_name,
             },
           }, '[TRANSLATOR] Participant left:', participant);
+          this.handleSubscription();
         });
 
         this._translatorCallObject.on('participant-updated', async (event) => {
@@ -892,7 +893,8 @@ class AudioManager {
 
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
             const bufferEntry = translationBuffers[key];
-
+            console.log('[TRANSLATOR] Translation buffer entry:', numTranslations);
+            console.log('[TRANSLATOR] Total participants:', totalParticipants);
             if (numTranslations === totalParticipants - 1) {
               const currentMessages = translationMessagesVar();
 
