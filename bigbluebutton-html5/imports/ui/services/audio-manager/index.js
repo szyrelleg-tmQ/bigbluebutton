@@ -146,7 +146,7 @@ class AudioManager {
   initTranslator() {
     try {
       this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-prod-translate.ph03.us"
+        baseUrl: "https://pipecat-translate.ph03.us"
       });
     } catch (error) {
       logger.error({
@@ -829,7 +829,7 @@ class AudioManager {
           this.handleSubscription();
         });
 
-        this._translatorCallObject.CallObject.on('joined-meeting', (event) => {
+        this._translatorCallObject.on('joined-meeting', (event) => {
           const participant = event.participant;
           logger.info({
             logCode: 'translator_call_object_joined',
