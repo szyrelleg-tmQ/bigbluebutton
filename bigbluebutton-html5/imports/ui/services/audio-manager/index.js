@@ -812,6 +812,7 @@ class AudioManager {
       try {
         this.localBot = `bot-${data.userName}`;
         const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
+
         if (res) {
           this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
         }
@@ -825,6 +826,19 @@ class AudioManager {
               userName: participant.user_name,
             },
           }, '[TRANSLATOR] Participant joined:', participant);
+          this.handleSubscription();
+        });
+
+        this._translatorCallObject.CallObject.on('joined-meeting', (event) => {
+          const participant = event.participant;
+          logger.info({
+            logCode: 'translator_call_object_joined',
+            extraInfo: {
+              participantId: participant.session_id,
+              userName: participant.user_name,
+            },
+          }, '[TRANSLATOR] Call object joined meeting:', participant);
+          this.handleSubscription();
         });
 
         this._translatorCallObject.on('participant-left', (event) => {
@@ -841,7 +855,6 @@ class AudioManager {
         this._translatorCallObject.on('participant-updated', async (event) => {
           const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
           totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-          this.handleSubscription();
         });
 
         this._translatorCallObject.on("app-message", (message) => {
