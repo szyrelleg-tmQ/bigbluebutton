@@ -879,7 +879,7 @@ class AudioManager {
               type: data.type,
             });
 
-            const key = `${data.text}|${data.participant_name}`;
+            const key = data.participant_name;
             if (!translationBuffers[key]) {
               translationBuffers[key] = {
                 original: data.text,
