@@ -920,6 +920,7 @@ class AudioManager {
               translationMessagesVar(newMessages);
               delete translationBuffers[key];
             }
+            console.log(translationMessagesVar());
           }
         });
       } catch (err) {
