@@ -890,13 +890,9 @@ class AudioManager {
             }
 
             translationBuffers[key].translations[data.language] = data.translated_text;
-
-            console.log(translationBuffers[key]);
-
             const numTranslations = Object.keys(translationBuffers[key].translations).length;
             const bufferEntry = translationBuffers[key];
-            console.log('[TRANSLATOR] Translation buffer entry:', numTranslations);
-            console.log('[TRANSLATOR] Total participants:', totalParticipants);
+
             if (numTranslations === totalParticipants - 1) {
               const currentMessages = translationMessagesVar();
 
@@ -937,7 +933,6 @@ class AudioManager {
               translationMessagesVar(newMessages);
               delete translationBuffers[key];
             }
-            console.log(translationMessagesVar());
           }
         });
       } catch (err) {
