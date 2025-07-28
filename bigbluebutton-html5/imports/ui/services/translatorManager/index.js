@@ -131,6 +131,7 @@ class TranslatorManager extends Watcher {
                     }
                 });
             }
+            console.log("[TRANSLATOR] Languages initialized:", this.#languages);
             this.notify('Languages');
         } catch (error) {
             console.error("Failed to initialize languages:", error);
@@ -166,6 +167,7 @@ class TranslatorManager extends Watcher {
                     }, 500);
                 });
             }
+            console.log("[TRANSLATOR] Voices initialized:", this.#voices);
             this.notify('Voices');
         } catch (error) {
             console.error("Failed to initialize voices:", error);
