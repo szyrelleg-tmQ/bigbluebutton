@@ -31,7 +31,7 @@ import {
 import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
-
+import TranslatorManager from '../translatorManager/index'
 const CALL_STATES = {
   STARTED: 'started',
   ENDED: 'ended',
@@ -124,7 +124,6 @@ class AudioManager {
     this.BREAKOUT_AUDIO_TRANSFER_STATES = BREAKOUT_AUDIO_TRANSFER_STATES;
     this._voiceActivityObserver = null;
     this._inputStreamInactivityTrackers = new Map();
-    this._translatorCallObject = null;
 
     this.handlePlayElementFailed = this.handlePlayElementFailed.bind(this);
     this.monitor = this.monitor.bind(this);
@@ -132,35 +131,10 @@ class AudioManager {
     this.callStateCallback = this.callStateCallback.bind(this);
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
-    this.participantsCount = makeVar(2);
-    this.localBot = makeVar(null);
-    this.localBotSessionId = makeVar(null);
-    this.enableBot = makeVar(true);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
-    this.initTranslator();
     this.audioService = getAudioRoutingService();
-  }
-
-  initTranslator() {
-    try {
-      this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-translate.ph03.us"
-      });
-    } catch (error) {
-      logger.error({
-        logCode: 'translator_client_init_failed',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-        },
-      }, `Failed to initialize translator client: ${error.message}`);
-    }
-  }
-
-  get TranslatorCallObject() {
-    return this._translatorCallObject;
   }
 
   onBeforeUnload() {
@@ -751,31 +725,6 @@ class AudioManager {
     }
   }
 
-  async handleSubscription() {
-    if (!this.localBot) return;
-    const participants = this._translatorCallObject.CallObject.participants();
-    let updateList = {};
-
-    for (let id in participants) {
-      if (id === 'local') continue;
-      const userName = participants[id].user_name || '';
-
-      if (!userName.startsWith('bot-')) {
-        updateList[id] = { setSubscribedTracks: { audio: true } };
-      } else {
-        if (userName === this.localBot && this.enableBot) {
-          this.localBotSessionId = participants[id].session_id;
-          updateList[id] = { setSubscribedTracks: { audio: true } };
-        } else {
-          updateList[id] = { setSubscribedTracks: { audio: false } };
-        }
-      }
-    }
-
-    console.log('[TRANSLATOR] Updating participants subscription:', updateList);
-    this._translatorCallObject.CallObject.updateParticipants(updateList);
-  }
-
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -799,66 +748,23 @@ class AudioManager {
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
 
-      if (this._translatorCallObject) {
-        this.initTranslator();
-      }
-      const roomId = Auth.meetingID;
-      const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
-      const language = this.lastJoinOptions?.language || 'english';
-      const voice = this.lastJoinOptions?.voice || 'aria';
+
+      TranslatorManager.setValue('roomId', roomId || Auth.meetingID);
+      TranslatorManager.setValue('currentName', Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15));
+      TranslatorManager.setValue('currentUserLanguage', this.lastJoinOptions?.language || 'english');
+      TranslatorManager.setValue('currentVoice', this.lastJoinOptions?.voice || 'aria');
+
       let totalParticipants = 2;
+      await TranslatorManager.joinRoom();
 
-      const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
       try {
-        this.localBot = `bot-${data.userName}`;
-        const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
 
-        if (res) {
-          this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
-        }
-
-        this._translatorCallObject.on('participant-joined', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_participant_joined',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Participant joined:', participant);
-          this.handleSubscription();
-        });
-
-        this._translatorCallObject.on('joined-meeting', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_call_object_joined',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Call object joined meeting:', participant);
-          this.handleSubscription();
-        });
-
-        this._translatorCallObject.on('participant-left', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_participant_left',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Participant left:', participant);
-          this.handleSubscription();
-        });
-
-        this._translatorCallObject.on('participant-updated', async (event) => {
-          const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
+        TranslatorManager.TranslatorClient.on('participant-updated', async (event) => {
+          const allParticipants = Object.values(TranslatorManager.TranslatorClient.CallObject.participants());
           totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
         });
 
-        this._translatorCallObject.on("app-message", (message) => {
+        TranslatorManager.TranslatorClient.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "transcription") {
             latestTranscriptionVar({
@@ -937,7 +843,6 @@ class AudioManager {
         });
       } catch (err) {
         console.error('[DAILY] Failed to join Daily room:', err);
-        this._translatorCallObject = null;
       }
 
       // Enforce correct output device on audio join
@@ -1024,11 +929,6 @@ class AudioManager {
     this.autoplayBlocked = false;
     this.isDeafened = true;
     this.failedMediaElements = [];
-
-    if (this._translatorCallObject) {
-      console.log('[TRANSLATOR] Cleaning up translator call object on audio exit');
-      this._translatorCallObject = null;
-    }
 
     if (this.inputStream && this.bridge?.bridgeName !== 'livekit') {
       this.inputStream.getTracks().forEach((track) => track.stop());
@@ -1240,9 +1140,9 @@ class AudioManager {
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
 
-    if (this._translatorCallObject && this.inputDeviceId) {
+    if (TranslatorManager.TranslatorClient && this.inputDeviceId) {
       console.log('[DAILY] Changing input device in Daily.co:', deviceId);
-      this._translatorCallObject.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
+      TranslatorManager.TranslatorClient.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
     }
 
     return this.inputDeviceId;
@@ -1316,9 +1216,9 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
-        if (this._translatorCallObject && this.outputDeviceId) {
+        if (TranslatorManager.TranslatorClient && this.outputDeviceId) {
           console.log('[DAILY] Changing output device in Daily.co:', this.outputDeviceId);
-          await this._translatorCallObject.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
+          await TranslatorManager.TranslatorClient.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
         }
 
         return this.outputDeviceId;
@@ -1510,36 +1410,16 @@ class AudioManager {
   mute() {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
+    if (TranslatorManager.TranslatorClient) {
+      const res = TranslatorManager.TranslatorClient.toggleAudio();
     }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
-    }
-  }
-
-  toggleTranslation(flag) {
-    this.enableBot = flag;
-    this._translatorCallObject.CallObject.updateParticipant(this.localBotSessionId, {
-      setSubscribedTracks: { audio: flag }
-    });
-  }
-
-  setParticipantVolume(volume = 0.1) {
-    const participants = this._translatorCallObject.CallObject.participants();
-    for (let id in participants) {
-      if (id === 'local') continue;
-      const participant = participants[id];
-      const userName = participant.user_name || '';
-      // Check if it's NOT a bot
-      if (!userName.startsWith('bot-')) {
-        this._translatorCallObject.setParticipantVolume(participant.session_id, volume);
-      }
+    if (TranslatorManager.TranslatorClient) {
+      const res = TranslatorManager.TranslatorClient.toggleAudio();
     }
   }
 

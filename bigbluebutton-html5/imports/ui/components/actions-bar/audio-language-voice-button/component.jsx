@@ -7,6 +7,7 @@ import { defineMessages, useIntl } from 'react-intl';
 import AudioManager from '/imports/ui/services/audio-manager';
 import LanguageIcon from '/public/svgs/language.svg';
 import { selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
+import translatorManager from '/imports/ui/services/translatorManager';
 
 const intlMessages = defineMessages({
     buttonLabel: {
@@ -56,10 +57,8 @@ const AudioLanguageVoiceButton = () => {
             setLoading(true);
             const fetchData = async () => {
                 try {
-                    const fetchedVoices = await AudioManager.TranslatorCallObject.fetchVoices();
-                    const fetchedLanguages = await AudioManager.TranslatorCallObject.fetchLanguages();
-                    setVoices(fetchedVoices);
-                    setLanguages(fetchedLanguages);
+                    setVoices(translatorManager.Voices);
+                    setLanguages(translatorManager.Languages);
 
                     // Get last used voice/language/volume settings
                     const lastVoice = AudioManager.lastJoinOptions?.voice;
@@ -90,16 +89,16 @@ const AudioLanguageVoiceButton = () => {
         // Try to update the current translator client if available
         try {
             // AudioManager._translatorCallObject is the current translator client instance
-            const translatorClient = AudioManager._translatorCallObject;
+            const translatorClient = translatorManager;
             if (translatorClient) {
-                if (typeof translatorClient.setVoice === 'function') {
-                    translatorClient.setVoice(selectedVoice, selectedLanguage);
+                if (typeof translatorClient.set === 'function') {
+                    translatorClient.updateVoiceSelection(selectedVoice, selectedLanguage);
                 }
-                if (typeof translatorClient.setLanguage === 'function') {
-                    translatorClient.setLanguage(selectedLanguage);
+                if (typeof translatorClient.setLanguages === 'function') {
+                    translatorClient.setLanguages(selectedLanguage);
                 }
-                if (typeof AudioManager.setParticipantVolume === 'function') {
-                    AudioManager.setParticipantVolume(volume / 100); // Convert to 0-1 range
+                if (typeof translatorClient.setParticipantVolume === 'function') {
+                    translatorClient.setParticipantVolume(volume / 100); // Convert to 0-1 range
                 }
             }
 
@@ -126,9 +125,8 @@ const AudioLanguageVoiceButton = () => {
 
         // Revert volume in the translator client if available
         try {
-            const translatorClient = AudioManager._translatorCallObject;
-            if (translatorClient && typeof translatorClient.setVolume === 'function') {
-                translatorClient.setVolume(originalVolume / 100);
+            if (translatorManager && typeof translatorManager.setParticipantVolume === 'function') {
+                translatorManager.setParticipantVolume(originalVolume / 100);
             }
         } catch (err) {
             console.warn('Failed to revert volume settings:', err);

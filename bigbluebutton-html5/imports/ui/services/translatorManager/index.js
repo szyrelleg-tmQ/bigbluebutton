@@ -1,6 +1,6 @@
 // --- START OF REVISED FILE IndexWatcher.js ---
 
-import { LANG_KEYS, LOADER, SETTINGS_TYPES, TOAST_STYLE } from "../const";
+import { LANG_KEYS, LOADER, SETTINGS_TYPES } from "./const";
 import { getTranslatorClient, ClientProviders } from "translator-client";
 import { Watcher } from "./Watcher";
 import ClientAsr from "./ClientAsr";
@@ -27,6 +27,9 @@ class TranslatorManager extends Watcher {
 
     constructor() {
         super();
+        this.localBot = null;
+        this.enableBot = false;
+        this.localBotSessionId = null;
         this.#initialize();
     }
 
@@ -206,11 +209,6 @@ class TranslatorManager extends Watcher {
                 const voices = this.#clientProvider?.TTS?.getVoices() ?? [];
                 this.#voices = voices.map(v => ({ id: v.voiceURI, name: v.name, isSelected: v.default }));
                 this.notify('Voices');
-
-                const defaultVoice = voices.find(v => v.default) || voices[0];
-                if (defaultVoice) {
-                    this.handleRoomSettings(SETTINGS_TYPES.VOICES, defaultVoice.id);
-                }
             } else {
                 if (isJoined) {
                     this.TranslatorClient?.setLanguage(language.language);
@@ -222,7 +220,7 @@ class TranslatorManager extends Watcher {
         }
     }
 
-    #updateVoiceSelection(voiceId) {
+    updateVoiceSelection(voiceId) {
         const selectedVoice = this.#voices.find(v => v.id === voiceId);
         if (!selectedVoice) return;
 
@@ -236,6 +234,26 @@ class TranslatorManager extends Watcher {
             const lang = this.getValue('currentUserLanguage') || { name: 'English' };
             if (this.getValue('isJoined')) {
                 this.TranslatorClient?.setVoice(selectedVoice.id, lang.name);
+            }
+        }
+    }
+
+    toggleTranslation(flag) {
+        this.enableBot = flag;
+        this.TranslatorClient.CallObject.updateParticipant(this.localBotSessionId, {
+            setSubscribedTracks: { audio: flag }
+        });
+    }
+
+    setParticipantVolume(volume = 0.1) {
+        const participants = this.TranslatorClient.CallObject.participants();
+        for (let id in participants) {
+            if (id === 'local') continue;
+            const participant = participants[id];
+            const userName = participant.user_name || '';
+            // Check if it's NOT a bot
+            if (!userName.startsWith('bot-')) {
+                this.TranslatorClient.setParticipantVolume(participant.session_id, volume);
             }
         }
     }
@@ -260,7 +278,7 @@ class TranslatorManager extends Watcher {
 
             if (data.room_url && data.userName) {
                 await this.TranslatorClient.joinRoom(data.room_url, data.userName);
-
+                this.localBot = `bot-${data.userName}`;
                 // Initialize client-side ASR if needed
                 if (this.#clientProvider) {
                     this.#activeClientAsr = new ClientAsr(this.#clientProvider);
@@ -269,6 +287,7 @@ class TranslatorManager extends Watcher {
 
                 this.setValue('isJoined', true);
                 this.setValue('localSessionId', data.userName);
+                this.TranslatorClient.CallObject.setSubscribeToTracksAutomatically(false)
                 this.#setupEventListeners();
             }
         } catch (error) {
@@ -278,6 +297,8 @@ class TranslatorManager extends Watcher {
             this.setValue(LOADER.ROOM, false);
         }
     }
+
+
 
     async leaveRoom() {
         this.setValue(LOADER.ROOM, true);
@@ -298,9 +319,34 @@ class TranslatorManager extends Watcher {
         const client = this.TranslatorClient;
         if (!client) return;
 
-        const updateParticipants = () => this.setValue('participants', client.getParticipants());
+        const updateParticipants = async () => {
+            this.setValue('participants', client.getParticipants());
+            if (!this.localBot) return;
+            const participants = client.CallObject.participants();
+            let updateList = {};
+
+            for (let id in participants) {
+                if (id === 'local') continue;
+                const userName = participants[id].user_name || '';
+
+                if (!userName.startsWith('bot-')) {
+                    updateList[id] = { setSubscribedTracks: { audio: true } };
+                } else {
+                    if (userName === this.localBot && this.enableBot) {
+                        this.localBotSessionId = participants[id].session_id;
+                        updateList[id] = { setSubscribedTracks: { audio: true } };
+                    } else {
+                        updateList[id] = { setSubscribedTracks: { audio: false } };
+                    }
+                }
+            }
+
+            console.log('[TRANSLATOR] Updating participants subscription:', updateList);
+            this.client.CallObject.updateParticipants(updateList);
+        }
+
         client.on('participant-joined', updateParticipants);
-        client.on('participant-updated', updateParticipants);
+        client.on('joined-meeting', updateParticipants);
         client.on('participant-left', updateParticipants);
         client.on('left-meeting', () => {
             this.setValue('participants', []);
