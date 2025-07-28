@@ -40,7 +40,6 @@ class TranslatorManager extends Watcher {
     #initialize() {
         this.#initClientProvider();
         this.checkSettings();
-        this.refreshDevices();
     }
 
     // --- Getters for public access ---
