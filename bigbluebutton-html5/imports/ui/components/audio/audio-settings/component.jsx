@@ -537,6 +537,7 @@ class AudioSettings extends React.Component {
   }
 
   handleLanguageChange(e) {
+    console.log(e.target)
     this.setState({ selectedLanguage: e.target.value });
   }
 

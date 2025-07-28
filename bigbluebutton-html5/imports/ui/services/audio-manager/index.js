@@ -748,8 +748,8 @@ class AudioManager {
 
       this.inputStream = this.bridge ? this.bridge.inputStream : null;
 
-
-      TranslatorManager.setValue('roomId', roomId || Auth.meetingID);
+      console.log(this.lastJoinOptions);
+      TranslatorManager.setValue('roomId', Auth.meetingID);
       TranslatorManager.setValue('currentName', Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15));
       TranslatorManager.setValue('currentUserLanguage', this.lastJoinOptions?.language || 'english');
       TranslatorManager.setValue('currentVoice', this.lastJoinOptions?.voice || 'aria');
