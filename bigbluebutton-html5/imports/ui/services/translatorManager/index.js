@@ -74,7 +74,7 @@ class TranslatorManager extends Watcher {
      */
     #initTranslatorClient() {
         if (this.#translatorClient) return;
-        this.#translatorClient = getTranslatorClient({ baseUrl: `${API_BASE_URL}/` });
+        this.#translatorClient = getTranslatorClient({ baseUrl: API_BASE_URL });
     }
 
     /**
