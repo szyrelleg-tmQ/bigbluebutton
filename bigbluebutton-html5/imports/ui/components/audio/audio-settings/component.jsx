@@ -13,7 +13,6 @@ import { hasMediaDevicesEventTarget } from '/imports/ui/services/webrtc-base/uti
 import AudioManager from '/imports/ui/services/audio-manager';
 import Session from '/imports/ui/services/storage/in-memory';
 import AudioCaptionsSelectContainer from '../audio-graphql/audio-captions/captions/component';
-import DeviceSelectorStyles from '../device-selector/styles';
 import translatorManager from '/imports/ui/services/translatorManager';
 
 const propTypes = {
@@ -109,6 +108,27 @@ const intlMessages = defineMessages({
   baseSubtitle: {
     id: 'app.audio.audioSettings.baseSubtitle',
     description: 'Base subtitle for audio settings',
+  },
+  // Added for new selectors
+  voiceLabel: {
+    id: 'app.audio.voiceLabel',
+    description: 'Label for voice selector',
+    defaultMessage: 'Voice',
+  },
+  languageLabel: {
+    id: 'app.audio.languageLabel',
+    description: 'Label for language selector',
+    defaultMessage: 'Language',
+  },
+  loadingVoicesLabel: {
+    id: 'app.audio.loadingVoices',
+    description: 'Loading voices message',
+    defaultMessage: 'Loading voices...',
+  },
+  loadingLanguagesLabel: {
+    id: 'app.audio.loadingLanguages',
+    description: 'Loading languages message',
+    defaultMessage: 'Loading languages...',
   },
 });
 
@@ -490,15 +510,24 @@ class AudioSettings extends React.Component {
       const voices = translatorManager.Voices;
       const languages = translatorManager.Languages;
 
+      const selectedVoice = voices.find(v => v.isSelected)?.id || voices[0]?.id || '';
+      const selectedLanguage = languages.find(l => l.isSelected)?.id || languages[0]?.id || '';
+
       this.setState({
         voices,
         languages,
-        selectedVoice: voices[0]?.key || '',
-        selectedLanguage: languages[0]?.key || languages[0] || '',
+        selectedVoice,
+        selectedLanguage,
         loadingVoicesAndLanguages: false,
       });
     } catch (err) {
-      // fallback: leave empty or log
+      logger.error({
+        logCode: 'fetch_voices_languages_failed',
+        extraInfo: {
+          errorMessage: err.message,
+          errorStack: err.stack,
+        },
+      }, 'Failed to fetch voices and languages');
       this.setState({ voices: [], languages: [], loadingVoicesAndLanguages: false });
     }
   }
@@ -529,23 +558,22 @@ class AudioSettings extends React.Component {
   renderVoiceSelector() {
     const { voices, selectedVoice, loadingVoicesAndLanguages } = this.state;
     const { intl } = this.props;
-    if (loadingVoicesAndLanguages) return <div>Loading voices...</div>;
+    if (loadingVoicesAndLanguages) return <div>{intl.formatMessage(intlMessages.loadingVoicesLabel)}</div>;
     if (!voices.length) return null;
-    // Map voices to DeviceSelector-like format
-    const devices = voices.map((v, i) => ({
-      deviceId: v.key || v,
-      label: v.name || v.key || v,
+    const devices = voices.map(v => ({
+      deviceId: v.id,
+      label: v.name,
     }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="voiceSelector">
-          Voice
+          {intl.formatMessage(intlMessages.voiceLabel)}
           <DeviceSelector
             id="voiceSelector"
             kind="voice"
             deviceId={selectedVoice}
             devices={devices}
-            onChange={(val) => this.setState({ selectedVoice: val })}
+            onChange={this.handleVoiceChange}
             blocked={false}
             intl={intl}
             supportsTransparentListenOnly={false}
@@ -558,23 +586,22 @@ class AudioSettings extends React.Component {
   renderLanguageSelector() {
     const { languages, selectedLanguage, loadingVoicesAndLanguages } = this.state;
     const { intl } = this.props;
-    if (loadingVoicesAndLanguages) return <div>Loading languages...</div>;
+    if (loadingVoicesAndLanguages) return <div>{intl.formatMessage(intlMessages.loadingLanguagesLabel)}</div>;
     if (!languages.length) return null;
-    // Map languages to DeviceSelector-like format
-    const devices = languages.map((l, i) => ({
-      deviceId: l.key || l,
-      label: l.name || l.key || l,
+    const devices = languages.map(l => ({
+      deviceId: l.id,
+      label: l.language,
     }));
     return (
       <Styled.FormElement>
         <Styled.LabelSmall htmlFor="languageSelector">
-          Language
+          {intl.formatMessage(intlMessages.languageLabel)}
           <DeviceSelector
             id="languageSelector"
             kind="language"
             deviceId={selectedLanguage}
             devices={devices}
-            onChange={(val) => this.setState({ selectedLanguage: val })}
+            onChange={this.handleLanguageChange}
             blocked={false}
             intl={intl}
             supportsTransparentListenOnly={false}
