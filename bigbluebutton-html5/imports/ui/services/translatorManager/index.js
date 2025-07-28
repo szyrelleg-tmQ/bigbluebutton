@@ -273,7 +273,7 @@ class TranslatorManager extends Watcher {
             if (!roomId) {
                 throw new Error('Room ID is required.');
             }
-
+            console.log("[TRANSLATOR] Joining room with parameters:", roomId, name, language, voice);
             this.#initTranslatorClient(); // Ensure client is ready
             const data = await this.TranslatorClient.startBot(name, language, roomId, voice, false);
 
