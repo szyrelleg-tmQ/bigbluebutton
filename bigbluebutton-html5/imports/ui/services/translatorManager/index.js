@@ -5,7 +5,7 @@ import { getTranslatorClient, ClientProviders } from "translator-client";
 import { Watcher } from "./Watcher";
 import ClientAsr from "./ClientAsr";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7860';
+const API_BASE_URL = 'https://pipecat-translate.ph03.us';
 
 /**
  * A singleton Watcher that manages the application's global state,
