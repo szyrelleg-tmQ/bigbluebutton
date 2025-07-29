@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+// #NOTES: DEBUGGING
 import { getDailyManager } from "./DailyManager.js";
 
 export const EVENTS = {
@@ -140,21 +141,15 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> if local translated playing ? no -> set remote raw volume 0.1
              */
             case EVENTS.REMOTE_RAW_START:
-                if (this.getState(STREAM_TYPES.LOCAL_RAW)) {
-                    this.#debounce(STREAM_TYPES.REMOTE_RAW, () => {
+                if (isLocalRawPlaying || isLocalTranslatedPlaying) {
+                    this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
                         this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                     }, 100);
                     break;
                 }
-                if (this.getState(STREAM_TYPES.LOCAL_TRANLATED)) {
-                    this.#debounce(STREAM_TYPES.REMOTE_RAW, () => {
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
-                    }, 100);
-                    break;
-                }
-                this.#debounce(STREAM_TYPES.REMOTE_RAW, () => {
+
+                this.#debounce(event, () => {
                     this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0.1);
                     this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0.1;
                 }, 100);
@@ -164,7 +159,7 @@ class EventManager extends EventEmitter {
              * set remote raw volume to default: 0
              */
             case EVENTS.REMOTE_RAW_END:
-                this.#debounce(STREAM_TYPES.REMOTE_RAW, () => {
+                this.#debounce(event, () => {
                     this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
                     this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                 }, 100);
@@ -177,28 +172,15 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> if local translated playing ? no -> if remote raw playing ? no -> set remote translated volume 0.2
              */
             case EVENTS.REMOTE_TRANLATED_START: {
-                if (isLocalRawPlaying) {
-                    this.#debounce(STREAM_TYPES.REMOTE_TRANLATED, () => {
+                if (isLocalRawPlaying || isLocalTranslatedPlaying || isRemoteRawPlaying) {
+                    this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
                     }, 100);
                     break;
                 }
-                if (isLocalTranslatedPlaying) {
-                    this.#debounce(STREAM_TYPES.REMOTE_TRANLATED, () => {
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
-                    }, 100);
-                    break;
-                }
-                if (isRemoteRawPlaying) {
-                    this.#debounce(STREAM_TYPES.REMOTE_TRANLATED, () => {
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
-                    }, 100);
-                    break;
-                }
-                this.#debounce(STREAM_TYPES.REMOTE_TRANLATED, () => {
+
+                this.#debounce(event, () => {
                     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0.2);
                     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0.2;
                 }, 100);
@@ -210,7 +192,7 @@ class EventManager extends EventEmitter {
              * set remote translated volume to default: 0
              */
             case EVENTS.REMOTE_TRANLATED_END:
-                this.#debounce(STREAM_TYPES.REMOTE_TRANLATED, () => {
+                this.#debounce(event, () => {
                     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
                 }, 100);
@@ -220,9 +202,9 @@ class EventManager extends EventEmitter {
              * do nothing
              */
             case EVENTS.LOCAL_RAW_START:
-                this.#debounce(STREAM_TYPES.LOCAL_RAW, () => {
-                    this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
-                    this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
+                this.#debounce(event, () => {
+                    // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
+                    // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
 
                     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0.5);
                     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0.5;
@@ -233,14 +215,14 @@ class EventManager extends EventEmitter {
              * do nothing
              */
             case EVENTS.LOCAL_RAW_END:
-                this.#debounce(STREAM_TYPES.LOCAL_RAW, () => {
-                    this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
-                    this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
+                this.#debounce(event, () => {
+                    // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
+                    // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
 
-                    if (this.getState(STREAM_TYPES.REMOTE_TRANLATED)) {
-                        this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](0.5);
-                        this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 0.5;
-                    }
+                    // if (isRemoteTranslatedPlaying) {
+                    //     this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                    //     this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                    // }
                 }, 100);
                 break;
             /**
@@ -249,21 +231,27 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> set local translated volume 1
              */
             case EVENTS.LOCAL_TRANLATED_START: {
-                if (this.getState(EVENTS.LOCAL_RAW_START)) {
-                    this.#debounce(STREAM_TYPES.LOCAL_TRANLATED, () => {
+                if (isLocalRawPlaying) {
+                    this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](0.5);
                         this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 0.5;
 
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                     }, 100);
                 } else {
-                    this.#debounce(STREAM_TYPES.LOCAL_TRANLATED, () => {
+                    this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
                         this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
 
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                     }, 100);
                 }
                 break;
@@ -274,7 +262,7 @@ class EventManager extends EventEmitter {
              * set local translated volume to default: 1
              */
             case EVENTS.LOCAL_TRANLATED_END:
-                this.#debounce(STREAM_TYPES.LOCAL_TRANLATED, () => {
+                this.#debounce(event, () => {
                     this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](0);
                     this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 0;
                 }, 1000);
@@ -282,6 +270,8 @@ class EventManager extends EventEmitter {
             default:
                 return false;
         }
+        // #NOTES: DEBUGGING
+
     }
 }
 

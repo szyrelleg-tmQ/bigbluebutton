@@ -813,6 +813,33 @@ class AudioManager {
     return callState ? callState.participants : [];
   }
 
+  // Apply mute state to all audio elements for a specific participant
+  applyRemoteMuteState(participantId, shouldMute) {
+    // Find all audio and video elements
+    const mediaElements = document.querySelectorAll('audio, video').filter(element => !element.id.includes('ivr'));
+
+    mediaElements.forEach(element => {
+      const elementParticipantId = element.getAttribute('data-participant-id');
+      const elementParticipantType = element.getAttribute('data-participant-type');
+
+      // Check if this element belongs to the remote participant or bot-remote
+      if (elementParticipantId === participantId ||
+        elementParticipantType === 'remote' ||
+        elementParticipantType === 'bot-remote') {
+
+        // Apply mute state
+        element.muted = shouldMute;
+
+        // For audio elements, we might also want to pause/play
+        if (shouldMute && element.tagName === 'AUDIO') {
+          element.volume = 0;
+        } else if (!shouldMute && element.tagName === 'AUDIO') {
+          element.volume = 1;
+        }
+      }
+    });
+  }
+
   handleParticipantUpdate() {
     // Check if remote is muted and reapply if needed
     const participants = this.participants || [];
