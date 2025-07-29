@@ -32,6 +32,7 @@ import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService }
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import { getDailyManager } from "./watcher/DailyManager";
+import { Watcher } from './watcher/Watcher';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -70,7 +71,7 @@ const checkMediaDevicesTarget = () => {
   }
 };
 
-class AudioManager {
+class AudioManager extends Watcher {
   static playAudioElement(element) {
     return new Promise((resolve) => {
       if (!(element instanceof HTMLMediaElement)) {
