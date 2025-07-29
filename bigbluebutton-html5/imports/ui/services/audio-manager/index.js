@@ -148,7 +148,7 @@ class AudioManager {
   initTranslator() {
     try {
       this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-translate.ph03.us"
+        baseUrl: "https://pipecat-prod-translate.ph03.us"
       });
     } catch (error) {
       logger.error({
