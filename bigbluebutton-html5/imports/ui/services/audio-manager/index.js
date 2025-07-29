@@ -817,8 +817,9 @@ class AudioManager {
 
   // Apply mute state to all audio elements for a specific participant
   applyRemoteMuteState(participantId, shouldMute) {
-    // Find all audio and video elements
-    const mediaElements = document.querySelectorAll('audio, video').filter(element => !element.id.includes('ivr'));
+    // Convert NodeList to Array, then filter
+    const mediaElements = Array.from(document.querySelectorAll('audio, video'))
+      .filter(element => !element.id.includes('ivr'));
 
     mediaElements.forEach(element => {
       const elementParticipantId = element.getAttribute('data-participant-id');
@@ -832,11 +833,9 @@ class AudioManager {
         // Apply mute state
         element.muted = shouldMute;
 
-        // For audio elements, we might also want to pause/play
-        if (shouldMute && element.tagName === 'AUDIO') {
-          element.volume = 0;
-        } else if (!shouldMute && element.tagName === 'AUDIO') {
-          element.volume = 1;
+        // For audio elements, also control volume
+        if (element.tagName === 'AUDIO') {
+          element.volume = shouldMute ? 0 : 1;
         }
       }
     });
