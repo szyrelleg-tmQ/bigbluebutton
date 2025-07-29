@@ -20,7 +20,9 @@ class DailyManager {
          */
         this.audioElements = new Map(); // participantId -> audioElement
         this.clientSettings = {};
-
+        EventManager.setDebugCallback((data) => {
+            console.table(data, ["isPlaying", "volume", "isIframe", "event"]);
+        });
         this.init();
         this.setupP2PHandling();
     }
