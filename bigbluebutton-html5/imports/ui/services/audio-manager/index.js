@@ -31,6 +31,7 @@ import {
 import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
+import { getDailyManager } from "./watcher/DailyManager";
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -805,6 +806,28 @@ class AudioManager {
     this._translatorCallObject.CallObject.updateParticipants(updateList);
   }
 
+  getParticipantsFromDaily() {
+    const dailyManager = getDailyManager();
+    const callState = dailyManager.getCallState();
+    return callState ? callState.participants : [];
+  }
+
+  handleParticipantUpdate() {
+    // Check if remote is muted and reapply if needed
+    const isRemoteMuted = this.getValue('isRemoteMuted');
+    if (isRemoteMuted) {
+      const participants = this.getValue('participants') || [];
+      const remoteParticipant = participants.find(p => !p.local && !p.user_name.startsWith('bot-'));
+
+      if (remoteParticipant) {
+        // Reapply mute state after a short delay to ensure elements are rendered
+        setTimeout(() => {
+          this.applyRemoteMuteState(remoteParticipant.session_id, true);
+        }, 100);
+      }
+    }
+  }
+
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -840,54 +863,70 @@ class AudioManager {
       const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
       try {
         this.localBot = `bot-${data.userName}`;
-        const res = await this._translatorCallObject.joinRoom(data.room_url, data.userName);
+        const dailyManager = getDailyManager();
+        await dailyManager.joinRoom(data.room_url, data.userName)
 
-        if (res) {
-          this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
-        }
+        // if (res) {
+        //   this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
+        // }
 
-        this._translatorCallObject.on('participant-joined', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_participant_joined',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Participant joined:', participant);
-          this.handleSubscription();
-        });
+        // this._translatorCallObject.on('participant-joined', (event) => {
+        //   const participant = event.participant;
+        //   logger.info({
+        //     logCode: 'translator_participant_joined',
+        //     extraInfo: {
+        //       participantId: participant.session_id,
+        //       userName: participant.user_name,
+        //     },
+        //   }, '[TRANSLATOR] Participant joined:', participant);
+        //   this.handleSubscription();
+        // });
 
-        this._translatorCallObject.on('joined-meeting', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_call_object_joined',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Call object joined meeting:', participant);
-          this.handleSubscription();
-        });
+        // this._translatorCallObject.on('joined-meeting', (event) => {
+        //   const participant = event.participant;
+        //   logger.info({
+        //     logCode: 'translator_call_object_joined',
+        //     extraInfo: {
+        //       participantId: participant.session_id,
+        //       userName: participant.user_name,
+        //     },
+        //   }, '[TRANSLATOR] Call object joined meeting:', participant);
+        //   this.handleSubscription();
+        // });
 
-        this._translatorCallObject.on('participant-left', (event) => {
-          const participant = event.participant;
-          logger.info({
-            logCode: 'translator_participant_left',
-            extraInfo: {
-              participantId: participant.session_id,
-              userName: participant.user_name,
-            },
-          }, '[TRANSLATOR] Participant left:', participant);
-          this.handleSubscription();
-        });
+        // this._translatorCallObject.on('participant-left', (event) => {
+        //   const participant = event.participant;
+        //   logger.info({
+        //     logCode: 'translator_participant_left',
+        //     extraInfo: {
+        //       participantId: participant.session_id,
+        //       userName: participant.user_name,
+        //     },
+        //   }, '[TRANSLATOR] Participant left:', participant);
+        //   this.handleSubscription();
+        // });
 
         this._translatorCallObject.on('participant-updated', async (event) => {
           const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
           totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
         });
 
-        this._translatorCallObject.on("app-message", (message) => {
+
+        dailyManager.on('participant-updated', (event) => {
+          this.setValue('participants', this.getParticipantsFromDaily());
+          this.handleParticipantUpdate();
+        });
+
+        dailyManager.on('participant-left', (event) => {
+          this.setValue('participants', this.getParticipantsFromDaily());
+          this.cleanupDemoAudio();
+        });
+
+        dailyManager.on('app-message', (event) => {
+          this.handleAppMessage(event);
+        });
+
+        dailyManager.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "bot_started_speaking") {
             console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
@@ -913,6 +952,10 @@ class AudioManager {
           }
           if (data.service_unavailable) {
             console.error('[TRANSLATOR] Language detection service unavailable:', data);
+          }
+          if (data.event_type === "p2p_voice_change_request") {
+            const { data, fromId } = message;
+            dailyManager.handleP2PMessage(data, fromId);
           }
           if (data.event_type === "transcription") {
             latestTranscriptionVar({
