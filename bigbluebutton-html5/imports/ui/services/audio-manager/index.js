@@ -32,6 +32,7 @@ import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService }
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import { getDailyManager } from "./watcher/DailyManager";
+import EventManager, { EVENTS, STREAM_TYPES } from './watcher/Events';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -950,16 +951,36 @@ class AudioManager {
         dailyManager.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "bot_started_speaking") {
-            console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
+            // console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
+            if (data && data.id && !data.id.includes(currentName)) {
+              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
+            } else {
+              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
+            }
           }
           if (data.event_type === "bot_stopped_speaking") {
-            console.log('[TRANSLATOR EVENTS] Bot stopped speaking:', data);
+            // console.log('[TRANSLATOR EVENTS] Bot stopped speaking:', data);
+            if (data && data.id && !data.id.includes(currentName)) {
+              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
+            } else {
+              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
+            }
           }
           if (data.event_type === "user_started_speaking") {
-            console.log('[TRANSLATOR EVENTS] User started speaking:', data);
+            // console.log('[TRANSLATOR EVENTS] User started speaking:', data);
+            if (data && data.id && !data.id.includes(currentName)) {
+              EventManager.emit(EVENTS.LOCAL_RAW_START, data);
+            } else {
+              EventManager.emit(EVENTS.REMOTE_RAW_START, data);
+            }
           }
           if (data.event_type === "user_stopped_speaking") {
-            console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
+            // console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
+            if (data && data.id && !data.id.includes(currentName)) {
+              EventManager.emit(EVENTS.LOCAL_RAW_END, data);
+            } else {
+              EventManager.emit(EVENTS.REMOTE_RAW_END, data);
+            }
           }
           if (data.event_type === 'language_detected') {
             console.log('[TRANSLATOR] Language detected:', data);
@@ -1052,6 +1073,36 @@ class AudioManager {
             }
           }
         });
+
+        EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
+          dailyManager.setParticipantVolume(participants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
+          const audioElement = dailyManager.audioElements.get(participants.botLocal?.session_id);
+          if (audioElement) {
+            audioElement.volume = volume;
+          }
+        });
+        EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
+          dailyManager.setParticipantVolume(participants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+          const audioElement = dailyManager.audioElements.get(participants.botRemote?.session_id);
+          if (audioElement) {
+            audioElement.volume = volume;
+          }
+        });
+        EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
+          dailyManager.setParticipantVolume(participants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
+          const audioElement = dailyManager.audioElements.get(participants.local?.session_id);
+          if (audioElement) {
+            audioElement.volume = volume;
+          }
+        });
+        EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
+          dailyManager.setParticipantVolume(participants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+          const audioElement = dailyManager.audioElements.get(participants.remote?.session_id);
+          if (audioElement) {
+            audioElement.volume = volume;
+          }
+        });
+
       } catch (err) {
         console.error('[DAILY] Failed to join Daily room:', err);
         this._translatorCallObject = null;
