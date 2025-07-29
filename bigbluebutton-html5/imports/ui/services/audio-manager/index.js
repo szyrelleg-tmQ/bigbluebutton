@@ -33,6 +33,7 @@ import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import { getDailyManager } from "./watcher/DailyManager";
 import EventManager, { EVENTS, STREAM_TYPES } from './watcher/Events';
+import { getAudioRoutingService } from './watcher/AudioRoutingService'
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -890,6 +891,7 @@ class AudioManager {
       try {
         this.localBot = `bot-${data.userName}`;
         const dailyManager = getDailyManager();
+        const audioService = getAudioRoutingService();
         await dailyManager.joinRoom(data.room_url, data.userName)
 
         // if (res) {
@@ -1073,36 +1075,38 @@ class AudioManager {
             }
           }
         });
-
-        EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
-          dailyManager.setParticipantVolume(participants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
-          const audioElement = dailyManager.audioElements.get(participants.botLocal?.session_id);
-          if (audioElement) {
-            audioElement.volume = volume;
-          }
-        });
-        EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
-          dailyManager.setParticipantVolume(participants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-          const audioElement = dailyManager.audioElements.get(participants.botRemote?.session_id);
-          if (audioElement) {
-            audioElement.volume = volume;
-          }
-        });
-        EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
-          dailyManager.setParticipantVolume(participants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
-          const audioElement = dailyManager.audioElements.get(participants.local?.session_id);
-          if (audioElement) {
-            audioElement.volume = volume;
-          }
-        });
-        EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
-          dailyManager.setParticipantVolume(participants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-          const audioElement = dailyManager.audioElements.get(participants.remote?.session_id);
-          if (audioElement) {
-            audioElement.volume = volume;
-          }
-        });
-
+        const participants = audioService.filterParticipants(allParticipants, currentUserName);
+        console.log('[TRANSLATOR] Participants from Daily:', participants);
+        if (participants) {
+          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
+            dailyManager.setParticipantVolume(participants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
+            const audioElement = dailyManager.audioElements.get(participants.botLocal?.session_id);
+            if (audioElement) {
+              audioElement.volume = volume;
+            }
+          });
+          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
+            dailyManager.setParticipantVolume(participants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+            const audioElement = dailyManager.audioElements.get(participants.botRemote?.session_id);
+            if (audioElement) {
+              audioElement.volume = volume;
+            }
+          });
+          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
+            dailyManager.setParticipantVolume(participants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
+            const audioElement = dailyManager.audioElements.get(participants.local?.session_id);
+            if (audioElement) {
+              audioElement.volume = volume;
+            }
+          });
+          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
+            dailyManager.setParticipantVolume(participants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+            const audioElement = dailyManager.audioElements.get(participants.remote?.session_id);
+            if (audioElement) {
+              audioElement.volume = volume;
+            }
+          });
+        }
       } catch (err) {
         console.error('[DAILY] Failed to join Daily room:', err);
         this._translatorCallObject = null;
