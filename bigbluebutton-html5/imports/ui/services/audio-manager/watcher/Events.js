@@ -1,6 +1,4 @@
 import { EventEmitter } from "events";
-import IndexWatcher from "./IndexWatcher.js";
-import { debugLog, debugTable } from "../utils.js";
 import { getDailyManager } from "./DailyManager.js";
 
 export const EVENTS = {
@@ -284,14 +282,6 @@ class EventManager extends EventEmitter {
             default:
                 return false;
         }
-        debugTable({
-            isLocalRawPlaying: { isPlaying: isLocalRawPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_RAW] },
-            isLocalTranslatedPlaying: { isPlaying: isLocalTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] },
-            isRemoteRawPlaying: { isPlaying: isRemoteRawPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_RAW] },
-            isRemoteTranslatedPlaying: { isPlaying: isRemoteTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] },
-            isIframe: this.#isIframe,
-            event: event,
-        }, ["isPlaying", "volume", "isIframe", "event"]);
     }
 }
 
