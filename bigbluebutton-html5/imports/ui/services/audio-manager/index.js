@@ -947,10 +947,6 @@ class AudioManager {
           this.cleanupDemoAudio();
         });
 
-        dailyManager.on('app-message', (event) => {
-          this.handleAppMessage(event);
-        });
-
         dailyManager.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "bot_started_speaking") {
@@ -965,7 +961,6 @@ class AudioManager {
           if (data.event_type === "user_stopped_speaking") {
             console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
           }
-
           if (data.event_type === 'language_detected') {
             console.log('[TRANSLATOR] Language detected:', data);
           }
