@@ -751,6 +751,35 @@ class AudioManager {
     }
   }
 
+  handleAppMessage(message) {
+    const data = message.data;
+    if (data.event_type === "bot_started_speaking") {
+      console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
+    }
+    if (data.event_type === "bot_stopped_speaking") {
+      console.log('[TRANSLATOR EVENTS] Bot stopped speaking:', data);
+    }
+    if (data.event_type === "user_started_speaking") {
+      console.log('[TRANSLATOR EVENTS] User started speaking:', data);
+    }
+    if (data.event_type === "user_stopped_speaking") {
+      console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
+    }
+
+    if (data.event_type === 'language_detected') {
+      console.log('[TRANSLATOR] Language detected:', data);
+    }
+    if (data.insufficient_data) {
+      console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
+    }
+    if (data.confidence < 0.7) {
+      console.warn('[TRANSLATOR] Low confidence in language detection:', data);
+    }
+    if (data.service_unavailable) {
+      console.error('[TRANSLATOR] Language detection service unavailable:', data);
+    }
+  };
+
   async handleSubscription() {
     if (!this.localBot) return;
     const participants = this._translatorCallObject.CallObject.participants();
@@ -860,6 +889,7 @@ class AudioManager {
 
         this._translatorCallObject.on("app-message", (message) => {
           const data = message.data;
+          this.handleAppMessage(data);
           if (data.event_type === "transcription") {
             latestTranscriptionVar({
               text: data.text,
