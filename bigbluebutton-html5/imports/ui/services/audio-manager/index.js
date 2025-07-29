@@ -889,7 +889,7 @@ class AudioManager {
 
         this._translatorCallObject.on("app-message", (message) => {
           const data = message.data;
-          this.handleAppMessage(data);
+          this.handleAppMessage(message);
           if (data.event_type === "transcription") {
             latestTranscriptionVar({
               text: data.text,
