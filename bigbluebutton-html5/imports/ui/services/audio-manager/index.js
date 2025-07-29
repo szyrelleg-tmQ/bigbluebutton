@@ -32,7 +32,6 @@ import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService }
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import { getDailyManager } from "./watcher/DailyManager";
-import { Watcher } from './watcher/Watcher';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -71,7 +70,7 @@ const checkMediaDevicesTarget = () => {
   }
 };
 
-class AudioManager extends Watcher {
+class AudioManager {
   static playAudioElement(element) {
     return new Promise((resolve) => {
       if (!(element instanceof HTMLMediaElement)) {
@@ -138,6 +137,7 @@ class AudioManager extends Watcher {
     this.localBot = makeVar(null);
     this.localBotSessionId = makeVar(null);
     this.enableBot = makeVar(true);
+    this.participants = makeVar([]);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -815,17 +815,14 @@ class AudioManager extends Watcher {
 
   handleParticipantUpdate() {
     // Check if remote is muted and reapply if needed
-    const isRemoteMuted = this.getValue('isRemoteMuted');
-    if (isRemoteMuted) {
-      const participants = this.getValue('participants') || [];
-      const remoteParticipant = participants.find(p => !p.local && !p.user_name.startsWith('bot-'));
+    const participants = this.participants || [];
+    const remoteParticipant = participants.find(p => !p.local && !p.user_name.startsWith('bot-'));
 
-      if (remoteParticipant) {
-        // Reapply mute state after a short delay to ensure elements are rendered
-        setTimeout(() => {
-          this.applyRemoteMuteState(remoteParticipant.session_id, true);
-        }, 100);
-      }
+    if (remoteParticipant) {
+      // Reapply mute state after a short delay to ensure elements are rendered
+      setTimeout(() => {
+        this.applyRemoteMuteState(remoteParticipant.session_id, true);
+      }, 100);
     }
   }
 
@@ -914,12 +911,12 @@ class AudioManager extends Watcher {
 
 
         dailyManager.on('participant-updated', (event) => {
-          this.setValue('participants', this.getParticipantsFromDaily());
+          this.participants = this.getParticipantsFromDaily()
           this.handleParticipantUpdate();
         });
 
         dailyManager.on('participant-left', (event) => {
-          this.setValue('participants', this.getParticipantsFromDaily());
+          this.participants = this.getParticipantsFromDaily()
           this.cleanupDemoAudio();
         });
 
