@@ -87,53 +87,52 @@ const ActionButton = styled.button`
 // --- Helper Functions ---
 
 const getAvatarInfo = (participantName) => {
-    console.log('getAvatarInfo called with:', participantName);
-    const nameSlug = typeof participantName === 'string' ? participantName.match(/^([a-z-]+)/) : null;
-    const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : 'User';
-    // Note: getConsistentAvatarColor should be defined in a shared utility file
-    const avatarColor = '#3B48A9';
-    const avatarText = originalName.slice(0, 1).toUpperCase();
-    return { originalName, avatarColor, avatarText };
+  console.log('getAvatarInfo called with:', participantName);
+  const nameSlug = typeof participantName === 'string' ? participantName.match(/^([a-z-]+)/) : null;
+  const originalName = nameSlug ? nameSlug[1].replace(/-/g, ' ') : 'User';
+  // Note: getConsistentAvatarColor should be defined in a shared utility file
+  const avatarColor = '#3B48A9';
+  const avatarText = originalName.slice(0, 1).toUpperCase();
+  return { originalName, avatarColor, avatarText };
 };
 
 
 // --- The Component ---
 
 export const TranslationMessageCard = ({ message, userLang }) => {
-    const [showOriginal, setShowOriginal] = useState(false);
-    const { originalName, avatarColor, avatarText } = getAvatarInfo(message.participant_name);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const { originalName, avatarColor, avatarText } = getAvatarInfo(message.participant_name);
 
-    const translatedText = message.translations[userLang] || message.original;
+  const translatedText = message.translations[userLang] || message.original;
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(translatedText).then(() => {
-            // Optional: Show a "Copied!" toast/notification
-            alert('Translated text copied to clipboard!');
-        });
-    };
+  const handleCopy = () => {
+    navigator.clipboard.writeText(translatedText).then(() => {
+      // Optional: Show a "Copied!" toast/notification
+      alert('Translated text copied to clipboard!');
+    });
+  };
 
-    return (
-        <MessageCard>
-            <AvatarContainer color={avatarColor}>{avatarText}</AvatarContainer>
-            <ContentContainer>
-                <Header>{originalName}</Header>
-                <TranslatedText>{translatedText}</TranslatedText>
+  return (
+    <MessageCard>
+      <AvatarContainer color={avatarColor}>{avatarText}</AvatarContainer>
+      <ContentContainer>
+        <TranslatedText>{translatedText}</TranslatedText>
 
-                {showOriginal && (
-                    <OriginalTextContainer>
-                        <strong>Original:</strong> {message.original}
-                    </OriginalTextContainer>
-                )}
+        {showOriginal && (
+          <OriginalTextContainer>
+            <strong>Original:</strong> {message.original}
+          </OriginalTextContainer>
+        )}
 
-                <ActionsRow>
-                    <ActionButton onClick={() => setShowOriginal(!showOriginal)}>
-                        {showOriginal ? 'Hide original' : 'Show original'}
-                    </ActionButton>
-                    <ActionButton onClick={handleCopy}>
-                        Copy translation
-                    </ActionButton>
-                </ActionsRow>
-            </ContentContainer>
-        </MessageCard>
-    );
+        <ActionsRow>
+          <ActionButton onClick={() => setShowOriginal(!showOriginal)}>
+            {showOriginal ? 'Hide original' : 'Show original'}
+          </ActionButton>
+          <ActionButton onClick={handleCopy}>
+            Copy translation
+          </ActionButton>
+        </ActionsRow>
+      </ContentContainer>
+    </MessageCard>
+  );
 };
