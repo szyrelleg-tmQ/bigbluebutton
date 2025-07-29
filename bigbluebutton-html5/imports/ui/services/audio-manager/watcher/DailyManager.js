@@ -823,11 +823,9 @@ class DailyManager {
         return false;
     }
 
-    toggleAudio() {
+    toggleAudio(flag = false) {
         if (!this.call) return false;
-        const newState = !this.call.localAudio();
-        this.call.setLocalAudio(newState);
-        return newState;
+        this.call.setLocalAudio(flag);
     }
 
     getCallState() {

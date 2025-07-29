@@ -891,8 +891,10 @@ class AudioManager {
         this.localBot = `bot-${data.userName}`;
         const dailyManager = getDailyManager();
         const audioService = getAudioRoutingService();
-        await dailyManager.joinRoom(data.room_url, data.userName)
-
+        const res = await dailyManager.joinRoom(data.room_url, data.userName)
+        if (res) {
+          dailyManager.toggleAudio();
+        }
         // if (res) {
         //   this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
         // }
@@ -1681,16 +1683,18 @@ class AudioManager {
   mute() {
     this.setSenderTrackEnabled(false);
     // Mute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
+    const dailyManager = getDailyManager();
+    if (dailyManager) {
+      dailyManager.toggleAudio(false);
     }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
     // Unmute translator call object if active
-    if (this._translatorCallObject) {
-      const res = this._translatorCallObject.toggleAudio();
+    const dailyManager = getDailyManager();
+    if (dailyManager) {
+      dailyManager.toggleAudio(true);
     }
   }
 
