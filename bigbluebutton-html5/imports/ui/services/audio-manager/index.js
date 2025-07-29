@@ -28,7 +28,7 @@ import {
   setUserSelectedMicrophone,
   setUserSelectedListenOnly,
 } from '/imports/ui/components/audio/service';
-import { getTranslatorClient, getAudioRoutingService, resetAudioRoutingService } from 'translator-client'
+import { getTranslatorClient } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import { getDailyManager } from "./watcher/DailyManager";
