@@ -908,8 +908,8 @@ class AudioManager {
 
         dailyManager.on('participant-updated', (event) => {
           this.participants = this.getParticipantsFromDaily()
-          totalParticipants = participants.filter(item => item.user_name.startsWith("bot-")).length;
-          this.filteredParticipants = audioService.filterParticipants(participants);
+          totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
+          this.filteredParticipants = audioService.filterParticipants(this.participants);
           console.log(this.filteredParticipants)
           this.handleParticipantUpdate();
         });
