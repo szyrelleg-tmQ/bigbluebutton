@@ -755,31 +755,6 @@ class AudioManager {
     }
   }
 
-  async handleSubscription() {
-    if (!this.localBot) return;
-    const participants = this._translatorCallObject.CallObject.participants();
-    let updateList = {};
-
-    for (let id in participants) {
-      if (id === 'local') continue;
-      const userName = participants[id].user_name || '';
-
-      if (!userName.startsWith('bot-')) {
-        updateList[id] = { setSubscribedTracks: { audio: true } };
-      } else {
-        if (userName === this.localBot && this.enableBot) {
-          this.localBotSessionId = participants[id].session_id;
-          updateList[id] = { setSubscribedTracks: { audio: true } };
-        } else {
-          updateList[id] = { setSubscribedTracks: { audio: false } };
-        }
-      }
-    }
-
-    console.log('[TRANSLATOR] Updating participants subscription:', updateList);
-    this._translatorCallObject.CallObject.updateParticipants(updateList);
-  }
-
   getParticipantsFromDaily() {
     const dailyManager = getDailyManager();
     const callState = dailyManager.getCallState();
@@ -910,7 +885,7 @@ class AudioManager {
           this.participants = this.getParticipantsFromDaily()
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.filteredParticipants = audioService.filterParticipants(this.participants);
-          console.log(this.filteredParticipants)
+          this.this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
           // this.handleParticipantUpdate();
         });
 

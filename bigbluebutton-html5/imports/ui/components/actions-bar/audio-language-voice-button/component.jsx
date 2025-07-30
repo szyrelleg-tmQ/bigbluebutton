@@ -214,7 +214,7 @@ const AudioLanguageVoiceButton = () => {
                                     {intl.formatMessage(intlMessages.botToggleLabel)}
                                 </label>
                             </div>
-                            <div style={{ marginTop: 16, marginBottom: 16 }}>
+                            {/* <div style={{ marginTop: 16, marginBottom: 16 }}>
                                 <label style={{ display: 'block', marginBottom: 8 }}>
                                     {intl.formatMessage(intlMessages.volumeLabel)}: {volume}%
                                 </label>
@@ -239,7 +239,7 @@ const AudioLanguageVoiceButton = () => {
                                     />
                                     <span style={{ fontSize: '14px', color: '#666' }}>100%</span>
                                 </div>
-                            </div>
+                            </div> */}
                             <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                 <Button
                                     label={intl.formatMessage(intlMessages.cancel)}
