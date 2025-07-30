@@ -1647,6 +1647,7 @@ class AudioManager {
   toggleTranslation(flag) {
     this.enableBot = flag;
     const dailyManager = getDailyManager();
+    console.log(this.localBotSessionId)
     dailyManager.CallObject.updateParticipant(this.localBotSessionId, {
       setSubscribedTracks: { audio: flag }
     });
