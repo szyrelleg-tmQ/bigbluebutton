@@ -1647,7 +1647,7 @@ class AudioManager {
   toggleTranslation(flag) {
     const dailyManager = getDailyManager();
     console.log(this.localBotSessionId)
-    dailyManager.toggleParticipantMute(this.localBotSessionId, !flag);
+    dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
   }
 
   setParticipantVolume(volume = 0.1) {
