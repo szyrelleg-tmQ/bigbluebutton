@@ -88,7 +88,7 @@ class AudioManager {
       });
     });
   }
-
+  #clientSettings = {};
   constructor() {
     this._breakoutAudioTransferStatus = {
       status: BREAKOUT_AUDIO_TRANSFER_STATES.DISCONNECTED,
@@ -161,6 +161,24 @@ class AudioManager {
         },
       }, `Failed to initialize translator client: ${error.message}`);
     }
+  }
+
+  async initClientSettings() {
+    const res = await fetch("https://pipecat-prod-translate.ph03.us/api/settings");
+    if (!res.ok) {
+      console.error('Failed to fetch client settings:', res.statusText);
+      return;
+    }
+    const clientSettings = await res.json();
+    this.#clientSettings = clientSettings.settings?.client_settings || clientSettings;
+    EventManager.setDefaultConfig({
+      localRawVolume: this.#clientSettings?.human_volume || 1,
+      localTranslatedVolume: this.#clientSettings?.local_bot_volume || 0.5,
+      remoteRawVolume: this.#clientSettings?.human_volume || 1,
+      remoteTranslatedVolume: this.#clientSettings?.bot_volume || 0.2,
+      debouncerDelay: this.#clientSettings?.debouncer || 100,
+      silenceDuration: this.#clientSettings?.silence_duration || 1000,
+    });
   }
 
   get TranslatorCallObject() {
@@ -1646,7 +1664,6 @@ class AudioManager {
 
   toggleTranslation(flag) {
     const dailyManager = getDailyManager();
-    console.log(this.localBotSessionId)
     dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
   }
 
