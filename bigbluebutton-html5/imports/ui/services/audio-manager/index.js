@@ -150,7 +150,7 @@ class AudioManager {
   initTranslator() {
     try {
       this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-prod-translate.ph03.us"
+        baseUrl: "https://pipecat-translate.ph03.us"
       });
     } catch (error) {
       logger.error({
@@ -779,72 +779,34 @@ class AudioManager {
     return callState ? callState.participants : [];
   }
 
-  // Apply mute state to all audio elements for a specific participant
-  applyRemoteMuteState(participantId, shouldMute) {
-    // Convert NodeList to Array, then filter
-    const mediaElements = Array.from(document.querySelectorAll('audio, video'))
-      .filter(element => !element.id.includes('ivr'));
-
-    mediaElements.forEach(element => {
-      const elementParticipantId = element.getAttribute('data-participant-id');
-      const elementParticipantType = element.getAttribute('data-participant-type');
-
-      // Check if this element belongs to the remote participant or bot-remote
-      if (elementParticipantId === participantId ||
-        elementParticipantType === 'remote' ||
-        elementParticipantType === 'bot-remote') {
-
-        // Apply mute state
-        element.muted = shouldMute;
-
-        // For audio elements, also control volume
-        if (element.tagName === 'AUDIO') {
-          element.volume = shouldMute ? 0 : 1;
-        }
-      }
-    });
-  }
-
-  handleParticipantUpdate() {
-    // Check if remote is muted and reapply if needed
-    const participants = this.participants || [];
-    const remoteParticipant = participants.find(p => !p.local && !p.user_name.startsWith('bot-'));
-
-    if (remoteParticipant) {
-      // Reapply mute state after a short delay to ensure elements are rendered
-      setTimeout(() => {
-        this.applyRemoteMuteState(remoteParticipant.session_id, true);
-      }, 100);
-    }
-  }
-
   volumeHandler() {
+    const participants = audioService.filterParticipants(this.participants);
     const dailyManager = getDailyManager();
-    if (this.filteredParticipants) {
+    if (participants) {
       EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
-        dailyManager.setParticipantVolume(this.filteredParticipants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
-        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botLocal?.session_id);
+        dailyManager.setParticipantVolume(participants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(participants.botLocal?.session_id);
         if (audioElement) {
           audioElement.volume = volume;
         }
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
-        dailyManager.setParticipantVolume(this.filteredParticipants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botRemote?.session_id);
+        dailyManager.setParticipantVolume(participants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(participants.botRemote?.session_id);
         if (audioElement) {
           audioElement.volume = volume;
         }
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
-        dailyManager.setParticipantVolume(this.filteredParticipants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
-        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.local?.session_id);
+        dailyManager.setParticipantVolume(participants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(participants.local?.session_id);
         if (audioElement) {
           audioElement.volume = volume;
         }
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
-        dailyManager.setParticipantVolume(this.filteredParticipants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.remote?.session_id);
+        dailyManager.setParticipantVolume(participants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(participants.remote?.session_id);
         if (audioElement) {
           audioElement.volume = volume;
         }
@@ -936,7 +898,6 @@ class AudioManager {
         dailyManager.on('participant-updated', (event) => {
           this.participants = this.getParticipantsFromDaily()
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
-          this.filteredParticipants = audioService.filterParticipants(this.participants);
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
           this.volumeHandler();
           // this.handleParticipantUpdate();
@@ -949,39 +910,35 @@ class AudioManager {
 
         dailyManager.on("app-message", (message) => {
           const data = message.data;
+          // #NOTES: bot started speaking, so we need to mute the local participant
           if (data.event_type === "bot_started_speaking") {
             if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-              // console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-              // console.log('[TRANSLATOR EVENTS] Remote bot started speaking:', data);
             }
           }
           if (data.event_type === "bot_stopped_speaking") {
+            // #NOTES: bot stopped speaking, so we need to unmute the local participant
             if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-              // console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-              // console.log('[TRANSLATOR EVENTS] Remote bot stopped speaking:', data);
             }
           }
           if (data.event_type === "user_started_speaking") {
+            // #NOTES: user started speaking, so we need to unmute the local participant
             if (data && data.id && !data.id.includes(currentName)) {
               EventManager.emit(EVENTS.LOCAL_RAW_START, data);
-              // console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
             } else {
               EventManager.emit(EVENTS.REMOTE_RAW_START, data);
-              // console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
             }
           }
           if (data.event_type === "user_stopped_speaking") {
+            // #NOTES: user started speaking, so we need to unmute the local participant
             if (data && data.id && !data.id.includes(currentName)) {
-              // console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
               EventManager.emit(EVENTS.LOCAL_RAW_END, data);
             } else {
-              // console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
               EventManager.emit(EVENTS.REMOTE_RAW_END, data);
             }
           }
