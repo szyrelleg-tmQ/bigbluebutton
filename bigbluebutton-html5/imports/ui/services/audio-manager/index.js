@@ -172,9 +172,9 @@ class AudioManager {
     const clientSettings = await res.json();
     this.#clientSettings = clientSettings.settings?.client_settings || clientSettings;
     EventManager.setDefaultConfig({
-      localRawVolume: this.#clientSettings?.human_volume || 0,
+      localRawVolume: this.#clientSettings?.human_volume || 1,
       localTranslatedVolume: this.#clientSettings?.local_bot_volume || 0.5,
-      remoteRawVolume: this.#clientSettings?.human_volume || 0,
+      remoteRawVolume: this.#clientSettings?.human_volume || 1,
       remoteTranslatedVolume: this.#clientSettings?.bot_volume || 0.2,
       debouncerDelay: this.#clientSettings?.debouncer || 100,
       silenceDuration: this.#clientSettings?.silence_duration || 1000,
@@ -818,6 +818,40 @@ class AudioManager {
     }
   }
 
+  volumeHandler() {
+    const dailyManager = getDailyManager();
+    if (this.filteredParticipants) {
+      EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
+        dailyManager.setParticipantVolume(this.filteredParticipants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botLocal?.session_id);
+        if (audioElement) {
+          audioElement.volume = volume;
+        }
+      });
+      EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
+        dailyManager.setParticipantVolume(this.filteredParticipants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botRemote?.session_id);
+        if (audioElement) {
+          audioElement.volume = volume;
+        }
+      });
+      EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
+        dailyManager.setParticipantVolume(this.filteredParticipants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.local?.session_id);
+        if (audioElement) {
+          audioElement.volume = volume;
+        }
+      });
+      EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
+        dailyManager.setParticipantVolume(this.filteredParticipants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        const audioElement = dailyManager.audioElements.get(this.filteredParticipants.remote?.session_id);
+        if (audioElement) {
+          audioElement.volume = volume;
+        }
+      });
+    }
+  }
+
   async onAudioJoin({ deafened = false } = {}) {
     this.isConnected = true;
     this.isDeafened = deafened;
@@ -904,6 +938,7 @@ class AudioManager {
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.filteredParticipants = audioService.filterParticipants(this.participants);
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
+          this.volumeHandler();
           // this.handleParticipantUpdate();
         });
 
@@ -1041,37 +1076,6 @@ class AudioManager {
             }
           }
         });
-
-        if (this.filteredParticipants) {
-          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botLocal?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botRemote?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.local?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.remote?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-        }
       } catch (err) {
         console.error('[DAILY] Failed to join Daily room:', err);
         this._translatorCallObject = null;
