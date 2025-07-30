@@ -46,9 +46,9 @@ class EventManager extends EventEmitter {
         [STREAM_TYPES.LOCAL_TRANLATED]: null,
     };
     #defaultConfig = {
-        remoteRawVolume: 0.1,
+        remoteRawVolume: 0,
         remoteTranslatedVolume: 0.2,
-        localRawVolume: 1,
+        localRawVolume: 0,
         localTranslatedVolume: 1,
         debouncerDelay: 100,
         silenceDuration: 1000,

@@ -172,9 +172,9 @@ class AudioManager {
     const clientSettings = await res.json();
     this.#clientSettings = clientSettings.settings?.client_settings || clientSettings;
     EventManager.setDefaultConfig({
-      localRawVolume: this.#clientSettings?.human_volume || 1,
+      localRawVolume: this.#clientSettings?.human_volume || 0,
       localTranslatedVolume: this.#clientSettings?.local_bot_volume || 0.5,
-      remoteRawVolume: this.#clientSettings?.human_volume || 1,
+      remoteRawVolume: this.#clientSettings?.human_volume || 0,
       remoteTranslatedVolume: this.#clientSettings?.bot_volume || 0.2,
       debouncerDelay: this.#clientSettings?.debouncer || 100,
       silenceDuration: this.#clientSettings?.silence_duration || 1000,
