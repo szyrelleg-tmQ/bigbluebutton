@@ -38,7 +38,6 @@ import logger from '/imports/startup/client/logger';
 import { ChatLoading } from '../component';
 import Storage from '/imports/ui/services/storage/in-memory';
 import { translationMessagesVar, selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
-import { ChatAvatar } from './page/chat-message/styles';
 import audioManager from '/imports/ui/services/audio-manager';
 import { useLocalUserList } from '/imports/ui/core/hooks/useLoadedUserList';
 import { TranslationMessageCard } from './TranslationMessageCard';
