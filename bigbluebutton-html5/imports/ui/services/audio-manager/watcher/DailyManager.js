@@ -843,7 +843,7 @@ class DailyManager {
         };
     }
 
-    getCallObject() {
+    get CallObject() {
         return this.call;
     }
 

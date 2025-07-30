@@ -1383,10 +1383,9 @@ class AudioManager {
         newDeviceId: deviceId || 'none',
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
-
-    if (this._translatorCallObject && this.inputDeviceId) {
-      console.log('[DAILY] Changing input device in Daily.co:', deviceId);
-      this._translatorCallObject.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
+    const dailyManager = getDailyManager();
+    if (dailyManager && this.inputDeviceId) {
+      dailyManager.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
     }
 
     return this.inputDeviceId;
@@ -1460,9 +1459,10 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
-        if (this._translatorCallObject && this.outputDeviceId) {
+        const dailyManager = getDailyManager();
+        if (this.dailyManager && this.outputDeviceId) {
           console.log('[DAILY] Changing output device in Daily.co:', this.outputDeviceId);
-          await this._translatorCallObject.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
+          await dailyManager.CallObject.setOutputDeviceAsync({ outputDeviceId: this.outputDeviceId });
         }
 
         return this.outputDeviceId;
