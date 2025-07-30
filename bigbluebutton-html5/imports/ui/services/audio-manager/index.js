@@ -954,7 +954,7 @@ class AudioManager {
         dailyManager.on("app-message", (message) => {
           const data = message.data;
           if (data.event_type === "bot_started_speaking") {
-            if (data && data.id && data.id == this.localBot) {
+            if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
               console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
             } else {
@@ -963,7 +963,7 @@ class AudioManager {
             }
           }
           if (data.event_type === "bot_stopped_speaking") {
-            if (data && data.id && data.id == this.localBot) {
+            if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
               console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
             } else {
