@@ -972,7 +972,7 @@ class AudioManager {
             }
           }
           if (data.event_type === "user_started_speaking") {
-            if (data && data.id && data.id.includes(currentName)) {
+            if (data && data.id && !data.id.includes(currentName)) {
               EventManager.emit(EVENTS.LOCAL_RAW_START, data);
               console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
             } else {
@@ -981,7 +981,7 @@ class AudioManager {
             }
           }
           if (data.event_type === "user_stopped_speaking") {
-            if (data && data.id && data.id.includes(currentName)) {
+            if (data && data.id && !data.id.includes(currentName)) {
               console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
               EventManager.emit(EVENTS.LOCAL_RAW_END, data);
             } else {
