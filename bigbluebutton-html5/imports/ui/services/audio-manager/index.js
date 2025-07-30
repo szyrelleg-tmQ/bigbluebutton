@@ -924,36 +924,36 @@ class AudioManager {
           if (data.event_type === "bot_started_speaking") {
             if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-              console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-              console.log('[TRANSLATOR EVENTS] Remote bot started speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Remote bot started speaking:', data);
             }
           }
           if (data.event_type === "bot_stopped_speaking") {
             if (data && data.id && data.id != this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-              console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-              console.log('[TRANSLATOR EVENTS] Remote bot stopped speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Remote bot stopped speaking:', data);
             }
           }
           if (data.event_type === "user_started_speaking") {
             if (data && data.id && !data.id.includes(currentName)) {
               EventManager.emit(EVENTS.LOCAL_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
+              // console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
             } else {
               EventManager.emit(EVENTS.REMOTE_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
+              // console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
             }
           }
           if (data.event_type === "user_stopped_speaking") {
             if (data && data.id && !data.id.includes(currentName)) {
-              console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
               EventManager.emit(EVENTS.LOCAL_RAW_END, data);
             } else {
-              console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
+              // console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
               EventManager.emit(EVENTS.REMOTE_RAW_END, data);
             }
           }
