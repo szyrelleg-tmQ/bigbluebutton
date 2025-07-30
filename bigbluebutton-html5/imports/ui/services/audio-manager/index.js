@@ -1648,9 +1648,7 @@ class AudioManager {
     this.enableBot = flag;
     const dailyManager = getDailyManager();
     console.log(this.localBotSessionId)
-    dailyManager.CallObject.updateParticipant(this.localBotSessionId, {
-      setSubscribedTracks: { audio: flag }
-    });
+    dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
   }
 
   setParticipantVolume(volume = 0.1) {
