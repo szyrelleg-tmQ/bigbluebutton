@@ -939,6 +939,7 @@ class AudioManager {
           const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
           totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
           this.filteredParticipants = audioService.filterParticipants(allParticipants);
+          console.log(this.filteredParticipants)
         });
 
 
@@ -954,42 +955,42 @@ class AudioManager {
 
         dailyManager.on("app-message", (message) => {
           const data = message.data;
-          if (data.event_type === "bot_started_speaking") {
-            if (data && data.id && data.id != this.localBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-              console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-              console.log('[TRANSLATOR EVENTS] Remote bot started speaking:', data);
-            }
-          }
-          if (data.event_type === "bot_stopped_speaking") {
-            if (data && data.id && data.id != this.localBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-              console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-              console.log('[TRANSLATOR EVENTS] Remote bot stopped speaking:', data);
-            }
-          }
-          if (data.event_type === "user_started_speaking") {
-            if (data && data.id && !data.id.includes(currentName)) {
-              EventManager.emit(EVENTS.LOCAL_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
-            } else {
-              EventManager.emit(EVENTS.REMOTE_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
-            }
-          }
-          if (data.event_type === "user_stopped_speaking") {
-            if (data && data.id && !data.id.includes(currentName)) {
-              console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
-              EventManager.emit(EVENTS.LOCAL_RAW_END, data);
-            } else {
-              console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
-              EventManager.emit(EVENTS.REMOTE_RAW_END, data);
-            }
-          }
+          // if (data.event_type === "bot_started_speaking") {
+          //   if (data && data.id && data.id != this.localBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
+          //     console.log('[TRANSLATOR EVENTS] Local bot started speaking:', data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
+          //     console.log('[TRANSLATOR EVENTS] Remote bot started speaking:', data);
+          //   }
+          // }
+          // if (data.event_type === "bot_stopped_speaking") {
+          //   if (data && data.id && data.id != this.localBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
+          //     console.log('[TRANSLATOR EVENTS] Local bot stopped speaking:', data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
+          //     console.log('[TRANSLATOR EVENTS] Remote bot stopped speaking:', data);
+          //   }
+          // }
+          // if (data.event_type === "user_started_speaking") {
+          //   if (data && data.id && !data.id.includes(currentName)) {
+          //     EventManager.emit(EVENTS.LOCAL_RAW_START, data);
+          //     console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_RAW_START, data);
+          //     console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
+          //   }
+          // }
+          // if (data.event_type === "user_stopped_speaking") {
+          //   if (data && data.id && !data.id.includes(currentName)) {
+          //     console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
+          //     EventManager.emit(EVENTS.LOCAL_RAW_END, data);
+          //   } else {
+          //     console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
+          //     EventManager.emit(EVENTS.REMOTE_RAW_END, data);
+          //   }
+          // }
           if (data.event_type === 'language_detected') {
             console.log('[TRANSLATOR] Language detected:', data);
           }
@@ -1082,36 +1083,36 @@ class AudioManager {
           }
         });
 
-        if (this.filteredParticipants) {
-          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botLocal?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botRemote?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.local?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-          EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
-            dailyManager.setParticipantVolume(this.filteredParticipants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
-            const audioElement = dailyManager.audioElements.get(this.filteredParticipants.remote?.session_id);
-            if (audioElement) {
-              audioElement.volume = volume;
-            }
-          });
-        }
+        // if (this.filteredParticipants) {
+        //   EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
+        //     dailyManager.setParticipantVolume(this.filteredParticipants.botLocal?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        //     const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botLocal?.session_id);
+        //     if (audioElement) {
+        //       audioElement.volume = volume;
+        //     }
+        //   });
+        //   EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
+        //     dailyManager.setParticipantVolume(this.filteredParticipants.botRemote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        //     const audioElement = dailyManager.audioElements.get(this.filteredParticipants.botRemote?.session_id);
+        //     if (audioElement) {
+        //       audioElement.volume = volume;
+        //     }
+        //   });
+        //   EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
+        //     dailyManager.setParticipantVolume(this.filteredParticipants.local?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        //     const audioElement = dailyManager.audioElements.get(this.filteredParticipants.local?.session_id);
+        //     if (audioElement) {
+        //       audioElement.volume = volume;
+        //     }
+        //   });
+        //   EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
+        //     dailyManager.setParticipantVolume(this.filteredParticipants.remote?.session_id, volume, { duration: 0.3, easing: 'linear' });
+        //     const audioElement = dailyManager.audioElements.get(this.filteredParticipants.remote?.session_id);
+        //     if (audioElement) {
+        //       audioElement.volume = volume;
+        //     }
+        //   });
+        // }
       } catch (err) {
         console.error('[DAILY] Failed to join Daily room:', err);
         this._translatorCallObject = null;
