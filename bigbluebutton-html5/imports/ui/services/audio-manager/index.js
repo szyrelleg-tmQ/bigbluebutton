@@ -755,35 +755,6 @@ class AudioManager {
     }
   }
 
-  handleAppMessage(message) {
-    const data = message.data;
-    if (data.event_type === "bot_started_speaking") {
-      console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
-    }
-    if (data.event_type === "bot_stopped_speaking") {
-      console.log('[TRANSLATOR EVENTS] Bot stopped speaking:', data);
-    }
-    if (data.event_type === "user_started_speaking") {
-      console.log('[TRANSLATOR EVENTS] User started speaking:', data);
-    }
-    if (data.event_type === "user_stopped_speaking") {
-      console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
-    }
-
-    if (data.event_type === 'language_detected') {
-      console.log('[TRANSLATOR] Language detected:', data);
-    }
-    if (data.insufficient_data) {
-      console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
-    }
-    if (data.confidence < 0.7) {
-      console.warn('[TRANSLATOR] Low confidence in language detection:', data);
-    }
-    if (data.service_unavailable) {
-      console.error('[TRANSLATOR] Language detection service unavailable:', data);
-    }
-  };
-
   async handleSubscription() {
     if (!this.localBot) return;
     const participants = this._translatorCallObject.CallObject.participants();
@@ -935,16 +906,11 @@ class AudioManager {
         //   this.handleSubscription();
         // });
 
-        this._translatorCallObject.on('participant-updated', async (event) => {
-          const allParticipants = Object.values(this._translatorCallObject.CallObject.participants());
-          totalParticipants = allParticipants.filter(item => item.user_name.startsWith("bot-")).length;
-          this.filteredParticipants = audioService.filterParticipants(allParticipants);
-          console.log(this.filteredParticipants)
-        });
-
-
         dailyManager.on('participant-updated', (event) => {
           this.participants = this.getParticipantsFromDaily()
+          totalParticipants = participants.filter(item => item.user_name.startsWith("bot-")).length;
+          this.filteredParticipants = audioService.filterParticipants(participants);
+          console.log(this.filteredParticipants)
           this.handleParticipantUpdate();
         });
 
