@@ -911,7 +911,7 @@ class AudioManager {
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.filteredParticipants = audioService.filterParticipants(this.participants);
           console.log(this.filteredParticipants)
-          this.handleParticipantUpdate();
+          // this.handleParticipantUpdate();
         });
 
         dailyManager.on('participant-left', (event) => {
