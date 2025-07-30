@@ -974,112 +974,111 @@ class AudioManager {
           if (data.event_type === "user_started_speaking") {
             if (data && data.id && data.id == currentName) {
               EventManager.emit(EVENTS.LOCAL_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Local user started speaking:', data);
+              console.log('[TRANSLATOR EVENTS] Local user started speaking:', data.id, currentName, "-==========");
             } else {
               EventManager.emit(EVENTS.REMOTE_RAW_START, data);
-              console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data);
+              console.log('[TRANSLATOR EVENTS] Remote user started speaking:', data.id, currentName, "-==========");
             }
-          }
-          if (data.event_type === "user_stopped_speaking") {
-            if (data && data.id && data.id == currentName) {
-              console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
-              EventManager.emit(EVENTS.LOCAL_RAW_END, data);
-            } else {
-              console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
-              EventManager.emit(EVENTS.REMOTE_RAW_END, data);
+            if (data.event_type === "user_stopped_speaking") {
+              if (data && data.id && data.id == currentName) {
+                console.log('[TRANSLATOR EVENTS] Local user stopped speaking:', data);
+                EventManager.emit(EVENTS.LOCAL_RAW_END, data);
+              } else {
+                console.log('[TRANSLATOR EVENTS] Remote user stopped speaking:', data);
+                EventManager.emit(EVENTS.REMOTE_RAW_END, data);
+              }
             }
-          }
-          if (data.event_type === 'language_detected') {
-            console.log('[TRANSLATOR] Language detected:', data);
-          }
-          if (data.insufficient_data) {
-            console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
-          }
-          if (data.confidence < 0.7) {
-            console.warn('[TRANSLATOR] Low confidence in language detection:', data);
-          }
-          if (data.service_unavailable) {
-            console.error('[TRANSLATOR] Language detection service unavailable:', data);
-          }
-          if (data.event_type === "p2p_voice_change_request") {
-            const { data, fromId } = message;
-            dailyManager.handleP2PMessage(data, fromId);
-          }
-          if (data.event_type === "transcription") {
-            latestTranscriptionVar({
-              text: data.text,
-              language: data.language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-          } else if (data.event_type === "translation") {
-            latestTranslationVar({
-              text: data.text,
-              translated_text: data.translated_text,
-              language: data.language,
-              original_language: data.original_language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-
-            const key = data.participant_name;
-            if (!translationBuffers[key]) {
-              translationBuffers[key] = {
-                original: data.text,
-                translations: {},
+            if (data.event_type === 'language_detected') {
+              console.log('[TRANSLATOR] Language detected:', data);
+            }
+            if (data.insufficient_data) {
+              console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
+            }
+            if (data.confidence < 0.7) {
+              console.warn('[TRANSLATOR] Low confidence in language detection:', data);
+            }
+            if (data.service_unavailable) {
+              console.error('[TRANSLATOR] Language detection service unavailable:', data);
+            }
+            if (data.event_type === "p2p_voice_change_request") {
+              const { data, fromId } = message;
+              dailyManager.handleP2PMessage(data, fromId);
+            }
+            if (data.event_type === "transcription") {
+              latestTranscriptionVar({
+                text: data.text,
+                language: data.language,
                 participant_name: data.participant_name,
                 timestamp: data.timestamp,
-              };
-            }
+                type: data.type,
+              });
+            } else if (data.event_type === "translation") {
+              latestTranslationVar({
+                text: data.text,
+                translated_text: data.translated_text,
+                language: data.language,
+                original_language: data.original_language,
+                participant_name: data.participant_name,
+                timestamp: data.timestamp,
+                type: data.type,
+              });
 
-            translationBuffers[key].translations[data.language] = data.translated_text;
-            const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            const bufferEntry = translationBuffers[key];
-
-            if (numTranslations === totalParticipants - 1) {
-              const currentMessages = translationMessagesVar();
-
-              const existingMessageIndex = currentMessages.findIndex(
-                (msg) => msg.participant_name === bufferEntry.participant_name
-              );
-
-              let newMessages;
-
-              if (existingMessageIndex !== -1) {
-                newMessages = currentMessages.map((msg, index) => {
-                  if (index === existingMessageIndex) {
-                    const newTranslations = { ...msg.translations };
-                    for (const lang in bufferEntry.translations) {
-                      const newText = bufferEntry.translations[lang];
-
-                      newTranslations[lang] = (newTranslations[lang] ? newTranslations[lang] + " " : "") + newText;
-                    }
-
-                    return {
-                      ...msg,
-                      original: msg.original + " " + bufferEntry.original,
-                      translations: newTranslations,
-                    };
-                  }
-                  return msg;
-                });
-              } else {
-                newMessages = [
-                  ...currentMessages,
-                  {
-                    original: bufferEntry.original,
-                    translations: { ...bufferEntry.translations },
-                    participant_name: bufferEntry.participant_name,
-                  },
-                ];
+              const key = data.participant_name;
+              if (!translationBuffers[key]) {
+                translationBuffers[key] = {
+                  original: data.text,
+                  translations: {},
+                  participant_name: data.participant_name,
+                  timestamp: data.timestamp,
+                };
               }
-              translationMessagesVar(newMessages);
-              delete translationBuffers[key];
+
+              translationBuffers[key].translations[data.language] = data.translated_text;
+              const numTranslations = Object.keys(translationBuffers[key].translations).length;
+              const bufferEntry = translationBuffers[key];
+
+              if (numTranslations === totalParticipants - 1) {
+                const currentMessages = translationMessagesVar();
+
+                const existingMessageIndex = currentMessages.findIndex(
+                  (msg) => msg.participant_name === bufferEntry.participant_name
+                );
+
+                let newMessages;
+
+                if (existingMessageIndex !== -1) {
+                  newMessages = currentMessages.map((msg, index) => {
+                    if (index === existingMessageIndex) {
+                      const newTranslations = { ...msg.translations };
+                      for (const lang in bufferEntry.translations) {
+                        const newText = bufferEntry.translations[lang];
+
+                        newTranslations[lang] = (newTranslations[lang] ? newTranslations[lang] + " " : "") + newText;
+                      }
+
+                      return {
+                        ...msg,
+                        original: msg.original + " " + bufferEntry.original,
+                        translations: newTranslations,
+                      };
+                    }
+                    return msg;
+                  });
+                } else {
+                  newMessages = [
+                    ...currentMessages,
+                    {
+                      original: bufferEntry.original,
+                      translations: { ...bufferEntry.translations },
+                      participant_name: bufferEntry.participant_name,
+                    },
+                  ];
+                }
+                translationMessagesVar(newMessages);
+                delete translationBuffers[key];
+              }
             }
-          }
-        });
+          });
         const participants = audioService.filterParticipants(allParticipants, currentUserName);
         console.log('[TRANSLATOR] Participants from Daily:', participants);
         if (participants) {
