@@ -955,7 +955,7 @@ class AudioManager {
           const data = message.data;
           if (data.event_type === "bot_started_speaking") {
             console.log('[TRANSLATOR EVENTS] Bot started speaking:', data);
-            if (data && data.id && !data.id.includes(currentName)) {
+            if (data && data.id && data.id == this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
@@ -963,7 +963,7 @@ class AudioManager {
           }
           if (data.event_type === "bot_stopped_speaking") {
             console.log('[TRANSLATOR EVENTS] Bot stopped speaking:', data);
-            if (data && data.id && !data.id.includes(currentName)) {
+            if (data && data.id && data.id == this.localBot) {
               EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
             } else {
               EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
@@ -971,7 +971,7 @@ class AudioManager {
           }
           if (data.event_type === "user_started_speaking") {
             console.log('[TRANSLATOR EVENTS] User started speaking:', data);
-            if (data && data.id && !data.id.includes(currentName)) {
+            if (data && data.id && data.id == currentName) {
               EventManager.emit(EVENTS.LOCAL_RAW_START, data);
             } else {
               EventManager.emit(EVENTS.REMOTE_RAW_START, data);
@@ -979,7 +979,7 @@ class AudioManager {
           }
           if (data.event_type === "user_stopped_speaking") {
             console.log('[TRANSLATOR EVENTS]  User stopped speaking:', data);
-            if (data && data.id && !data.id.includes(currentName)) {
+            if (data && data.id && data.id == currentName) {
               EventManager.emit(EVENTS.LOCAL_RAW_END, data);
             } else {
               EventManager.emit(EVENTS.REMOTE_RAW_END, data);
