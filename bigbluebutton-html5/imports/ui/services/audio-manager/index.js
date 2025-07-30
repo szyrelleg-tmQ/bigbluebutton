@@ -863,9 +863,9 @@ class AudioManager {
         const dailyManager = getDailyManager();
         const audioService = getAudioRoutingService();
         const res = await dailyManager.joinRoom(data.room_url, data.userName)
-        // if (res) {
-        //   dailyManager.toggleAudio();
-        // }
+        if (res) {
+          dailyManager.toggleAudio();
+        }
         // if (res) {
         //   this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
         // }
