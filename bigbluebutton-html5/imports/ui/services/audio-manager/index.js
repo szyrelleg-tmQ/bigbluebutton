@@ -899,7 +899,7 @@ class AudioManager {
           this.participants = this.getParticipantsFromDaily()
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
-          this.volumeHandler();
+          // this.volumeHandler();
           // this.handleParticipantUpdate();
         });
 
@@ -910,38 +910,38 @@ class AudioManager {
 
         dailyManager.on("app-message", (message) => {
           const data = message.data;
-          // #NOTES: bot started speaking, so we need to mute the local participant
-          if (data.event_type === "bot_started_speaking") {
-            if (data && data.id && data.id != this.localBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-            }
-          }
-          if (data.event_type === "bot_stopped_speaking") {
-            // #NOTES: bot stopped speaking, so we need to unmute the local participant
-            if (data && data.id && data.id != this.localBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-            }
-          }
-          if (data.event_type === "user_started_speaking") {
-            // #NOTES: user started speaking, so we need to unmute the local participant
-            if (data && data.id && !data.id.includes(currentName)) {
-              EventManager.emit(EVENTS.LOCAL_RAW_START, data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_RAW_START, data);
-            }
-          }
-          if (data.event_type === "user_stopped_speaking") {
-            // #NOTES: user started speaking, so we need to unmute the local participant
-            if (data && data.id && !data.id.includes(currentName)) {
-              EventManager.emit(EVENTS.LOCAL_RAW_END, data);
-            } else {
-              EventManager.emit(EVENTS.REMOTE_RAW_END, data);
-            }
-          }
+          // // #NOTES: bot started speaking, so we need to mute the local participant
+          // if (data.event_type === "bot_started_speaking") {
+          //   if (data && data.id && data.id != this.localBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
+          //   }
+          // }
+          // if (data.event_type === "bot_stopped_speaking") {
+          //   // #NOTES: bot stopped speaking, so we need to unmute the local participant
+          //   if (data && data.id && data.id != this.localBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
+          //   }
+          // }
+          // if (data.event_type === "user_started_speaking") {
+          //   // #NOTES: user started speaking, so we need to unmute the local participant
+          //   if (data && data.id && !data.id.includes(currentName)) {
+          //     EventManager.emit(EVENTS.LOCAL_RAW_START, data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_RAW_START, data);
+          //   }
+          // }
+          // if (data.event_type === "user_stopped_speaking") {
+          //   // #NOTES: user started speaking, so we need to unmute the local participant
+          //   if (data && data.id && !data.id.includes(currentName)) {
+          //     EventManager.emit(EVENTS.LOCAL_RAW_END, data);
+          //   } else {
+          //     EventManager.emit(EVENTS.REMOTE_RAW_END, data);
+          //   }
+          // }
           if (data.event_type === 'language_detected') {
             console.log('[TRANSLATOR] Language detected:', data);
           }
