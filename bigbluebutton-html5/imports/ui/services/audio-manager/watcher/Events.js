@@ -85,9 +85,23 @@ class EventManager extends EventEmitter {
         if (this.#debouncers[event]) {
             clearTimeout(this.#debouncers[event]);
         }
+
         this.#debouncers[event] = setTimeout(() => {
+            const isLocalRawPlaying = this.getState(STREAM_TYPES.LOCAL_RAW);
+            const isLocalTranslatedPlaying = this.getState(STREAM_TYPES.LOCAL_TRANLATED);
+            const isRemoteRawPlaying = this.getState(STREAM_TYPES.REMOTE_RAW);
+            const isRemoteTranslatedPlaying = this.getState(STREAM_TYPES.REMOTE_TRANLATED);
             handler();
+            this.#debugCallback(event, {
+                isLocalRawPlaying: { isPlaying: isLocalRawPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_RAW] },
+                isLocalTranslatedPlaying: { isPlaying: isLocalTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] },
+                isRemoteRawPlaying: { isPlaying: isRemoteRawPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_RAW] },
+                isRemoteTranslatedPlaying: { isPlaying: isRemoteTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] },
+                isIframe: this.#isIframe,
+                event: event,
+            });
         }, delay);
+
     }
     /**
      * 
@@ -302,14 +316,6 @@ class EventManager extends EventEmitter {
         //     isIframe: this.#isIframe,
         //     event: event,
         // }, ["isPlaying", "volume", "isIframe", "event"]);
-        this.#debugCallback(event, {
-            isLocalRawPlaying: { isPlaying: isLocalRawPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_RAW] },
-            isLocalTranslatedPlaying: { isPlaying: isLocalTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] },
-            isRemoteRawPlaying: { isPlaying: isRemoteRawPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_RAW] },
-            isRemoteTranslatedPlaying: { isPlaying: isRemoteTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] },
-            isIframe: this.#isIframe,
-            event: event,
-        });
     }
 }
 
