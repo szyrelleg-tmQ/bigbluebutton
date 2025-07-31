@@ -899,7 +899,7 @@ class AudioManager {
           this.participants = this.getParticipantsFromDaily()
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
-          // this.volumeHandler();
+          this.volumeHandler();
           // this.handleParticipantUpdate();
         });
 
