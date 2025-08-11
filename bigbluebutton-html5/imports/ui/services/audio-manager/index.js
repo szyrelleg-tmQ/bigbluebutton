@@ -856,9 +856,9 @@ class AudioManager {
           dailyManager.toggleAudio();
         }
 
-        if (!this.volumeHandlersInitialized) {
-          this.setupVolumeHandlers();
-        }
+        // if (!this.volumeHandlersInitialized) {
+        //   this.setupVolumeHandlers();
+        // }
         // if (res) {
         //   this._translatorCallObject.CallObject.setSubscribeToTracksAutomatically(false);
         // }
@@ -903,7 +903,7 @@ class AudioManager {
           this.participants = this.getParticipantsFromDaily()
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
-          this.volumeHandler();
+          // this.volumeHandler();
           // this.handleParticipantUpdate();
         });
 
@@ -913,64 +913,64 @@ class AudioManager {
         });
 
         dailyManager.on("app-message", (message) => {
-          const { data, fromId } = message;
-          const participants = dailyManager.getCallState().participants;
-          const localParticipant = participants.find(p => p.local);
+          // const { data, fromId } = message;
+          // const participants = dailyManager.getCallState().participants;
+          // const localParticipant = participants.find(p => p.local);
 
-          const filtered = audioService.filterParticipants(participants, localParticipant?.user_name);
+          // const filtered = audioService.filterParticipants(participants, localParticipant?.user_name);
 
-          const eventPayload = { participantId: fromId, ...data };
+          // const eventPayload = { participantId: fromId, ...data };
 
-          const isFromLocalBot = filtered.botLocal?.session_id === fromId;
-          const isFromRemoteBot = filtered.botRemote?.session_id === fromId;
-          const isFromLocalUser = filtered.local?.session_id === fromId;
-          const isFromRemoteUser = filtered.remote?.session_id === fromId;
+          // const isFromLocalBot = filtered.botLocal?.session_id === fromId;
+          // const isFromRemoteBot = filtered.botRemote?.session_id === fromId;
+          // const isFromLocalUser = filtered.local?.session_id === fromId;
+          // const isFromRemoteUser = filtered.remote?.session_id === fromId;
 
 
-          if (data.event_type === "bot_started_speaking") {
-            if (isFromLocalBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, eventPayload);
-            } else if (isFromRemoteBot) {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, eventPayload);
-            }
-          }
-          if (data.event_type === "bot_stopped_speaking") {
-            if (isFromLocalBot) {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, eventPayload);
-            } else if (isFromRemoteBot) {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, eventPayload);
-            }
-          }
-          if (data.event_type === "user_started_speaking") {
-            if (isFromRemoteUser) {
-              EventManager.emit(EVENTS.REMOTE_RAW_START, eventPayload);
-            } else if (isFromLocalUser) {
-              EventManager.emit(EVENTS.LOCAL_RAW_START, eventPayload);
-            }
-          }
-          if (data.event_type === "user_stopped_speaking") {
-            if (isFromRemoteUser) {
-              EventManager.emit(EVENTS.REMOTE_RAW_END, eventPayload);
-            } else if (isFromLocalUser) {
-              EventManager.emit(EVENTS.LOCAL_RAW_END, eventPayload);
-            }
-          }
-          if (data.event_type === 'language_detected') {
-            console.log('[TRANSLATOR] Language detected:', data);
-          }
-          if (data.insufficient_data) {
-            console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
-          }
-          if (data.confidence < 0.7) {
-            console.warn('[TRANSLATOR] Low confidence in language detection:', data);
-          }
-          if (data.service_unavailable) {
-            console.error('[TRANSLATOR] Language detection service unavailable:', data);
-          }
-          if (data.event_type === "p2p_voice_change_request") {
-            const { data, fromId } = message;
-            dailyManager.handleP2PMessage(data, fromId);
-          }
+          // if (data.event_type === "bot_started_speaking") {
+          //   if (isFromLocalBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_START, eventPayload);
+          //   } else if (isFromRemoteBot) {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_START, eventPayload);
+          //   }
+          // }
+          // if (data.event_type === "bot_stopped_speaking") {
+          //   if (isFromLocalBot) {
+          //     EventManager.emit(EVENTS.LOCAL_TRANLATED_END, eventPayload);
+          //   } else if (isFromRemoteBot) {
+          //     EventManager.emit(EVENTS.REMOTE_TRANLATED_END, eventPayload);
+          //   }
+          // }
+          // if (data.event_type === "user_started_speaking") {
+          //   if (isFromRemoteUser) {
+          //     EventManager.emit(EVENTS.REMOTE_RAW_START, eventPayload);
+          //   } else if (isFromLocalUser) {
+          //     EventManager.emit(EVENTS.LOCAL_RAW_START, eventPayload);
+          //   }
+          // }
+          // if (data.event_type === "user_stopped_speaking") {
+          //   if (isFromRemoteUser) {
+          //     EventManager.emit(EVENTS.REMOTE_RAW_END, eventPayload);
+          //   } else if (isFromLocalUser) {
+          //     EventManager.emit(EVENTS.LOCAL_RAW_END, eventPayload);
+          //   }
+          // }
+          // if (data.event_type === 'language_detected') {
+          //   console.log('[TRANSLATOR] Language detected:', data);
+          // }
+          // if (data.insufficient_data) {
+          //   console.warn('[TRANSLATOR] Insufficient data for language detection:', data);
+          // }
+          // if (data.confidence < 0.7) {
+          //   console.warn('[TRANSLATOR] Low confidence in language detection:', data);
+          // }
+          // if (data.service_unavailable) {
+          //   console.error('[TRANSLATOR] Language detection service unavailable:', data);
+          // }
+          // if (data.event_type === "p2p_voice_change_request") {
+          //   const { data, fromId } = message;
+          //   dailyManager.handleP2PMessage(data, fromId);
+          // }
           if (data.event_type === "transcription") {
             latestTranscriptionVar({
               text: data.text,
