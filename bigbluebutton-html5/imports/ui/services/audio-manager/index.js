@@ -32,7 +32,7 @@ import { getTranslatorClient } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import DailyManager from './DailyManager';
-import EventManager, { EVENTS, STREAM_TYPES } from './watcher/Events';
+import EventManager, { EVENTS, STREAM_TYPES } from './Events';
 
 const CALL_STATES = {
   STARTED: 'started',
