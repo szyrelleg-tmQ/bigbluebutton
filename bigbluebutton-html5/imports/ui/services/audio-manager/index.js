@@ -149,7 +149,6 @@ class AudioManager {
   initDailyManager() {
     if (this.dailyManager) return;
     this.dailyManager = new DailyManager();
-    this.dailyManager.init();
   }
 
   initTranslator() {
@@ -863,6 +862,7 @@ class AudioManager {
       let totalParticipants = 2;
 
       const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
+      this.dailyManager.init();
       try {
         this.localBot = `bot-${data.userName}`;
         const res = await this.dailyManager.joinRoom(data.room_url, data.userName)
