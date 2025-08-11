@@ -865,10 +865,10 @@ class AudioManager {
           this.dailyManager.toggleAudio();
         }
 
-        this.dailyManager.on('joined-meeting', updateParticipants());
-        this.dailyManager.on('left-meeting', updateParticipants());
-        this.dailyManager.on('participant-joined', updateParticipants());
-        this.dailyManager.on('participant-left', updateParticipants());
+        this.dailyManager.on('joined-meeting', this.updateParticipants());
+        this.dailyManager.on('left-meeting', this.updateParticipants());
+        this.dailyManager.on('participant-joined', this.updateParticipants());
+        this.dailyManager.on('participant-left', this.updateParticipants());
 
         this.dailyManager.on('participant-updated', (event) => {
           const participantList = this.dailyManager.getParticipants();
