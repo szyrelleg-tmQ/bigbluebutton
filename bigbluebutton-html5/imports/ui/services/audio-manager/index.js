@@ -874,6 +874,7 @@ class AudioManager {
 
 
         this.dailyManager.on('joined-meeting', (event) => {
+          logger.debug('[DAILY] Joined Daily room:', event);
           this.updateParticipants();
           this.setupVolumeHandler();
         })
@@ -882,6 +883,7 @@ class AudioManager {
           this.setupVolumeHandler();
         });
         this.dailyManager.on('participant-joined', (event) => {
+          logger.debug('[DAILY] Participant joined:', event.participant);
           this.updateParticipants();
           this.setupVolumeHandler();
         });
