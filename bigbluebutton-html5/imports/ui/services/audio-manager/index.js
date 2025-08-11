@@ -189,6 +189,10 @@ class AudioManager {
     return this._translatorCallObject;
   }
 
+  get DailyManager() {
+    return this.dailyManager;
+  }
+
   onBeforeUnload() {
     const CONFIRMATION_ON_LEAVE = window.meetingClientSettings.public.app.askForConfirmationOnLeave;
     if (!CONFIRMATION_ON_LEAVE) {
@@ -1613,8 +1617,7 @@ class AudioManager {
   }
 
   setParticipantVolume(volume = 0.1) {
-    const dailyManager = getDailyManager();
-    const participants = dailyManager.CallObject.participants();
+    const participants = this.dailyManager.call.participants();
     for (let id in participants) {
       if (id === 'local') continue;
       const participant = participants[id];
