@@ -1332,8 +1332,8 @@ class AudioManager {
         newDeviceId: deviceId || 'none',
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
-    if (this.dailyManager && this.inputDeviceId) {
-      this.dailyManager.setAudioInputDevices(this.inputDeviceId);
+    if (this.DailyManager && this.inputDeviceId) {
+      this.DailyManager.setAudioInputDevices(this.inputDeviceId);
     }
 
     return this.inputDeviceId;
