@@ -7,7 +7,7 @@ import { defineMessages, useIntl } from 'react-intl';
 import AudioManager from '/imports/ui/services/audio-manager';
 import LanguageIcon from '/public/svgs/language.svg';
 import { selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
-
+import { getDailyManager } from '/imports/ui/services/audio-manager/watcher/DailyManager';
 const intlMessages = defineMessages({
     buttonLabel: {
         id: 'app.audio.languageVoiceButton.label',
@@ -90,7 +90,7 @@ const AudioLanguageVoiceButton = () => {
         // Try to update the current translator client if available
         try {
             // AudioManager._translatorCallObject is the current translator client instance
-            const translatorClient = AudioManager.DailyManager
+            const translatorClient = getDailyManager()
             if (translatorClient) {
                 if (typeof translatorClient.setVoice === 'function') {
                     translatorClient.setVoice(selectedVoice, selectedLanguage);
