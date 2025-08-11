@@ -57,23 +57,15 @@ class DailyManager {
 
         // Handle audio tracks
         this.call.on('track-started', (event) => {
-            // console.log(`🎵 Track started event:`, event);
-            // console.log(`🎵 Track kind:`, event.track?.kind);
-            // console.log(`🎵 Participant local:`, event.participant?.local);
             if (event.participant?.local) this.#currentLocalParticipant = event.participant;
             if (event.track && event.track.kind === 'audio' && !event.participant.local) {
-                // if (this.isRemoteBot(event.participant)) return;
                 this.createAudioElement(event.participant, event.track);
-            } else {
-                // console.log(`❌ Skipping track - not remote audio`);
             }
         });
 
         this.call.on("app-message", (event) => {
             this.emitEvent('app-message', event);
         });
-
-
     }
 
     isRemoteBot(participant) {
@@ -82,17 +74,12 @@ class DailyManager {
         return false;
     }
 
-
     async joinRoom(roomUrl, userName, options = {}) {
         try {
             if (!this.isInitialized) {
                 this.init();
             }
 
-            // let url = roomUrl.trim();
-            // if (!url.startsWith('https://')) {
-            //     url = `https://jomel.daily.co/${url}`;
-            // }
             console.log('Joining room:', roomUrl);
             await this.call.join({
                 url: roomUrl,
@@ -177,55 +164,33 @@ class DailyManager {
         }
         const participantId = participant.session_id;
 
-        // Clean up existing audio for this participant
         this.cleanupParticipantAudio(participantId);
 
-        // Create audio processing pipeline
         const stream = new MediaStream([track]);
-
         const sourceNode = this.audioContext.createMediaStreamSource(stream);
         const gainNode = this.audioContext.createGain();
 
-        // Set initial gain value
         gainNode.gain.value = gainVolume;
-
-        // Connect: source → gain → audioContext.destination (NOT MediaStreamDestination)
         sourceNode.connect(gainNode).connect(this.audioContext.destination);
 
-        // Create audio element for autoplay handling (using original stream)
         const audioEl = new Audio();
-        audioEl.srcObject = new MediaStream([track]); // Original stream for autoplay
-        // audioEl.autoplay = true;
-        // audioEl.playsInline = true;
-        // audioEl.muted = true;
-        // audioEl.setAttribute('data-participant-id', participantId);
-        // audioEl.setAttribute('data-participant-type', 'remote');
-        // audioEl.setAttribute('data-participant-name', participant.user_name);
-        // audioEl.setAttribute('data-audio-context', 'true');
-        // audioEl.setAttribute('data-volume', '0.5');
+        audioEl.srcObject = new MediaStream([track]);
         audioEl.style.display = 'none';
 
-        // Make sure audio context is running
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
 
-        // Handle autoplay restrictions
-        // audioEl.play().catch(err => {
-        //     console.warn('❌ Audio autoplay failed, will retry on user interaction:', err);
-        // });
-
-        // Store references
         this.gainNodes.set(participantId, gainNode);
-        // this.audioElements.set(participantId, audioEl);
-
-        // document.body.appendChild(audioEl);
     }
 
     async setAudioOutputDevices(outDeviceId) {
         try {
-            this.audioContext.setSinkId(outDeviceId);
-            return true;
+            if (this.audioContext && typeof this.audioContext.setSinkId === 'function') {
+                await this.audioContext.setSinkId(outDeviceId);
+                return true;
+            }
+            return false;
         } catch (error) {
             console.error(`🔊 Error setting audio output device:`, error);
             return false;
@@ -245,7 +210,6 @@ class DailyManager {
     }
 
     cleanupParticipantAudio(participantId) {
-        // Remove existing audio element
         const existingAudio = this.audioElements.get(participantId);
         if (existingAudio) {
             existingAudio.pause();
@@ -256,26 +220,17 @@ class DailyManager {
             this.audioElements.delete(participantId);
         }
 
-        // Remove gain node reference
         this.gainNodes.delete(participantId);
     }
 
-    setParticipantVolume(participantId, volume, options = {
-        duration: 0.3, // Default fade duration in seconds
-        easing: 'linear', // 'linear' or 'exponential'
-        startTime: null // Optional start time (uses currentTime if null)
-    }) {
+    setParticipantVolume(participantId, volume, options = {}) {
         const gainNode = this.gainNodes.get(participantId);
-        // if (gainNode) {
-        //     gainNode.gain.value = Math.max(0, Math.min(1, volume));
         if (gainNode) {
             const clampedVolume = Math.max(0, Math.min(1, volume));
-
-            // Default options for smooth transitions
             const {
-                duration = 0.3, // Default fade duration in seconds
-                easing = 'linear', // 'linear' or 'exponential'
-                startTime = null // Optional start time (uses currentTime if null)
+                duration = 0.3,
+                easing = 'linear',
+                startTime = null
             } = options;
 
             const currentTime = this.audioContext.currentTime;
@@ -285,20 +240,15 @@ class DailyManager {
             gainNode.gain.setValueAtTime(gainNode.gain.value, startTimeValue);
 
             if (duration <= 0) {
-                // Instant volume change
                 gainNode.gain.setValueAtTime(clampedVolume, startTimeValue);
-            } else {
-                if (easing === 'exponential') {
-                    // Exponential ramp (cannot go to 0 directly)
-                    const targetValue = clampedVolume === 0 ? 0.0001 : clampedVolume;
-                    gainNode.gain.exponentialRampToValueAtTime(targetValue, startTimeValue + duration);
-                    if (clampedVolume === 0) {
-                        gainNode.gain.linearRampToValueAtTime(0, startTimeValue + duration + 0.001);
-                    }
-                } else {
-                    // Linear ramp (default)
-                    gainNode.gain.linearRampToValueAtTime(clampedVolume, startTimeValue + duration);
+            } else if (easing === 'exponential') {
+                const targetValue = clampedVolume === 0 ? 0.0001 : clampedVolume;
+                gainNode.gain.exponentialRampToValueAtTime(targetValue, startTimeValue + duration);
+                if (clampedVolume === 0) {
+                    gainNode.gain.linearRampToValueAtTime(0, startTimeValue + duration + 0.001);
                 }
+            } else {
+                gainNode.gain.linearRampToValueAtTime(clampedVolume, startTimeValue + duration);
             }
         } else {
             console.warn(`❌ No gain node found for participant ${participantId}`);
@@ -306,55 +256,7 @@ class DailyManager {
         }
     }
 
-
-    // setParticipantVolume(participantId, volume, options = {
-    //     duration: 0.3, // Default fade duration in seconds
-    //     easing: 'linear', // 'linear' or 'exponential'
-    //     startTime: null // Optional start time (uses currentTime if null)
-    // }) {
-    //     const gainNode = this.gainNodes.get(participantId);
-    //     // if (gainNode) {
-    //     //     gainNode.gain.value = Math.max(0, Math.min(1, volume));
-    //     if (gainNode) {
-    //         const clampedVolume = Math.max(0, Math.min(1, volume));
-
-    //         // Default options for smooth transitions
-    //         const {
-    //             duration = 0.3, // Default fade duration in seconds
-    //             easing = 'linear', // 'linear' or 'exponential'
-    //             startTime = null // Optional start time (uses currentTime if null)
-    //         } = options;
-
-    //         const currentTime = this.audioContext.currentTime;
-    //         const startTimeValue = startTime || currentTime;
-
-    //         gainNode.gain.cancelScheduledValues(startTimeValue);
-    //         gainNode.gain.setValueAtTime(gainNode.gain.value, startTimeValue);
-
-    //         if (duration <= 0) {
-    //             // Instant volume change
-    //             gainNode.gain.setValueAtTime(clampedVolume, startTimeValue);
-    //         } else {
-    //             if (easing === 'exponential') {
-    //                 // Exponential ramp (cannot go to 0 directly)
-    //                 const targetValue = clampedVolume === 0 ? 0.0001 : clampedVolume;
-    //                 gainNode.gain.exponentialRampToValueAtTime(targetValue, startTimeValue + duration);
-    //                 if (clampedVolume === 0) {
-    //                     gainNode.gain.linearRampToValueAtTime(0, startTimeValue + duration + 0.001);
-    //                 }
-    //             } else {
-    //                 // Linear ramp (default)
-    //                 gainNode.gain.linearRampToValueAtTime(clampedVolume, startTimeValue + duration);
-    //             }
-    //         }
-    //     } else {
-    //         console.warn(`❌ No gain node found for participant ${participantId}`);
-    //         console.log(`❌ Available participants:`, Array.from(this.gainNodes.keys()));
-    //     }
-    // }
-
     destroy() {
-        // Clean up all audio elements
         for (const [participantId] of this.audioElements) {
             this.cleanupParticipantAudio(participantId);
         }
@@ -373,9 +275,7 @@ class DailyManager {
 
     setLanguage(lang) {
         if (this.call) {
-            // Get local participant's session_id
-            const participants = this.call.participants();
-            const localParticipantId = participants?.local?.session_id;
+            const localParticipantId = this.call.participants()?.local?.session_id;
             this.call.sendAppMessage({
                 event_type: 'update_language',
                 participant_id: localParticipantId,
@@ -403,4 +303,10 @@ class DailyManager {
     }
 }
 
-export default DailyManager;
+// Create a single instance of the DailyManager
+const dailyManagerInstance = new DailyManager();
+
+// Export a function that returns the instance
+export function getDailyManager() {
+    return dailyManagerInstance;
+}

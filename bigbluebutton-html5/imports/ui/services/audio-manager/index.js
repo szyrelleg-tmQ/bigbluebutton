@@ -31,7 +31,7 @@ import {
 import { getTranslatorClient } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
-import DailyManager from './DailyManager';
+import { getDailyManager } from "./DailyManager";
 import EventManager, { EVENTS, STREAM_TYPES } from './Events';
 
 const CALL_STATES = {
@@ -127,7 +127,7 @@ class AudioManager {
     this._voiceActivityObserver = null;
     this._inputStreamInactivityTrackers = new Map();
     this._translatorCallObject = null;
-    this.dailyManager = null;
+
     this.handlePlayElementFailed = this.handlePlayElementFailed.bind(this);
     this.monitor = this.monitor.bind(this);
     this.isUsingAudio = this.isUsingAudio.bind(this);
@@ -143,12 +143,7 @@ class AudioManager {
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
     this.initTranslator();
-    this.initDailyManager();
-  }
-
-  initDailyManager() {
-    if (this.dailyManager) return;
-    this.dailyManager = new DailyManager();
+    this.audioService = getAudioRoutingService();
   }
 
   initTranslator() {
@@ -187,10 +182,6 @@ class AudioManager {
 
   get TranslatorCallObject() {
     return this._translatorCallObject;
-  }
-
-  get DailyManager() {
-    return this.dailyManager;
   }
 
   onBeforeUnload() {
@@ -781,9 +772,15 @@ class AudioManager {
     }
   }
 
+  updateParticipants() {
+    const dailyManager = getDailyManager();
+    const participantList = dailyManager.getParticipants();
+    this.participants = participantList;
+  }
+
   setupVolumeHandler() {
     if (this.participants) {
-      const dailyManager = this.dailyManager;
+      const dailyManager = getDailyManager();
       const localParticipant = dailyManager.CurrentLocalParticipant;
       const remote = this.participants.find(
         p =>
@@ -806,27 +803,22 @@ class AudioManager {
 
       EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
         const participantId = botLocal?.session_id;
-        this.dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
+        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
         const participantId = botRemote?.session_id;
-        this.dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
+        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
         const participantId = localParticipant.session_id;
-        this.dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
+        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
       });
       EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
         const participantId = remote?.session_id;
-        this.dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
+        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
       });
       // debugLog('attachVolumeHandler', participants);
     }
-  }
-
-  updateParticipants() {
-    const participantList = this.dailyManager.getParticipants();
-    this.participants(participantList);
   }
 
   async onAudioJoin({ deafened = false } = {}) {
@@ -862,45 +854,44 @@ class AudioManager {
       let totalParticipants = 2;
 
       const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-      this.dailyManager.init();
       try {
         this.localBot = `bot-${data.userName}`;
-        const res = await this.dailyManager.joinRoom(data.room_url, data.userName)
+        const dailyManager = getDailyManager();
+        const res = await dailyManager.joinRoom(data.room_url, data.userName)
         if (res) {
-          this.dailyManager.toggleAudio();
+          dailyManager.toggleAudio();
         }
 
-        this.setupVolumeHandler();
-
-
-        this.dailyManager.on('joined-meeting', (event) => {
-          logger.debug('[DAILY] Joined Daily room:', event);
-          this.updateParticipants();
-          this.setupVolumeHandler();
-        })
-        this.dailyManager.on('left-meeting', (event) => {
+        dailyManager.on('joined-meeting', (event) => {
           this.updateParticipants();
           this.setupVolumeHandler();
         });
-        this.dailyManager.on('participant-joined', (event) => {
-          logger.debug('[DAILY] Participant joined:', event.participant);
+        dailyManager.on('left-meeting', (event) => {
           this.updateParticipants();
           this.setupVolumeHandler();
         });
-        this.dailyManager.on('participant-left', (event) => {
+        dailyManager.on('participant-joined', (event) => {
           this.updateParticipants();
           this.setupVolumeHandler();
         });
-        this.dailyManager.on('participant-updated', (event) => {
+        dailyManager.on('participant-left', (event) => {
           this.updateParticipants();
+          this.setupVolumeHandler();
+        });
+        dailyManager.on('participant-updated', (event) => {
+          this.updateParticipants();
+          this.setupVolumeHandler();
           totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
           this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
         });
 
-        this.dailyManager.on("app-message", (message) => {
+
+
+        dailyManager.on("app-message", (message) => {
           const data = message.data;
-          const localParticipant = this.dailyManager.CurrentLocalParticipant;
-          const currentParticipants = this.dailyManager.getParticipants()
+          const dailyManager = getDailyManager();
+          const localParticipant = dailyManager.CurrentLocalParticipant;
+          const currentParticipants = dailyManager.getParticipants()
           const botLocal = currentParticipants.find(
             p =>
               p.session_id !== localParticipant.session_id &&
@@ -1345,8 +1336,9 @@ class AudioManager {
         newDeviceId: deviceId || 'none',
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
-    if (this.TranslatorCallObject && this.inputDeviceId) {
-      this.TranslatorCallObject.CallObject.setInputDevicesAsync({ audioDeviceId: this.inputDeviceId });
+    const dailyManager = getDailyManager();
+    if (dailyManager && this.inputDeviceId) {
+      dailyManager.setAudioInputDevices(inputDeviceId);
     }
 
     return this.inputDeviceId;
@@ -1420,9 +1412,10 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
-        if (this.dailyManager && this.outputDeviceId) {
+        const dailyManager = getDailyManager();
+        if (dailyManager && this.outputDeviceId) {
           console.log('[DAILY] Changing output device in Daily.co:', this.outputDeviceId);
-          await this.dailyManager.setAudioOutputDevices(this.outputDeviceId);
+          await dailyManager.setAudioOutputDevices(this.outputDeviceId);
         }
 
         return this.outputDeviceId;
@@ -1613,24 +1606,30 @@ class AudioManager {
 
   mute() {
     this.setSenderTrackEnabled(false);
-    if (this.dailyManager) {
-      this.dailyManager.toggleAudio(false);
+    // Mute translator call object if active
+    const dailyManager = getDailyManager();
+    if (dailyManager) {
+      dailyManager.toggleAudio(false);
     }
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
-    if (this.dailyManager) {
-      this.dailyManager.toggleAudio(true);
+    // Unmute translator call object if active
+    const dailyManager = getDailyManager();
+    if (dailyManager) {
+      dailyManager.toggleAudio(true);
     }
   }
 
   toggleTranslation(flag) {
-    this.dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
+    const dailyManager = getDailyManager();
+    dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
   }
 
   setParticipantVolume(volume = 0.1) {
-    const participants = this.dailyManager.call.participants();
+    const dailyManager = getDailyManager();
+    const participants = dailyManager.CallObject.participants();
     for (let id in participants) {
       if (id === 'local') continue;
       const participant = participants[id];
