@@ -143,7 +143,6 @@ class AudioManager {
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
     this.initTranslator();
-    this.audioService = getAudioRoutingService();
   }
 
   initTranslator() {
