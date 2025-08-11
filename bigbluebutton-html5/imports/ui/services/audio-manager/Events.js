@@ -1,4 +1,7 @@
 import { EventEmitter } from "events";
+import { debugTable } from "../utils";
+// #NOTES: DEBUGGING
+// import { debugTable } from "../utils.js";
 
 export const EVENTS = {
     REMOTE_RAW_START: "remoteRawStart",
@@ -85,23 +88,21 @@ class EventManager extends EventEmitter {
         if (this.#debouncers[event]) {
             clearTimeout(this.#debouncers[event]);
         }
-
         this.#debouncers[event] = setTimeout(() => {
             const isLocalRawPlaying = this.getState(STREAM_TYPES.LOCAL_RAW);
             const isLocalTranslatedPlaying = this.getState(STREAM_TYPES.LOCAL_TRANLATED);
             const isRemoteRawPlaying = this.getState(STREAM_TYPES.REMOTE_RAW);
             const isRemoteTranslatedPlaying = this.getState(STREAM_TYPES.REMOTE_TRANLATED);
-            handler();
-            this.#debugCallback(event, {
+            debugTable({
                 isLocalRawPlaying: { isPlaying: isLocalRawPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_RAW] },
                 isLocalTranslatedPlaying: { isPlaying: isLocalTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] },
                 isRemoteRawPlaying: { isPlaying: isRemoteRawPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_RAW] },
                 isRemoteTranslatedPlaying: { isPlaying: isRemoteTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] },
                 isIframe: this.#isIframe,
                 event: event,
-            });
+            }, ["isPlaying", "volume", "isIframe", "event"]);
+            handler();
         }, delay);
-
     }
     /**
      * 
@@ -169,7 +170,7 @@ class EventManager extends EventEmitter {
         const isLocalTranslatedPlaying = this.getState(STREAM_TYPES.LOCAL_TRANLATED);
         const isRemoteRawPlaying = this.getState(STREAM_TYPES.REMOTE_RAW);
         const isRemoteTranslatedPlaying = this.getState(STREAM_TYPES.REMOTE_TRANLATED);
-        // #NOTES: DEBUGGING
+
         switch (event) {
             /**
              * CHECKS:
@@ -178,28 +179,53 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> if local translated playing ? no -> set remote raw volume 0.1
              */
             case EVENTS.REMOTE_RAW_START:
-                if (isLocalRawPlaying || isLocalTranslatedPlaying) {
+                if (isLocalTranslatedPlaying) {
                     this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
                         this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                     }, 100);
                     break;
+                } else {
+                    this.#debounce(event, () => {
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](this.#defaultConfig.remoteRawVolume);
+                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = this.#defaultConfig.remoteRawVolume;
+                    }, this.#defaultConfig.silenceDuration);
                 }
 
-                this.#debounce(event, () => {
-                    this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](this.#defaultConfig.remoteRawVolume);
-                    this.#volumes[STREAM_TYPES.REMOTE_RAW] = this.#defaultConfig.remoteRawVolume;
-                }, this.#defaultConfig.silenceDuration);
+
+                if (isRemoteTranslatedPlaying && isLocalTranslatedPlaying) {
+                    this.#debounce(event, () => {
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                        this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+                    }, 100);
+                }
+                // this.#debounce(event, () => {
+                //     this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](this.#defaultConfig.remoteRawVolume);
+                //     this.#volumes[STREAM_TYPES.REMOTE_RAW] = this.#defaultConfig.remoteRawVolume;
+                // }, this.#defaultConfig.silenceDuration);
                 break;
             /**
              * CHECKS:
              * set remote raw volume to default: 0
              */
             case EVENTS.REMOTE_RAW_END:
-                this.#debounce(event, () => {
-                    this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
-                    this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
-                }, this.#defaultConfig.debouncerDelay);
+                if (isRemoteTranslatedPlaying && isLocalTranslatedPlaying) {
+                    this.#debounce(event, () => {
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                        this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+                    }, 100);
+                }
+                // if (!isLocalTranslatedPlaying) {
+                //     this.#debounce(event, () => {
+                //         this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](1);
+                //         this.#volumes[STREAM_TYPES.REMOTE_RAW] = 1;
+                //     }, this.#defaultConfig.debouncerDelay);
+                // } else {
+                //     this.#debounce(event, () => {
+                //         this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                //         this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
+                //     }, this.#defaultConfig.debouncerDelay);
+                // }
                 break;
             /**
              * CHECKS:
@@ -209,18 +235,36 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> if local translated playing ? no -> if remote raw playing ? no -> set remote translated volume 0.2
              */
             case EVENTS.REMOTE_TRANLATED_START: {
-                if (isLocalRawPlaying || isLocalTranslatedPlaying || isRemoteRawPlaying) {
+
+                if (isRemoteTranslatedPlaying && isLocalTranslatedPlaying) {
                     this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
                     }, 100);
-                    break;
                 }
 
-                this.#debounce(event, () => {
-                    this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](this.#defaultConfig.remoteTranslatedVolume);
-                    this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = this.#defaultConfig.remoteTranslatedVolume;
-                }, 100);
+                // if (isLocalTranslatedPlaying) {
+                //     this.#debounce(event, () => {
+                // When both LOCAL_TRANSLATED and REMOTE_TRANSLATED are active:
+                // Set LOCAL_TRANSLATED to 0.5 and REMOTE_RAW to 0
+                // this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](0.5);
+                // this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 0.5;
+                // this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                // this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+
+                // this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                // this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
+                //     }, 100);
+                // } else {
+                //     this.#debounce(event, () => {
+                // this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0.2);
+                // this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0.2;
+                //     }, 100);
+                // }
+                // this.#debounce(event, () => {
+                //     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](this.#defaultConfig.remoteTranslatedVolume);
+                //     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = this.#defaultConfig.remoteTranslatedVolume;
+                // }, 100);
                 break;
             }
 
@@ -229,38 +273,43 @@ class EventManager extends EventEmitter {
              * set remote translated volume to default: 0
              */
             case EVENTS.REMOTE_TRANLATED_END:
-                this.#debounce(event, () => {
-                    this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
-                    this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
-                }, 100);
+                // this.#debounce(event, () => {
+                //     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                //     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+
+                //     // If LOCAL_TRANSLATED is still playing, restore it to full volume
+                //     if (isLocalTranslatedPlaying) {
+                //         this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                //         this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                //     }
+                // }, 100);
                 break;
             /**
              * CHECKS:
              * do nothing
              */
             case EVENTS.LOCAL_RAW_START:
-                this.#debounce(event, () => {
-                    // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
-                    // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
-
-                    this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](this.#defaultConfig.remoteTranslatedVolume);
-                    this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = this.#defaultConfig.remoteTranslatedVolume;
-                }, 100);
+                // this.#debounce(event, () => {
+                // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
+                // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
+                // this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](this.#defaultConfig.remoteTranslatedVolume);
+                // this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = this.#defaultConfig.remoteTranslatedVolume;
+                // }, 100);
                 break;
             /**
              * CHECKS:
              * do nothing
              */
             case EVENTS.LOCAL_RAW_END:
-                this.#debounce(event, () => {
-                    // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
-                    // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
+                // this.#debounce(event, () => {
+                // this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](1);
+                // this.#volumes[STREAM_TYPES.LOCAL_RAW] = 1;
 
-                    // if (isRemoteTranslatedPlaying) {
-                    //     this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
-                    //     this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
-                    // }
-                }, 100);
+                // if (isRemoteTranslatedPlaying) {
+                //     this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                //     this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                // }
+                // }, 100);
                 break;
             /**
              * CHECKS:
@@ -268,29 +317,35 @@ class EventManager extends EventEmitter {
              * if local raw playing ? no -> set local translated volume 1
              */
             case EVENTS.LOCAL_TRANLATED_START: {
-                if (isLocalRawPlaying) {
-                    this.#debounce(event, () => {
-                        this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](this.#defaultConfig.localTranslatedVolume);
-                        this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = this.#defaultConfig.localTranslatedVolume;
+                // if (isRemoteRawPlaying) {
+                this.#debounce(event, () => {
+                    this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                    this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
+                }, 100);
+                // }
+                // if (isRemoteTranslatedPlaying) {
+                //     this.#debounce(event, () => {
+                //         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                //         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+                //     }, 100);
+                // }
 
+                if (isRemoteTranslatedPlaying && isLocalTranslatedPlaying) {
+                    this.#debounce(event, () => {
                         this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
                         this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
-
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
-                    }, 100);
-                } else {
-                    this.#debounce(event, () => {
-                        this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
-                        this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
-
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
-
-                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
-                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
                     }, 100);
                 }
+
+                // this.#debounce(event, () => {
+                //     this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                //     this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                //     this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                //     this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+                //     this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](0);
+                //     this.#volumes[STREAM_TYPES.REMOTE_RAW] = 0;
+                // }, 100);
+
                 break;
             }
 
@@ -300,22 +355,40 @@ class EventManager extends EventEmitter {
              */
             case EVENTS.LOCAL_TRANLATED_END:
                 this.#debounce(event, () => {
-                    this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](0);
-                    this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 0;
+                    // this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                    // this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                    // bring back all of the volumes to default
+                    // if (!isLocalTranslatedPlaying) {
+                    this.#volumeHanlders[STREAM_TYPES.LOCAL_TRANLATED](1);
+                    this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] = 1;
+                    // }
+                    // if (!isRemoteRawPlaying) {
+                    this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](this.#defaultConfig.remoteTranslatedVolume);
+                    this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = this.#defaultConfig.remoteTranslatedVolume;
+                    // }
+                    if (!isRemoteTranslatedPlaying) {
+                        this.#volumeHanlders[STREAM_TYPES.REMOTE_RAW](this.#defaultConfig.remoteRawVolume);
+                        this.#volumes[STREAM_TYPES.REMOTE_RAW] = this.#defaultConfig.remoteRawVolume;
+                    }
+
+                    if (isRemoteTranslatedPlaying && isLocalTranslatedPlaying) {
+                        this.#debounce(event, () => {
+                            this.#volumeHanlders[STREAM_TYPES.REMOTE_TRANLATED](0);
+                            this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] = 0;
+                        }, 100);
+                    }
+
+                    // if (!isLocalRawPlaying) {
+                    //     this.#volumeHanlders[STREAM_TYPES.LOCAL_RAW](this.#defaultConfig.localRawVolume);
+                    //     this.#volumes[STREAM_TYPES.LOCAL_RAW] = this.#defaultConfig.localRawVolume;
+                    // }
                 }, this.#defaultConfig.silenceDuration);
                 break;
             default:
                 return false;
         }
         // #NOTES: DEBUGGING
-        // debugTable({
-        //     isLocalRawPlaying: { isPlaying: isLocalRawPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_RAW] },
-        //     isLocalTranslatedPlaying: { isPlaying: isLocalTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.LOCAL_TRANLATED] },
-        //     isRemoteRawPlaying: { isPlaying: isRemoteRawPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_RAW] },
-        //     isRemoteTranslatedPlaying: { isPlaying: isRemoteTranslatedPlaying, volume: this.#volumes[STREAM_TYPES.REMOTE_TRANLATED] },
-        //     isIframe: this.#isIframe,
-        //     event: event,
-        // }, ["isPlaying", "volume", "isIframe", "event"]);
+
     }
 }
 
