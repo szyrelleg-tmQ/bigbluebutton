@@ -731,7 +731,6 @@ class AudioManager {
 
   updateAndSetupVolumeHandlers() {
     const participantList = IndexWatcher.getParticipants();
-    console.log(participantList);
     this.participants(participantList); // Update reactive variable
     const dailyManager = IndexWatcher.DailyManager;
 
