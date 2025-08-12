@@ -14,14 +14,14 @@ class IndexWatcher extends EventTarget {
     #remoteLanguages = null;
     #clientSettings = null;
     #baseUrl = null;
-    constructor(baseUrl) {
+    constructor() {
         super(); // Important: call super() for EventTarget
         this.initDailyManager();
         // Fire off initial data fetching
         this.getClientSettings();
         this.getLanguages();
         this.getVoices();
-        this.#baseUrl = baseUrl
+        this.#baseUrl = 'https://pipecat-prod-translate.ph03.us';
     }
 
     // Helper to dispatch events
@@ -259,4 +259,4 @@ class IndexWatcher extends EventTarget {
 }
 
 // Export a single instance (singleton pattern)
-export default IndexWatcher;
+export default new IndexWatcher();

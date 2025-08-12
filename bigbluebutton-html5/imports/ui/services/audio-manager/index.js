@@ -31,11 +31,8 @@ import {
 import { getTranslatorClient } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
+import IndexWatcher from './IndexWatcher'
 import EventManager, { EVENTS, STREAM_TYPES } from './Events';
-import IndexWatcherClass from './IndexWatcher';
-
-const pipeCatBaseUrl = window.meetingClientSettings?.public?.app?.pipecat?.baseUrl;
-const IndexWatcher = new IndexWatcherClass(pipeCatBaseUrl);
 
 const CALL_STATES = {
   STARTED: 'started',
