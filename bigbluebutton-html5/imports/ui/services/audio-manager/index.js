@@ -978,9 +978,8 @@ class AudioManager {
 
     const dailyManager = IndexWatcher.DailyManager;
     if (dailyManager && dailyManager.isJoined()) {
-      dailyManager.leaveRoom();
+      IndexWatcher.leaveRoom();
     }
-
     this.isConnected = false;
     this.isConnecting = false;
     this.isHangingUp = false;

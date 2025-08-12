@@ -117,7 +117,9 @@ class IndexWatcher extends EventTarget {
 
     async leaveRoom() {
         try {
-            this.setValue(LOADER.LEAVE_ROOM, true);
+            // If the manager doesn't exist, there's nothing to do.
+            if (!this.DailyManager) return true;
+
             const success = await this.DailyManager.leaveRoom();
 
             // Emit IPC event to notify main process about room leave
@@ -129,11 +131,15 @@ class IndexWatcher extends EventTarget {
                 }
             }
 
-            this.setValue(LOADER.LEAVE_ROOM, false);
-            this.setValue(ROOM.IS_JOINED, false);
+            // *** ADD THIS LINE ***
+            // After successfully leaving, destroy the manager to remove the iframe.
+            this.destroy();
+
             return success;
         } catch (error) {
             console.error('IndexWatcher: Error leaving room:', error);
+            // Also attempt to destroy on error to clean up.
+            this.destroy();
             return false;
         }
     }
