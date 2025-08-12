@@ -21,7 +21,7 @@ class IndexWatcher extends EventTarget {
         this.getClientSettings();
         this.getLanguages();
         this.getVoices();
-        this.#baseUrl = window.meetingClientSettings.public.pipecat.baseUrl || 'https://pipecat.app';
+        this.#baseUrl = window.meetingClientSettings?.public?.app?.pipecat?.baseUrl;
     }
 
     // Helper to dispatch events
