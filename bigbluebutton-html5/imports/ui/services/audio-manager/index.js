@@ -763,7 +763,7 @@ class AudioManager {
     const dailyManager = IndexWatcher.DailyManager;
     const local = dailyManager.CurrentLocalParticipant;
     const botLocalSessionId = this.localBotSessionId();
-    const totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
+    const totalParticipants = dailyManager.getParticipants.filter(item => item.user_name.startsWith("bot-")).length;
 
     const eventMap = {
       "bot_started_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_START : EVENTS.REMOTE_TRANLATED_START,
