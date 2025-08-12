@@ -13,13 +13,15 @@ class IndexWatcher extends EventTarget {
     #languages = null;
     #remoteLanguages = null;
     #clientSettings = null;
-    constructor() {
+    #baseUrl = null;
+    constructor(baseUrl) {
         super(); // Important: call super() for EventTarget
         this.initDailyManager();
         // Fire off initial data fetching
         this.getClientSettings();
         this.getLanguages();
         this.getVoices();
+        this.#baseUrl = baseUrl
     }
 
     // Helper to dispatch events
@@ -49,9 +51,8 @@ class IndexWatcher extends EventTarget {
 
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
-        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
         try {
-            const res = await fetch(`${baseUrl}/api/settings`);
+            const res = await fetch(`${this.#baseUrl}/api/settings`);
             if (!res.ok) {
                 console.error('Failed to fetch client settings:', res.statusText);
                 return;
@@ -135,9 +136,8 @@ class IndexWatcher extends EventTarget {
 
 
     async fetchVoices() {
-        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
         try {
-            const response = await fetch(`${baseUrl}/api/voices`);
+            const response = await fetch(`${this.#baseUrl}/api/voices`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch voices: ${response.status}`);
@@ -179,8 +179,7 @@ class IndexWatcher extends EventTarget {
 
     // Fetch available languages
     async fetchLanguages() {
-        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
-        const response = await fetch(`${baseUrl}/api/languages`);
+        const response = await fetch(`${this.#baseUrl}/api/languages`);
         const data = await response.json();
         return data.languages;
     }
@@ -260,4 +259,4 @@ class IndexWatcher extends EventTarget {
 }
 
 // Export a single instance (singleton pattern)
-export default new IndexWatcher();
+export default IndexWatcher;
