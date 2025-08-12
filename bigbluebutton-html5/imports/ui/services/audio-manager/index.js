@@ -31,7 +31,7 @@ import {
 import { getTranslatorClient } from 'translator-client'
 import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
-import { getDailyManager } from "./DailyManager";
+import IndexWatcher from './IndexWatcher'
 import EventManager, { EVENTS, STREAM_TYPES } from './Events';
 
 const CALL_STATES = {
@@ -139,53 +139,10 @@ class AudioManager {
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
-    this.initTranslator();
-  }
-
-  initTranslator() {
-    try {
-      this._translatorCallObject = getTranslatorClient({
-        baseUrl: "https://pipecat-translate.ph03.us"
-      });
-    } catch (error) {
-      logger.error({
-        logCode: 'translator_client_init_failed',
-        extraInfo: {
-          errorName: error.name,
-          errorMessage: error.message,
-        },
-      }, `Failed to initialize translator client: ${error.message}`);
-    }
-  }
-
-  async initClientSettings() {
-    const res = await fetch("https://pipecat-prod-translate.ph03.us/api/settings");
-    if (!res.ok) {
-      console.error('Failed to fetch client settings:', res.statusText);
-      return;
-    }
-    const clientSettings = await res.json();
-    this.#clientSettings = clientSettings.settings?.client_settings || clientSettings;
-    EventManager.setDefaultConfig({
-      localRawVolume: this.#clientSettings?.human_volume || 1,
-      localTranslatedVolume: this.#clientSettings?.local_bot_volume || 0.5,
-      remoteRawVolume: this.#clientSettings?.human_volume || 1,
-      remoteTranslatedVolume: this.#clientSettings?.bot_volume || 0.2,
-      debouncerDelay: this.#clientSettings?.debouncer || 100,
-      silenceDuration: this.#clientSettings?.silence_duration || 1000,
-    });
-  }
-
-  get TranslatorCallObject() {
-    return this._translatorCallObject;
   }
 
   onBeforeUnload() {
     const CONFIRMATION_ON_LEAVE = window.meetingClientSettings.public.app.askForConfirmationOnLeave;
-    const dailyManager = getDailyManager();
-    if (dailyManager) {
-      dailyManager.destroy();
-    }
     if (!CONFIRMATION_ON_LEAVE) {
       this.forceExitAudio();
     }
@@ -773,9 +730,9 @@ class AudioManager {
   }
 
   updateAndSetupVolumeHandlers() {
-    const dailyManager = getDailyManager();
-    const participantList = dailyManager.getParticipants();
+    const participantList = IndexWatcher.getParticipants();
     this.participants(participantList); // Update reactive variable
+    const dailyManager = IndexWatcher.DailyManager;
 
     const local = dailyManager.CurrentLocalParticipant;
     if (!local) return;
@@ -803,7 +760,7 @@ class AudioManager {
 
   handleAppMessage(message) {
     const { data, fromId } = message;
-    const dailyManager = getDailyManager();
+    const dailyManager = IndexWatcher.DailyManager;
     const local = dailyManager.CurrentLocalParticipant;
     const botLocalSessionId = this.localBotSessionId();
 
@@ -929,21 +886,16 @@ class AudioManager {
       const voice = this.lastJoinOptions?.voice || 'aria';
       let totalParticipants = 2;
 
-      // 1. Start the translator bot
-      const botData = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-
-      // 2. Get the DailyManager singleton and join the room
-      const dailyManager = getDailyManager();
-      const joined = await dailyManager.joinRoom(botData.room_url, botData.userName)
+      const joined = await IndexWatcher.joinRoom(currentName, language, roomId, voice, true);
 
       if (joined) {
         // 3. Unmute local audio and set up event listeners
-        dailyManager.toggleAudio(true);
+        IndexWatcher.toggleAudio();
 
         ['joined-meeting', 'participant-joined', 'participant-left', 'participant-updated'].forEach(event => {
-          dailyManager.on(event, () => this.updateAndSetupVolumeHandlers());
+          IndexWatcher.on(event, () => this.updateAndSetupVolumeHandlers());
         });
-        dailyManager.on('app-message', (message) => this.handleAppMessage(message));
+        IndexWatcher.on('app-message', (message) => this.handleAppMessage(message));
       }
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
@@ -1024,7 +976,7 @@ class AudioManager {
     this._resetAudioJoinTime();
     this.notifyAudioExit();
 
-    const dailyManager = getDailyManager();
+    const dailyManager = IndexWatcher.DailyManager;
     if (dailyManager && dailyManager.isJoined()) {
       dailyManager.leaveRoom();
     }
@@ -1250,7 +1202,7 @@ class AudioManager {
         newDeviceId: deviceId || 'none',
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
-    const dailyManager = getDailyManager();
+    const dailyManager = IndexWatcher.DailyManager;
     if (dailyManager.isJoined()) {
       dailyManager.setAudioInputDevices(deviceId);
     }
@@ -1326,7 +1278,7 @@ class AudioManager {
         // Live output device change - add device ID to session storage so it
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
-        const dailyManager = getDailyManager();
+        const dailyManager = IndexWatcher.DailyManager;
         if (dailyManager.isJoined()) {
           await dailyManager.setAudioOutputDevices(deviceId);
         }
@@ -1519,12 +1471,12 @@ class AudioManager {
 
   mute() {
     this.setSenderTrackEnabled(false);
-    getDailyManager().toggleAudio(false);
+    IndexWatcher.toggleAudio();
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
-    getDailyManager().toggleAudio(true);
+    IndexWatcher.toggleAudio();
   }
 
   toggleTranslation(flag) {
@@ -1536,7 +1488,7 @@ class AudioManager {
   }
 
   setParticipantVolume(volume = 0.1) {
-    const dailyManager = getDailyManager();
+    const dailyManager = IndexWatcher.DailyManager;
     const participants = dailyManager.CallObject.participants();
     for (let id in participants) {
       if (id === 'local') continue;
