@@ -1,39 +1,18 @@
 // --- START OF REFACTORED FILE IndexWatcher.js ---
 
-import { LOADER, ROOM, ROOM_SETTINGS } from "../common/const";
 import DailyManager from "./DailyManager";
-import { generateCharString } from "../utils";
 // We no longer import Watcher
 import { getTranslatorClient, DeviceDetection } from "translator-client";
-import { toast } from "sonner";
 import EventManager from "./Events.js";
 
 // IndexWatcher now extends EventTarget to become a standard event emitter.
 class IndexWatcher extends EventTarget {
     #dailyManager = null;
     #translatorClient = null;
-
     #voices = null;
-    #microphones = null;
-    #speakers = null;
     #languages = null;
     #remoteLanguages = null;
     #clientSettings = null;
-
-    // --- State properties that were previously in the Watcher's map ---
-    state = {
-        [ROOM.IS_JOINED]: false,
-        [LOADER.JOIN_ROOM]: false,
-        [LOADER.LEAVE_ROOM]: false,
-        [ROOM.CURRENT_ROOM_URL]: null,
-        [ROOM.CURRENT_USER_NAME]: null,
-        [ROOM_SETTINGS.CURRENT_MICROPHONE]: null,
-        [ROOM_SETTINGS.CURRENT_SPEAKER]: null,
-        [ROOM_SETTINGS.CURRENT_REMOTE_MICROPHONE]: null,
-        [ROOM_SETTINGS.CURRENT_REMOTE_SPEAKER]: null,
-        [ROOM_SETTINGS.CURRENT_USER_LANGUAGE]: null,
-        [ROOM_SETTINGS.CURRENT_VOICE]: null,
-    };
 
     constructor() {
         super(); // Important: call super() for EventTarget
@@ -78,7 +57,7 @@ class IndexWatcher extends EventTarget {
         try {
             const res = await fetch(`http://localhost:7860/api/settings`);
             if (!res.ok) {
-                toast.error('Failed to fetch client settings');
+                console.error('Failed to fetch client settings:', res.statusText);
                 return;
             }
             const clientSettings = await res.json();
@@ -91,7 +70,6 @@ class IndexWatcher extends EventTarget {
                 debouncerDelay: this.#clientSettings?.debouncer || 100,
                 silenceDuration: this.#clientSettings?.silence_duration || 1000,
             });
-            this.#dispatchEvent('client-settings-loaded', this.#clientSettings);
             return this.#clientSettings;
         } catch (error) {
             console.error('Failed to fetch client settings:', error);
@@ -102,7 +80,7 @@ class IndexWatcher extends EventTarget {
         if (this.#voices && this.#voices.length > 0) return this.#voices;
         const voices = await this.#translatorClient.fetchVoices();
         if (voices.length === 0) {
-            toast.error('Failed to fetch voices');
+            console.warn('No voices found from translator client');
             return [];
         }
 
@@ -111,7 +89,6 @@ class IndexWatcher extends EventTarget {
             name: voice.name + ` (${voice.gender})`,
             isSelected: voice.key === 'aria'
         }));
-        this.#dispatchEvent('voices-loaded', this.#voices);
         return this.#voices;
     }
 
@@ -121,8 +98,6 @@ class IndexWatcher extends EventTarget {
 
         this.#languages = languages.map(lang => ({ ...lang, isSelected: lang.key === 'english' }));
         this.#remoteLanguages = languages.map(lang => ({ ...lang, isSelected: lang.key === 'english' }));
-
-        this.#dispatchEvent('languages-loaded', { languages: this.#languages, remoteLanguages: this.#remoteLanguages });
         return { languages: this.#languages, remoteLanguages: this.#remoteLanguages };
     }
 
