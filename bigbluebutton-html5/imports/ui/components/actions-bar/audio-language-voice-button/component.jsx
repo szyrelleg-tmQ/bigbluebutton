@@ -7,6 +7,7 @@ import { defineMessages, useIntl } from 'react-intl';
 import AudioManager from '/imports/ui/services/audio-manager';
 import LanguageIcon from '/public/svgs/language.svg';
 import { selectedTranslationLanguageVar } from '/imports/ui/services/audio-manager';
+import IndexWatcher from '/imports/ui/services/audio-manager/IndexWatcher';
 
 const intlMessages = defineMessages({
     buttonLabel: {
@@ -56,8 +57,8 @@ const AudioLanguageVoiceButton = () => {
             setLoading(true);
             const fetchData = async () => {
                 try {
-                    const fetchedVoices = await AudioManager.TranslatorCallObject.fetchVoices();
-                    const fetchedLanguages = await AudioManager.TranslatorCallObject.fetchLanguages();
+                    const fetchedVoices = await IndexWatcher.Voices;
+                    const fetchedLanguages = await IndexWatcher.Languages;
                     setVoices(fetchedVoices);
                     setLanguages(fetchedLanguages);
 
@@ -90,13 +91,13 @@ const AudioLanguageVoiceButton = () => {
         // Try to update the current translator client if available
         try {
             // AudioManager._translatorCallObject is the current translator client instance
-            const translatorClient = AudioManager.DailyManager
+            const dailyManager = IndexWatcher.DailyManager
             if (translatorClient) {
-                if (typeof translatorClient.setVoice === 'function') {
-                    translatorClient.setVoice(selectedVoice, selectedLanguage);
+                if (typeof dailyManager.setVoice === 'function') {
+                    dailyManager.setVoice(selectedVoice, selectedLanguage);
                 }
-                if (typeof translatorClient.setLanguage === 'function') {
-                    translatorClient.setLanguage(selectedLanguage);
+                if (typeof dailyManager.setLanguage === 'function') {
+                    dailyManager.setLanguage(selectedLanguage);
                 }
             }
 
