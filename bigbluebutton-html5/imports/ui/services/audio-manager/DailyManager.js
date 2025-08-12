@@ -71,9 +71,9 @@ class DailyManager {
 
         // Handle audio tracks
         this.call.on('track-started', (event) => {
-            // console.log(`🎵 Track started event:`, event);
-            // console.log(`🎵 Track kind:`, event.track?.kind);
-            // console.log(`🎵 Participant local:`, event.participant?.local);
+            console.log(`🎵 Track started event:`, event);
+            console.log(`🎵 Track kind:`, event.track?.kind);
+            console.log(`🎵 Participant local:`, event.participant?.local);
             if (event.participant?.local) this.#currentLocalParticipant = event.participant;
             if (event.track && event.track.kind === 'audio' && !event.participant.local) {
                 // if (this.isRemoteBot(event.participant)) return;
