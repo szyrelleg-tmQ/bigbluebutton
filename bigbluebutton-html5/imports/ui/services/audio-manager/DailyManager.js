@@ -99,6 +99,9 @@ class DailyManager {
 
     async joinRoom(roomUrl, userName, options = {}) {
         try {
+            if (!this.isInitialized) {
+                this.init();
+            }
 
             // let url = roomUrl.trim();
             // if (!url.startsWith('https://')) {

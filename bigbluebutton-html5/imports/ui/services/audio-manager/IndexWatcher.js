@@ -17,7 +17,6 @@ class IndexWatcher extends EventTarget {
     constructor() {
         super(); // Important: call super() for EventTarget
         this.initDailyManager();
-        this.initTranslatorClient();
         // Fire off initial data fetching
         this.getClientSettings();
         this.getLanguages();
@@ -48,12 +47,6 @@ class IndexWatcher extends EventTarget {
         this.#dailyManager = new DailyManager();
     }
 
-    initTranslatorClient() {
-        if (this.#translatorClient) return;
-        this.#translatorClient = getTranslatorClient({
-            baseUrl: 'https://pipecat-prod-translate.ph03.us',
-        });
-    }
 
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
@@ -81,7 +74,7 @@ class IndexWatcher extends EventTarget {
 
     async getVoices() {
         if (this.#voices && this.#voices.length > 0) return this.#voices;
-        const voices = await this.#translatorClient.fetchVoices();
+        const voices = await this.fetchVoices();
         if (voices.length === 0) {
             console.warn('No voices found from translator client');
             return [];
@@ -97,7 +90,7 @@ class IndexWatcher extends EventTarget {
 
     async getLanguages() {
         if (this.#languages && this.#languages.length > 0) return { languages: this.#languages, remoteLanguages: this.#remoteLanguages };
-        const languages = await this.#translatorClient.fetchLanguages();
+        const languages = await this.fetchLanguages();
 
         this.#languages = languages.map(lang => ({ ...lang, isSelected: lang.key === 'english' }));
         this.#remoteLanguages = languages.map(lang => ({ ...lang, isSelected: lang.key === 'english' }));
@@ -110,7 +103,7 @@ class IndexWatcher extends EventTarget {
         this.initDailyManager();
         try {
             if (roomUrl.includes('http')) roomUrl = roomUrl.split('/').pop();
-            const data = await this.#translatorClient.startBot(userName, language, roomUrl, voice, true);
+            const data = await this.startBot(roomUrl, userName, language, voice, true);
             const success = await this.DailyManager.joinRoom(data.room_url, data.userName);
             return success;
         } catch (error) {
@@ -118,6 +111,77 @@ class IndexWatcher extends EventTarget {
             this.#setState(LOADER.JOIN_ROOM, false); // ensure loader is turned off on error
             return false;
         }
+    }
+
+    async startBot(roomName, userName = 'Anonymous', language = 'Spanish', voice = 'aria', is_video_off = false) {
+        // Use browser-safe UUID
+        const sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+
+        const res = await fetch(`https://pipecat-prod-translate.ph03.us/room`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                room_name: roomName,
+                is_video_off,
+                language: language,
+                userName: `${userName}-${sessionId}`,
+                voice: voice
+            }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        return data;
+    }
+
+
+    async fetchVoices() {
+        try {
+            const response = await fetch(`https://pipecat-prod-translate.ph03.us/api/voices`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch voices: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Add icons to voice data
+            const voicesWithIcons = data.voices.map((voice) => ({
+                ...voice,
+            }));
+
+            return voicesWithIcons;
+        } catch (err) {
+            console.error('Error fetching voices:', err);
+
+            // Fallback to default voices if API fails
+            const fallbackVoices = [
+                {
+                    key: 'aria',
+                    name: 'Aria',
+                    description: 'Clear and professional',
+                },
+                {
+                    key: 'nova',
+                    name: 'Nova',
+                    description: 'Warm and friendly',
+                },
+                {
+                    key: 'sage',
+                    name: 'Sage',
+                    description: 'Calm and soothing',
+                }
+            ];
+
+            return fallbackVoices;
+        }
+    }
+
+    // Fetch available languages
+    async fetchLanguages() {
+        const response = await fetch(`https://pipecat-prod-translate.ph03.us/api/languages`);
+        const data = await response.json();
+        return data.languages;
     }
 
     async leaveRoom() {
@@ -188,7 +252,6 @@ class IndexWatcher extends EventTarget {
 
     // --- GETTERS (modified to be direct accessors) ---
     get DailyManager() { return this.#dailyManager; }
-    get TranslatorClient() { return this.#translatorClient; }
     get Voices() { return this.#voices; }
     get Languages() { return this.#languages; }
     get ClientSettings() { return this.#clientSettings; }
