@@ -42,6 +42,9 @@ class IndexWatcher extends EventTarget {
 
     initDailyManager() {
         if (this.#dailyManager) return;
+        console.log(`%c[DEBUGGER] IndexWatcher.initDailyManager() is creating a new DailyManager.`, 'color: orange; font-weight: bold;');
+        console.trace(); // Shows the call stack that triggered this.
+        debugger;
         this.#dailyManager = new DailyManager();
     }
 
@@ -103,6 +106,8 @@ class IndexWatcher extends EventTarget {
 
     // e.g. joinRoom
     async joinRoom(userName, language, roomUrl, voice, voiceEnabled = true) {
+
+        this.initDailyManager();
         try {
             if (roomUrl.includes('http')) roomUrl = roomUrl.split('/').pop();
             const data = await this.#translatorClient.startBot(userName, language, roomUrl, voice, true);
@@ -171,6 +176,10 @@ class IndexWatcher extends EventTarget {
     }
 
     destroy() {
+        // --- DEBUGGER 5 ---
+        // This confirms the watcher's cleanup process is being initiated.
+        console.log(`%c[DEBUGGER] IndexWatcher.destroy() called.`, 'color: green; font-weight: bold;');
+        debugger;
         if (this.#dailyManager) {
             this.#dailyManager.destroy();
             this.#dailyManager = null;

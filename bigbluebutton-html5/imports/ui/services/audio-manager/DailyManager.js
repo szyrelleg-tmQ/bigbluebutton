@@ -3,6 +3,12 @@ import Daily from '@daily-co/daily-js';
 class DailyManager {
     #currentLocalParticipant = null;
     constructor() {
+
+        // --- DEBUGGER 1 ---
+        // This will pause every time a NEW DailyManager object is instantiated.
+        console.log(`%c[DEBUGGER] new DailyManager() created.`, 'color: blue; font-weight: bold;');
+        debugger;
+
         this.call = null;
         this.isInitialized = false;
         this.eventHandlers = new Map();
@@ -19,6 +25,14 @@ class DailyManager {
 
     init() {
         if (this.isInitialized) return;
+
+
+        // --- DEBUGGER 2: THE CRIME SCENE ---
+        // This will pause right before the iframe is created.
+        // This is the most important debugger.
+        console.log(`%c[DEBUGGER] DailyManager.init() is about to call Daily.createCallObject().`, 'color: red; font-weight: bold;');
+        console.log(`%cCurrent iframes on page:`, 'color: red;', document.querySelectorAll('iframe[src*="daily.co"]'));
+        debugger;
 
         // Create call object with audio-only settings
         this.call = Daily.createCallObject({
@@ -354,6 +368,10 @@ class DailyManager {
     // }
 
     destroy() {
+        // --- DEBUGGER 3 ---
+        // This will pause when we attempt to clean up.
+        console.log(`%c[DEBUGGER] DailyManager.destroy() called.`, 'color: green; font-weight: bold;');
+        debugger;
         // Clean up all audio elements
         for (const [participantId] of this.audioElements) {
             this.cleanupParticipantAudio(participantId);
