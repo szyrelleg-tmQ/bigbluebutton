@@ -49,7 +49,7 @@ class IndexWatcher extends EventTarget {
 
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
-        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
+        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
         try {
             const res = await fetch(`${baseUrl}/api/settings`);
             if (!res.ok) {
@@ -135,7 +135,7 @@ class IndexWatcher extends EventTarget {
 
 
     async fetchVoices() {
-        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
+        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
         try {
             const response = await fetch(`${baseUrl}/api/voices`);
 
@@ -179,7 +179,7 @@ class IndexWatcher extends EventTarget {
 
     // Fetch available languages
     async fetchLanguages() {
-        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
+        const baseUrl = window.meetingClientSettings.public.pipecat.baseUrl;
         const response = await fetch(`${baseUrl}/api/languages`);
         const data = await response.json();
         return data.languages;
