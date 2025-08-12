@@ -13,7 +13,6 @@ class IndexWatcher extends EventTarget {
     #languages = null;
     #remoteLanguages = null;
     #clientSettings = null;
-    #baseUrl = null;
     constructor() {
         super(); // Important: call super() for EventTarget
         this.initDailyManager();
@@ -21,7 +20,6 @@ class IndexWatcher extends EventTarget {
         this.getClientSettings();
         this.getLanguages();
         this.getVoices();
-        this.#baseUrl = window.meetingClientSettings?.public?.app?.pipecat?.baseUrl;
     }
 
     // Helper to dispatch events
@@ -51,8 +49,9 @@ class IndexWatcher extends EventTarget {
 
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
+        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
         try {
-            const res = await fetch(`${this.#baseUrl}/api/settings`);
+            const res = await fetch(`${baseUrl}/api/settings`);
             if (!res.ok) {
                 console.error('Failed to fetch client settings:', res.statusText);
                 return;
@@ -136,8 +135,9 @@ class IndexWatcher extends EventTarget {
 
 
     async fetchVoices() {
+        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
         try {
-            const response = await fetch(`${this.#baseUrl}/api/voices`);
+            const response = await fetch(`${baseUrl}/api/voices`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch voices: ${response.status}`);
@@ -179,7 +179,8 @@ class IndexWatcher extends EventTarget {
 
     // Fetch available languages
     async fetchLanguages() {
-        const response = await fetch(`${this.#baseUrl}/api/languages`);
+        const baseUrl = window.meetingClientSettings.public.app.pipecat.baseUrl;
+        const response = await fetch(`${baseUrl}/api/languages`);
         const data = await response.json();
         return data.languages;
     }
