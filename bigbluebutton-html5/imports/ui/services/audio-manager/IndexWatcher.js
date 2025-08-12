@@ -48,14 +48,14 @@ class IndexWatcher extends EventTarget {
     initTranslatorClient() {
         if (this.#translatorClient) return;
         this.#translatorClient = getTranslatorClient({
-            baseUrl: 'http://localhost:7860',
+            baseUrl: 'https://pipecat-prod-translate.ph03.us',
         });
     }
 
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
         try {
-            const res = await fetch(`http://localhost:7860/api/settings`);
+            const res = await fetch(`https://pipecat-prod-translate.ph03.us/api/settings`);
             if (!res.ok) {
                 console.error('Failed to fetch client settings:', res.statusText);
                 return;
