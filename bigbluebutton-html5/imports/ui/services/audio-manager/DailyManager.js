@@ -364,7 +364,9 @@ class DailyManager {
         }
 
         if (this.call) {
+            // This is the call that removes the iframe from the DOM.
             this.call.destroy();
+            // *** ADD THIS LINE for extra safety ***
             this.call = null;
         }
         this.eventHandlers.clear();
