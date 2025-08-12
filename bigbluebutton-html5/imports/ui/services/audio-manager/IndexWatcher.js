@@ -16,7 +16,7 @@ class IndexWatcher extends EventTarget {
     #baseUrl = null;
     constructor() {
         super(); // Important: call super() for EventTarget
-        this.#baseUrl = window.meetingClientSettings.public.pipecat.baseUrl || 'https://pipecat-prod-translate.ph03.us';
+        this.#baseUrl = window.meetingClientSettings?.public?.pipecat?.baseUrl || 'https://pipecat-prod-translate.ph03.us';
         this.initDailyManager();
         // Fire off initial data fetching
         this.getClientSettings();
