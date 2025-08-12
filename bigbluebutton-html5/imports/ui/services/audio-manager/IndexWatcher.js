@@ -16,7 +16,7 @@ class IndexWatcher extends EventTarget {
     #baseUrl = null;
     constructor() {
         super(); // Important: call super() for EventTarget
-        this.#baseUrl = window.meetingClientSettings?.public?.app?.pipecat?.baseUrl || 'https://pipecat-prod-translate.ph03.us';
+        this.#baseUrl = window.meetingClientSettings?.public?.app?.pipecat?.baseUrl;
         console.log(`%c[DEBUGGER] IndexWatcher initialized with base URL: ${this.#baseUrl}`, 'color: blue; font-weight: bold;');
         this.initDailyManager();
         // Fire off initial data fetching
@@ -119,7 +119,7 @@ class IndexWatcher extends EventTarget {
     async startBot(roomName, userName = 'Anonymous', language = 'Spanish', voice = 'aria', is_video_off = false) {
         // Use browser-safe UUID
         const sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-        const res = await fetch(`${this.baseUrl}/room`, {
+        const res = await fetch(`${this.#baseUrl}/room`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
