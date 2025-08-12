@@ -1178,6 +1178,8 @@ public:
     mobile:
       safari: ">=14"
       chrome: ">=87"
+  pipecat:
+      baseUrl: 'https://pipecat-prod-translate.ph03.us'
 private:
   analytics:
     includeChat: true

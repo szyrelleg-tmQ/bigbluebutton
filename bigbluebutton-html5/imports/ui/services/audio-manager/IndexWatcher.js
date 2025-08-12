@@ -13,7 +13,7 @@ class IndexWatcher extends EventTarget {
     #languages = null;
     #remoteLanguages = null;
     #clientSettings = null;
-
+    #baseUrl = null;
     constructor() {
         super(); // Important: call super() for EventTarget
         this.initDailyManager();
@@ -21,6 +21,7 @@ class IndexWatcher extends EventTarget {
         this.getClientSettings();
         this.getLanguages();
         this.getVoices();
+        this.#baseUrl = window.meetingClientSettings.public.pipecat.baseUrl || 'https://pipecat.app';
     }
 
     // Helper to dispatch events
@@ -51,7 +52,7 @@ class IndexWatcher extends EventTarget {
     async getClientSettings() {
         if (this.#clientSettings) return this.#clientSettings;
         try {
-            const res = await fetch(`https://pipecat-prod-translate.ph03.us/api/settings`);
+            const res = await fetch(`${this.#baseUrl}/api/settings`);
             if (!res.ok) {
                 console.error('Failed to fetch client settings:', res.statusText);
                 return;
@@ -116,8 +117,7 @@ class IndexWatcher extends EventTarget {
     async startBot(roomName, userName = 'Anonymous', language = 'Spanish', voice = 'aria', is_video_off = false) {
         // Use browser-safe UUID
         const sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-
-        const res = await fetch(`https://pipecat-prod-translate.ph03.us/room`, {
+        const res = await fetch(`${this.baseUrl}/room`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -137,7 +137,7 @@ class IndexWatcher extends EventTarget {
 
     async fetchVoices() {
         try {
-            const response = await fetch(`https://pipecat-prod-translate.ph03.us/api/voices`);
+            const response = await fetch(`${this.#baseUrl}/api/voices`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch voices: ${response.status}`);
@@ -179,7 +179,7 @@ class IndexWatcher extends EventTarget {
 
     // Fetch available languages
     async fetchLanguages() {
-        const response = await fetch(`https://pipecat-prod-translate.ph03.us/api/languages`);
+        const response = await fetch(`${this.#baseUrl}/api/languages`);
         const data = await response.json();
         return data.languages;
     }

@@ -30,6 +30,7 @@ export interface Public {
   clientLog: ClientLog
   virtualBackgrounds: VirtualBackgrounds
   minBrowserVersions: MinBrowserVersions
+  pipecat: Pipecat
 }
 export interface Locales {
   locale: string
@@ -878,6 +879,10 @@ export interface Prometheus {
   enabled: boolean
   path: string
   collectDefaultMetrics: boolean
+}
+
+export interface Pipecat {
+  baseUrl: string
 }
 
 export default MeetingClientSettings;
