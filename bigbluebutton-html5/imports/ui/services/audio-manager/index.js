@@ -1327,7 +1327,6 @@ class AudioManager {
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
         const dailyManager = getDailyManager();
-        const dailyManager = getDailyManager();
         if (dailyManager.isJoined()) {
           await dailyManager.setAudioOutputDevices(deviceId);
         }
