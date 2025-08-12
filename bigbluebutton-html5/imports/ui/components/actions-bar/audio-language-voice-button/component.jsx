@@ -92,7 +92,7 @@ const AudioLanguageVoiceButton = () => {
         try {
             // AudioManager._translatorCallObject is the current translator client instance
             const dailyManager = IndexWatcher.DailyManager
-            if (translatorClient) {
+            if (dailyManager) {
                 if (typeof dailyManager.setVoice === 'function') {
                     dailyManager.setVoice(selectedVoice, selectedLanguage);
                 }
