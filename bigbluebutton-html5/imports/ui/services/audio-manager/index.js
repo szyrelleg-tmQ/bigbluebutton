@@ -763,6 +763,7 @@ class AudioManager {
     const dailyManager = IndexWatcher.DailyManager;
     const local = dailyManager.CurrentLocalParticipant;
     const botLocalSessionId = this.localBotSessionId();
+    const totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
 
     const eventMap = {
       "bot_started_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_START : EVENTS.REMOTE_TRANLATED_START,
@@ -884,7 +885,6 @@ class AudioManager {
       const currentName = Auth.fullname.trim().toLowerCase().replace(/\s+/g, '-') + Math.random().toString(36).substring(2, 15);
       const language = this.lastJoinOptions?.language || 'english';
       const voice = this.lastJoinOptions?.voice || 'aria';
-      let totalParticipants = 2;
 
       const joined = await IndexWatcher.joinRoom(currentName, language, roomId, voice, true);
 
