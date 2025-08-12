@@ -134,10 +134,7 @@ class AudioManager {
     this.callStateCallback = this.callStateCallback.bind(this);
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
-    this.participantsCount = makeVar(2);
-    this.localBot = makeVar(null);
     this.localBotSessionId = makeVar(null);
-    this.enableBot = makeVar(true);
     this.participants = makeVar([]);
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
@@ -185,6 +182,10 @@ class AudioManager {
 
   onBeforeUnload() {
     const CONFIRMATION_ON_LEAVE = window.meetingClientSettings.public.app.askForConfirmationOnLeave;
+    const dailyManager = getDailyManager();
+    if (dailyManager) {
+      dailyManager.destroy();
+    }
     if (!CONFIRMATION_ON_LEAVE) {
       this.forceExitAudio();
     }
@@ -771,52 +772,128 @@ class AudioManager {
     }
   }
 
-  updateParticipants() {
+  updateAndSetupVolumeHandlers() {
     const dailyManager = getDailyManager();
     const participantList = dailyManager.getParticipants();
-    this.participants = participantList;
+    this.participants(participantList); // Update reactive variable
+
+    const local = dailyManager.CurrentLocalParticipant;
+    if (!local) return;
+
+    const remote = participantList.find(p => !p.local && !p.user_name?.startsWith('bot-'));
+    const botLocal = participantList.find(p => p.user_name?.includes(local.user_name) && p.user_name?.startsWith('bot-'));
+    const botRemote = participantList.find(p => remote && p.user_name?.includes(remote.user_name) && p.user_name?.startsWith('bot-'));
+
+    this.localBotSessionId(botLocal?.session_id || null);
+
+    const volumeMap = {
+      [STREAM_TYPES.LOCAL_RAW]: local?.session_id,
+      [STREAM_TYPES.REMOTE_RAW]: remote?.session_id,
+      [STREAM_TYPES.LOCAL_TRANLATED]: botLocal?.session_id,
+      [STREAM_TYPES.REMOTE_TRANLATED]: botRemote?.session_id
+    };
+
+    Object.keys(volumeMap).forEach(streamType => {
+      const sessionId = volumeMap[streamType];
+      EventManager.attachVolumeHandler(streamType, (volume) => {
+        if (sessionId) dailyManager.setParticipantVolume(sessionId, volume);
+      });
+    });
   }
 
-  setupVolumeHandler() {
-    if (this.participants) {
-      const dailyManager = getDailyManager();
-      const localParticipant = dailyManager.CurrentLocalParticipant;
-      const remote = this.participants.find(
-        p =>
-          p.session_id !== localParticipant.session_id &&
-          !p.user_name?.startsWith('bot-')
-      );
+  handleAppMessage(message) {
+    const { data, fromId } = message;
+    const dailyManager = getDailyManager();
+    const local = dailyManager.CurrentLocalParticipant;
+    const botLocalSessionId = this.localBotSessionId();
 
-      const botLocal = this.participants.find(
-        p =>
-          p.user_name?.startsWith('bot-') &&
-          p.user_name.includes(localParticipant.user_name)
-      );
+    const eventMap = {
+      "bot_started_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_START : EVENTS.REMOTE_TRANLATED_START,
+      "bot_stopped_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_END : EVENTS.REMOTE_TRANLATED_END,
+      "user_started_speaking": fromId === local?.session_id ? EVENTS.LOCAL_RAW_START : EVENTS.REMOTE_RAW_START,
+      "user_stopped_speaking": fromId === local?.session_id ? EVENTS.LOCAL_RAW_END : EVENTS.REMOTE_RAW_END,
+    };
 
-      const botRemote = this.participants.find(
-        p =>
-          p.user_name?.startsWith('bot-') &&
-          p.user_name.includes(remote?.user_name)
-      );
+    if (eventMap[data.event_type]) {
+      EventManager.emit(eventMap[data.event_type], { participantId: fromId, ...data });
+    }
+    if (eventMap[data.event_type]) {
+      EventManager.emit(eventMap[data.event_type], { participantId: fromId, ...data });
+    }
 
+    if (data.event_type === "transcription") {
+      latestTranscriptionVar({
+        text: data.text,
+        language: data.language,
+        participant_name: data.participant_name,
+        timestamp: data.timestamp,
+        type: data.type,
+      });
+    } else if (data.event_type === "translation") {
+      latestTranslationVar({
+        text: data.text,
+        translated_text: data.translated_text,
+        language: data.language,
+        original_language: data.original_language,
+        participant_name: data.participant_name,
+        timestamp: data.timestamp,
+        type: data.type,
+      });
 
-      EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_TRANLATED, (volume) => {
-        const participantId = botLocal?.session_id;
-        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
-      });
-      EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_TRANLATED, (volume) => {
-        const participantId = botRemote?.session_id;
-        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
-      });
-      EventManager.attachVolumeHandler(STREAM_TYPES.LOCAL_RAW, (volume) => {
-        const participantId = localParticipant.session_id;
-        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
-      });
-      EventManager.attachVolumeHandler(STREAM_TYPES.REMOTE_RAW, (volume) => {
-        const participantId = remote?.session_id;
-        dailyManager.setParticipantVolume(participantId, volume, { duration: 0.3, easing: 'linear' });
-      });
-      // debugLog('attachVolumeHandler', participants);
+      const key = data.participant_name;
+      if (!translationBuffers[key]) {
+        translationBuffers[key] = {
+          original: data.text,
+          translations: {},
+          participant_name: data.participant_name,
+          timestamp: data.timestamp,
+        };
+      }
+
+      translationBuffers[key].translations[data.language] = data.translated_text;
+      const numTranslations = Object.keys(translationBuffers[key].translations).length;
+      const bufferEntry = translationBuffers[key];
+
+      if (numTranslations === totalParticipants - 1) {
+        const currentMessages = translationMessagesVar();
+
+        const existingMessageIndex = currentMessages.findIndex(
+          (msg) => msg.participant_name === bufferEntry.participant_name
+        );
+
+        let newMessages;
+
+        if (existingMessageIndex !== -1) {
+          newMessages = currentMessages.map((msg, index) => {
+            if (index === existingMessageIndex) {
+              const newTranslations = { ...msg.translations };
+              for (const lang in bufferEntry.translations) {
+                const newText = bufferEntry.translations[lang];
+
+                newTranslations[lang] = (newTranslations[lang] ? newTranslations[lang] + " " : "") + newText;
+              }
+
+              return {
+                ...msg,
+                original: msg.original + " " + bufferEntry.original,
+                translations: newTranslations,
+              };
+            }
+            return msg;
+          });
+        } else {
+          newMessages = [
+            ...currentMessages,
+            {
+              original: bufferEntry.original,
+              translations: { ...bufferEntry.translations },
+              participant_name: bufferEntry.participant_name,
+            },
+          ];
+        }
+        translationMessagesVar(newMessages);
+        delete translationBuffers[key];
+      }
     }
   }
 
@@ -852,190 +929,22 @@ class AudioManager {
       const voice = this.lastJoinOptions?.voice || 'aria';
       let totalParticipants = 2;
 
-      const data = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
-      try {
-        this.localBot = `bot-${data.userName}`;
-        const dailyManager = getDailyManager();
-        const res = await dailyManager.joinRoom(data.room_url, data.userName)
-        if (res) {
-          dailyManager.toggleAudio();
-        }
+      // 1. Start the translator bot
+      const botData = await this._translatorCallObject.startBot(currentName, language, roomId, voice, true);
 
-        dailyManager.on('joined-meeting', (event) => {
-          this.updateParticipants();
-          this.setupVolumeHandler();
+      // 2. Get the DailyManager singleton and join the room
+      const dailyManager = getDailyManager();
+      const joined = await dailyManager.joinRoom(botData.room_url, botData.userName)
+
+      if (joined) {
+        // 3. Unmute local audio and set up event listeners
+        dailyManager.toggleAudio(true);
+
+        ['joined-meeting', 'participant-joined', 'participant-left', 'participant-updated'].forEach(event => {
+          dailyManager.on(event, () => this.updateAndSetupVolumeHandlers());
         });
-        dailyManager.on('left-meeting', (event) => {
-          this.updateParticipants();
-          this.setupVolumeHandler();
-        });
-        dailyManager.on('participant-joined', (event) => {
-          this.updateParticipants();
-          this.setupVolumeHandler();
-        });
-        dailyManager.on('participant-left', (event) => {
-          this.updateParticipants();
-          this.setupVolumeHandler();
-        });
-        dailyManager.on('participant-updated', (event) => {
-          this.updateParticipants();
-          this.setupVolumeHandler();
-          totalParticipants = this.participants.filter(item => item.user_name.startsWith("bot-")).length;
-          this.localBotSessionId = this.participants.find(item => item.user_name === this.localBot)?.session_id || null;
-        });
-
-
-
-        dailyManager.on("app-message", (message) => {
-          const data = message.data;
-          const dailyManager = getDailyManager();
-          const localParticipant = dailyManager.CurrentLocalParticipant;
-          const currentParticipants = dailyManager.getParticipants()
-          const botLocal = currentParticipants.find(
-            p =>
-              p.session_id !== localParticipant.session_id &&
-              p.user_name?.startsWith('bot-') &&
-              p.user_name.includes(localParticipant.user_name)
-          );
-          if (data.event_type === "bot_started_speaking") {
-            // check if local bot
-            if ((botLocal.user_name === data.id)) {
-              // LOCAL BOT SPEAKING
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-              // watcher.setParticipantVolume(botLocal.session_id, 1, {
-              //   duration: 0.3,
-              //   easing: 'linear',
-              //   startTime: null
-              // });
-              // watcher.setParticipantVolume(remote.session_id, 0, {
-              //   duration: 0.3,
-              //   easing: 'linear',
-              //   startTime: null
-              // });
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-              // REMOTE BOT SPEAKING
-            }
-          }
-          if (data.event_type === "bot_stopped_speaking") {
-            if ((botLocal.user_name === data.id)) {
-              // LOCAL BOT STOPPED SPEAKING
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-              // watcher.setParticipantVolume(botLocal.session_id, 0, {
-              //   duration: 0.3,
-              //   easing: 'linear',
-              //   startTime: null
-              // });
-              // watcher.setParticipantVolume(remote.session_id, 1, {
-              //   duration: 0.3,
-              //   easing: 'linear',
-              //   startTime: null
-              // });
-            } else {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-              // REMOTE BOT STOPPED SPEAKING
-            }
-
-          }
-          if (data.event_type === "user_started_speaking") {
-            console.log("user_started_speaking", data);
-            if (!(localParticipant.user_name === data.id)) {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_START, data);
-              // REMOTE PARTICIPANT STARTED SPEAKING
-            } else {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_START, data);
-              // LOCAL PARTICIPANT STARTED SPEAKING
-            }
-          }
-          if (data.event_type === "user_stopped_speaking") {
-            if (!(localParticipant.user_name === data.id)) {
-              EventManager.emit(EVENTS.REMOTE_TRANLATED_END, data);
-              // REMOTE STOPPED SPEAKING
-            } else {
-              EventManager.emit(EVENTS.LOCAL_TRANLATED_END, data);
-              // LOCAL PARTICIPANT STOPPED SPEAKING
-            }
-          }
-          if (data.event_type === "transcription") {
-            latestTranscriptionVar({
-              text: data.text,
-              language: data.language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-          } else if (data.event_type === "translation") {
-            latestTranslationVar({
-              text: data.text,
-              translated_text: data.translated_text,
-              language: data.language,
-              original_language: data.original_language,
-              participant_name: data.participant_name,
-              timestamp: data.timestamp,
-              type: data.type,
-            });
-
-            const key = data.participant_name;
-            if (!translationBuffers[key]) {
-              translationBuffers[key] = {
-                original: data.text,
-                translations: {},
-                participant_name: data.participant_name,
-                timestamp: data.timestamp,
-              };
-            }
-
-            translationBuffers[key].translations[data.language] = data.translated_text;
-            const numTranslations = Object.keys(translationBuffers[key].translations).length;
-            const bufferEntry = translationBuffers[key];
-
-            if (numTranslations === totalParticipants - 1) {
-              const currentMessages = translationMessagesVar();
-
-              const existingMessageIndex = currentMessages.findIndex(
-                (msg) => msg.participant_name === bufferEntry.participant_name
-              );
-
-              let newMessages;
-
-              if (existingMessageIndex !== -1) {
-                newMessages = currentMessages.map((msg, index) => {
-                  if (index === existingMessageIndex) {
-                    const newTranslations = { ...msg.translations };
-                    for (const lang in bufferEntry.translations) {
-                      const newText = bufferEntry.translations[lang];
-
-                      newTranslations[lang] = (newTranslations[lang] ? newTranslations[lang] + " " : "") + newText;
-                    }
-
-                    return {
-                      ...msg,
-                      original: msg.original + " " + bufferEntry.original,
-                      translations: newTranslations,
-                    };
-                  }
-                  return msg;
-                });
-              } else {
-                newMessages = [
-                  ...currentMessages,
-                  {
-                    original: bufferEntry.original,
-                    translations: { ...bufferEntry.translations },
-                    participant_name: bufferEntry.participant_name,
-                  },
-                ];
-              }
-              translationMessagesVar(newMessages);
-              delete translationBuffers[key];
-            }
-          }
-        });
-      } catch (err) {
-        console.error('[DAILY] Failed to join Daily room:', err);
-        this._translatorCallObject = null;
+        dailyManager.on('app-message', (message) => this.handleAppMessage(message));
       }
-
       // Enforce correct output device on audio join
       this.changeOutputDevice(this.outputDeviceId, true);
       storeAudioOutputDeviceId(this.outputDeviceId);
@@ -1114,6 +1023,12 @@ class AudioManager {
     window.removeEventListener('audioPlayFailed', this.handlePlayElementFailed);
     this._resetAudioJoinTime();
     this.notifyAudioExit();
+
+    const dailyManager = getDailyManager();
+    if (dailyManager && dailyManager.isJoined()) {
+      dailyManager.leaveRoom();
+    }
+
     this.isConnected = false;
     this.isConnecting = false;
     this.isHangingUp = false;
@@ -1336,10 +1251,10 @@ class AudioManager {
       },
     }, `Microphone input device changed: from ${currentDeviceId} to ${deviceId || 'none'}`);
     const dailyManager = getDailyManager();
-    if (dailyManager && this.inputDeviceId) {
-      dailyManager.setAudioInputDevices(inputDeviceId);
+    if (dailyManager.isJoined()) {
+      dailyManager.setAudioInputDevices(deviceId);
     }
-
+    storeAudioInputDeviceId(deviceId);
     return this.inputDeviceId;
   }
 
@@ -1412,9 +1327,9 @@ class AudioManager {
         // can be re-used on refreshes/other sessions
         if (isLive) storeAudioOutputDeviceId(deviceId);
         const dailyManager = getDailyManager();
-        if (dailyManager && this.outputDeviceId) {
-          console.log('[DAILY] Changing output device in Daily.co:', this.outputDeviceId);
-          await dailyManager.setAudioOutputDevices(this.outputDeviceId);
+        const dailyManager = getDailyManager();
+        if (dailyManager.isJoined()) {
+          await dailyManager.setAudioOutputDevices(deviceId);
         }
 
         return this.outputDeviceId;
@@ -1605,25 +1520,20 @@ class AudioManager {
 
   mute() {
     this.setSenderTrackEnabled(false);
-    // Mute translator call object if active
-    const dailyManager = getDailyManager();
-    if (dailyManager) {
-      dailyManager.toggleAudio(false);
-    }
+    getDailyManager().toggleAudio(false);
   }
 
   unmute() {
     this.setSenderTrackEnabled(true);
-    // Unmute translator call object if active
-    const dailyManager = getDailyManager();
-    if (dailyManager) {
-      dailyManager.toggleAudio(true);
-    }
+    getDailyManager().toggleAudio(true);
   }
 
   toggleTranslation(flag) {
-    const dailyManager = getDailyManager();
-    dailyManager.toggleParticipantMute(this.localBotSessionId, flag);
+    const sessionId = this.localBotSessionId();
+    if (sessionId) {
+      const volume = flag ? 1 : 0; // 1 to unmute, 0 to mute
+      getDailyManager().setParticipantVolume(sessionId, volume);
+    }
   }
 
   setParticipantVolume(volume = 0.1) {
