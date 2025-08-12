@@ -15,6 +15,7 @@ import Session from '/imports/ui/services/storage/in-memory';
 import AudioCaptionsSelectContainer from '../audio-graphql/audio-captions/captions/component';
 import { getTranslatorClient } from 'translator-client';
 import DeviceSelectorStyles from '../device-selector/styles';
+import IndexWatcher from '/imports/ui/services/audio-manager/IndexWatcher';
 
 const propTypes = {
   intl: PropTypes.shape({
@@ -487,8 +488,8 @@ class AudioSettings extends React.Component {
     this.setState({ loadingVoicesAndLanguages: true });
     try {
 
-      const voices = await AudioManager.TranslatorCallObject.fetchVoices();
-      const languages = await AudioManager.TranslatorCallObject.fetchLanguages();
+      const voices = IndexWatcher.Voices
+      const languages = IndexWatcher.Languages
       this.setState({
         voices,
         languages,
