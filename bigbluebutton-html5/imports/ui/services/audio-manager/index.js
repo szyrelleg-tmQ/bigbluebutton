@@ -759,18 +759,24 @@ class AudioManager {
   }
 
   handleAppMessage(message) {
-    const { data, fromId } = message;
+    const data = message.data;
     const dailyManager = IndexWatcher.DailyManager;
-    const local = dailyManager.CurrentLocalParticipant;
+    const localParticipant = dailyManager.CurrentLocalParticipant;
     const botLocalSessionId = this.localBotSessionId();
     const participants = dailyManager.getParticipants();
+    const botLocal = participants.find(
+      p =>
+        p.session_id !== localParticipant.session_id &&
+        p.user_name?.startsWith('bot-') &&
+        p.user_name.includes(localParticipant.user_name)
+    );
     const totalParticipants = participants.filter(item => item.user_name.startsWith("bot-")).length;
 
     const eventMap = {
-      "bot_started_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_START : EVENTS.REMOTE_TRANLATED_START,
-      "bot_stopped_speaking": fromId === botLocalSessionId ? EVENTS.LOCAL_TRANLATED_END : EVENTS.REMOTE_TRANLATED_END,
-      "user_started_speaking": fromId === local?.session_id ? EVENTS.LOCAL_RAW_START : EVENTS.REMOTE_RAW_START,
-      "user_stopped_speaking": fromId === local?.session_id ? EVENTS.LOCAL_RAW_END : EVENTS.REMOTE_RAW_END,
+      "bot_started_speaking": botLocal.user_name === data.id ? EVENTS.LOCAL_TRANLATED_START : EVENTS.REMOTE_TRANLATED_START,
+      "bot_stopped_speaking": botLocal.user_name === data.id ? EVENTS.LOCAL_TRANLATED_END : EVENTS.REMOTE_TRANLATED_END,
+      "user_started_speaking": !(localParticipant.user_name === data.id) ? EVENTS.REMOTE_TRANLATED_START : EVENTS.LOCAL_TRANLATED_START,
+      "user_stopped_speaking": !(localParticipant.user_name === data.id) ? EVENTS.REMOTE_TRANLATED_END : EVENTS.LOCAL_TRANLATED_END,
     };
 
     if (eventMap[data.event_type]) {
