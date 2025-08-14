@@ -780,10 +780,7 @@ class AudioManager {
     };
 
     if (eventMap[data.event_type]) {
-      EventManager.emit(eventMap[data.event_type], { participantId: fromId, ...data });
-    }
-    if (eventMap[data.event_type]) {
-      EventManager.emit(eventMap[data.event_type], { participantId: fromId, ...data });
+      EventManager.emit(eventMap[data.event_type], data);
     }
 
     if (data.event_type === "transcription") {
