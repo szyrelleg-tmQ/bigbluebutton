@@ -33,6 +33,7 @@ import LZString from 'lz-string';
 import { USER_AGGREGATE_COUNT_SUBSCRIPTION } from '/imports/ui/core/graphql/queries/users';
 import IndexWatcher from './IndexWatcher'
 import EventManager, { EVENTS, STREAM_TYPES } from './Events';
+import LatencyAnalyzer from './LatencyAnalyzer';
 
 const CALL_STATES = {
   STARTED: 'started',
@@ -136,6 +137,7 @@ class AudioManager {
     this.handleMediaStreamInactive = this.handleMediaStreamInactive.bind(this);
     this.localBotSessionId = makeVar(null);
     this.participants = makeVar([]);
+    this.latencyAnalyzer = new LatencyAnalyzer();
     window.addEventListener('StopAudioTracks', () => this.forceExitAudio());
     window.addEventListener('beforeunload', this.onBeforeUnload);
     checkMediaDevicesTarget();
@@ -779,6 +781,10 @@ class AudioManager {
       "user_stopped_speaking": !(localParticipant.user_name === data.id) ? EVENTS.REMOTE_TRANLATED_END : EVENTS.LOCAL_TRANLATED_END,
     };
 
+    if (data.event_type === "user_stopped_speaking" && localParticipant.user_name === data.id) {
+      this.latencyAnalyzer.recordUserSpeechEnd(data.timestamp);
+    }
+
     if (eventMap[data.event_type]) {
       EventManager.emit(eventMap[data.event_type], data);
     }
@@ -792,6 +798,7 @@ class AudioManager {
         type: data.type,
       });
     } else if (data.event_type === "translation") {
+      this.latencyAnalyzer.recordBotResponseStart(data.timestamp);
       latestTranslationVar({
         text: data.text,
         translated_text: data.translated_text,
@@ -954,6 +961,19 @@ class AudioManager {
         name: 'started',
         isListenOnly: this.isListenOnly,
       });
+
+      // --- ADD THIS BLOCK FOR PERIODIC LOGGING ---
+      if (this.latencyLogInterval) clearInterval(this.latencyLogInterval);
+      this.latencyLogInterval = setInterval(() => {
+        const networkStats = this.latencyAnalyzer.getStats('network');
+        const responseStats = this.latencyAnalyzer.getStats('botResponse');
+
+        console.log('--- Latency Report ---');
+        console.log(`[Network]     Avg: ${networkStats.avg}ms, Min: ${networkStats.min}ms, Max: ${networkStats.max}ms (over ${networkStats.count} samples)`);
+        console.log(`[Bot Response] Avg: ${responseStats.avg}ms, Min: ${responseStats.min}ms, Max: ${responseStats.max}ms (over ${responseStats.count} samples)`);
+        console.log('----------------------');
+      }, 15000); // Log stats every 15 seconds
+
     }
   }
 
