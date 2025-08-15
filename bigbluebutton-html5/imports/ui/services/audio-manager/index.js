@@ -961,19 +961,6 @@ class AudioManager {
         name: 'started',
         isListenOnly: this.isListenOnly,
       });
-
-      // --- ADD THIS BLOCK FOR PERIODIC LOGGING ---
-      if (this.latencyLogInterval) clearInterval(this.latencyLogInterval);
-      this.latencyLogInterval = setInterval(() => {
-        const networkStats = this.latencyAnalyzer.getStats('network');
-        const responseStats = this.latencyAnalyzer.getStats('botResponse');
-
-        console.log('--- Latency Report ---');
-        console.log(`[Network]     Avg: ${networkStats.avg}ms, Min: ${networkStats.min}ms, Max: ${networkStats.max}ms (over ${networkStats.count} samples)`);
-        console.log(`[Bot Response] Avg: ${responseStats.avg}ms, Min: ${responseStats.min}ms, Max: ${responseStats.max}ms (over ${responseStats.count} samples)`);
-        console.log('----------------------');
-      }, 15000); // Log stats every 15 seconds
-
     }
   }
 
